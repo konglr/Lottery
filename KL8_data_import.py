@@ -1,4 +1,5 @@
 import json
+#from tensorflow.keras import layers, models, op
 import math as math
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
@@ -6,8 +7,7 @@ import numpy as np
 import pandas as pd
 import requests
 import xlwt
-import xlrd
-#from tensorflow.keras import layers, models, optimizers, utils, datasets
+import xlrdtimizers, utils, datasets
 #from utils import display
 
 current_2025_times=26# Lukcy 8 open times in 2024
@@ -49,7 +49,9 @@ def requests_data(index):
 wb = xlwt.Workbook()
 sheet= wb.add_sheet('快乐8')
 # 存储表头文件
-row=["期号","开奖日期","前区号码","后区号码","总销售额(元)","奖池金额(元)"]
+row=["期号","开奖日期","前区号码","后区号码","总销售额(元)","奖池金额(元)","一等奖注数","一等奖奖金",
+     "二等奖注数","二等奖奖金","三等奖注数","三等奖奖金","四等奖注数","四等奖奖金",
+     "五等奖注数","五等奖奖金","六等奖注数","六等奖奖金"]
 # 写入表头
 for i in range(0,len(row)):
     sheet.write(0,i,row[i])
