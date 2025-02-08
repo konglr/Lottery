@@ -9,13 +9,7 @@ import xlwt
 # import xlrdtimizers, utils, datasets
 #from utils import display
 
-current_2025_times=11# Lukcy 8 open times in 2024
-#times_2003=89
-#time_2004=122
-#time_2005=153
 
-issueCount = 3247+current_2025_times
-# 2002年 -2024年 总共发行了3246期， 可以在运行本代码时根据实际日期修改本变量。
 def requests_data(index):
     headers = {
         'Connection': 'keep-alive',
@@ -47,6 +41,45 @@ def requests_data(index):
     response = requests.get('https://jc.zhcw.com/port/client_json.php', headers=headers, params=params).content.decode('utf-8')
     #print(response)
     return response
+
+#更新最新的开奖期数，并更新开奖总数 issueCount
+
+def get_latest_issue_from_system():
+    # ... (The improved get_latest_issue_from_system() function from the previous response) ...
+    pass #This is just a placeholder, you must paste the get_latest_issue_from_system() function here
+
+def get_latest_issue_from_system():
+    try:
+        response = requests_data(1)
+        if response is None:
+            return None
+
+        match = re.search(r"\((.*)\)", response)
+        if match:
+            response = match.group(1)
+
+        content = json.loads(response)
+        latest_issue = int(content['data'][0]['issue'])  # 转换为整数
+        return latest_issue
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON解析错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")  # 打印response，如果存在
+        return None
+    except (KeyError, IndexError) as e:
+        logging.error(f"JSON数据访问错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")
+        return None
+    except Exception as e:
+        logging.error(f"获取系统最新期号出错: {e}")
+        return None
+
+
+
+current_2025_times=get_latest_issue_from_system()-2025000#  SSQ open times in 2024
+#times_2003=89
+#time_2004=122
+#time_2005=153
+
+issueCount = 3247+current_2025_times
+# 2002年 -2024年 总共发行了3246期， 可以在运行本代码时根据实际日期修改本变量。
 
 
 wb = xlwt.Workbook()
@@ -118,11 +151,12 @@ earliest_issue = df['期号'].min()
 if earliest_issue != 2003001:
     print(f"警告：最早的数据不是2003001，而是{earliest_issue}")
 else:
-    print(f"最早的数据是2003001，符合预期。")
+    print(f"1.最早的数据是2003001，符合预期。")
 
 #检查最新一期的数据是否与系统里的相同
 import re
 import logging
+
 # Configure logging (as before)
 logging.basicConfig(filename='my_log_file.log', level=logging.INFO)
 
@@ -131,32 +165,7 @@ last_issue_in_excel = int(last_issue_in_excel) #Convert to int for comparison
 
 
 # --- System Data Retrieval ---
-def get_latest_issue_from_system():
-    # ... (The improved get_latest_issue_from_system() function from the previous response) ...
-    pass #This is just a placeholder, you must paste the get_latest_issue_from_system() function here
 
-def get_latest_issue_from_system():
-    try:
-        response = requests_data(1)
-        if response is None:
-            return None
-
-        match = re.search(r"\((.*)\)", response)
-        if match:
-            response = match.group(1)
-
-        content = json.loads(response)
-        latest_issue = int(content['data'][0]['issue'])  # 转换为整数
-        return latest_issue
-    except json.JSONDecodeError as e:
-        logging.error(f"JSON解析错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")  # 打印response，如果存在
-        return None
-    except (KeyError, IndexError) as e:
-        logging.error(f"JSON数据访问错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")
-        return None
-    except Exception as e:
-        logging.error(f"获取系统最新期号出错: {e}")
-        return None
 
 # --- Comparison ---
 latest_issue_in_system = get_latest_issue_from_system()
@@ -165,7 +174,7 @@ if latest_issue_in_system is None:
     print("Failed to get latest issue from system.")
 else:
     if last_issue_in_excel == int(latest_issue_in_system):  # Convert to int for comparison
-        print(f"Excel and system data are synchronized. Latest issue: {last_issue_in_excel}")
+        print(f"2.Excel and system data are synchronized. Latest issue: {last_issue_in_excel}")
         logging.info(f"Data synchronized: {last_issue_in_excel}")
     else:
         print(f"WARNING: Excel and system data are NOT synchronized!")
@@ -176,10 +185,13 @@ else:
 # 检查是否有重复数据
 duplicate_issues = df[df.duplicated(['期号'], keep=False)]
 if not duplicate_issues.empty:
-    print("警告：发现重复的期号:")
+    print("3.警告：发现重复的期号:")
     print(duplicate_issues[['期号']])
 else:
-    print("未发现重复数据。")
+    print("3.未发现重复数据。")
+
+# 读取 Excel 文件
+df = pd.read_excel('双色球开奖情况.xls')
 
 # 将“后区号码”列转换为字符串类型
 df['后区号码'] = df['后区号码'].astype(str)
@@ -194,9 +206,8 @@ number_counts = back_numbers.value_counts()
 print(number_counts)
 
 
-# 读取 Excel 文件
-df = pd.read_excel('双色球开奖情况.xls')
 
+#统计每年的开奖次数
 # 将“开奖日期”列转换为 datetime 类型
 df['开奖日期'] = pd.to_datetime(df['开奖日期'])
 
@@ -219,14 +230,9 @@ plt.title('每年双色球开奖期数')
 plt.show()
 
 
-# 将“开奖日期”列转换为 datetime 类型
-df['开奖日期'] = pd.to_datetime(df['开奖日期'])
 
-# 找到最早的开奖日期
-earliest_date = df['开奖日期'].min()
+# 获取前 10 行数据的 "前区号码" 和 "后区号码" 列，并按索引倒序排列
+last_rows_reversed = df.head(50)[["前区号码", "后区号码"]].sort_index(ascending=False)
 
-# 找到最早开奖日期对应的期号
-earliest_issue = df[df['开奖日期'] == earliest_date]['期号'].iloc[0]
-
-print(f"最早的开奖日期是：{earliest_date}")
-print(f"对应的期号是：{earliest_issue}")
+# 打印结果
+print(last_rows_reversed)
