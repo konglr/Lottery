@@ -189,6 +189,9 @@ else:
 
 
 #统计每年的开奖次数
+# 读取 Excel 文件
+df = pd.read_excel('双色球开奖情况.xls')
+
 # 将“开奖日期”列转换为 datetime 类型
 df['开奖日期'] = pd.to_datetime(df['开奖日期'])
 
@@ -200,3 +203,4 @@ yearly_counts = df.groupby('年份')['期号'].count()
 
 # 打印结果
 print(yearly_counts)
+
