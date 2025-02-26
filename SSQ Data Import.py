@@ -9,10 +9,11 @@ import os
 import time
 from tqdm import tqdm
 
+ID = 1 #快乐8的ID为6; 7乐彩 ID为3；双色球 ID为1，
 # 配置日志记录
 logging.basicConfig(filename='my_log_file.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def requests_data(index, issue_count):
+def requests_data(index, issue_count,ID):
     headers = {
         'Connection': 'keep-alive',
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
@@ -32,7 +33,7 @@ def requests_data(index, issue_count):
     params = (
         ('callback', callback),
         ('transactionType', '10001001'),
-        ('lotteryId', '1'),
+        ('lotteryId', ID),
         ('issueCount', issue_count),
         ('startIssue', ''),
         ('endIssue', ''),
@@ -53,7 +54,7 @@ def requests_data(index, issue_count):
 
 def get_latest_issue_from_system():
     try:
-        response = requests_data(1, 1)
+        response = requests_data(1, 1, ID)
         if response is None:
             return None
 
@@ -104,6 +105,7 @@ if latest_issue is None:
     print("无法获取最新期号，程序终止。")
     exit()
 
+
 current_2025_times = latest_issue - 2025000
 total_issueCount = 3247 + current_2025_times
 
@@ -120,7 +122,7 @@ i = 1
 range_max = math.ceil(total_issueCount / 30)
 
 for pageNum_i in tqdm(range(1, range_max + 1), desc="爬取进度"):
-    tony_dict = requests_data(pageNum_i, total_issueCount)
+    tony_dict = requests_data(pageNum_i, total_issueCount,ID)
     if tony_dict is None:
         print(f"第 {pageNum_i} 页数据获取失败，跳过。")
         continue
