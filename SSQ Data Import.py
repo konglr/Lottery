@@ -8,72 +8,11 @@ import pandas as pd
 import os
 import time
 from tqdm import tqdm
+from funcs.requestsdata import requests_data,get_latest_issue_from_system
 
-ID = 1 #快乐8的ID为6; 7乐彩 ID为3；双色球 ID为1，
+Lottry_ID = 1 #快乐8的ID为6; 7乐彩 ID为3；双色球 ID为1，
 # 配置日志记录
 logging.basicConfig(filename='my_log_file.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def requests_data(index, issue_count,ID):
-    headers = {
-        'Connection': 'keep-alive',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
-        'Accept': '*/*',
-        'Sec-Fetch-Site': 'same-site',
-        'Sec-Fetch-Mode': 'no-cors',
-        'Referer': 'https://www.zhcw.com/kjxx/kl8/',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-    }
-
-    timestamp = int(time.time() * 1000)
-    callback = f'jQuery1122035713028555611515_{timestamp}'
-    tt = '0.123456789' # 需要分析网页请求得到正确的 tt 值
-    _ = timestamp + 10 # 需要分析网页请求得到正确的 _ 值
-
-    params = (
-        ('callback', callback),
-        ('transactionType', '10001001'),
-        ('lotteryId', ID),
-        ('issueCount', issue_count),
-        ('startIssue', ''),
-        ('endIssue', ''),
-        ('startDate', ''),
-        ('endDate', ''),
-        ('type', '0'),
-        ('pageNum', index),
-        ('pageSize', '30'),
-        ('tt', tt),
-        ('_', _),
-    )
-    try:
-        response = requests.get('https://jc.zhcw.com/port/client_json.php', headers=headers, params=params).content.decode('utf-8')
-        return response
-    except requests.exceptions.RequestException as e:
-        logging.error(f"网络请求错误: {e}")
-        return None
-
-def get_latest_issue_from_system():
-    try:
-        response = requests_data(1, 1, ID)
-        if response is None:
-            return None
-
-        match = re.search(r"\((.*)\)", response)
-        if match:
-            response = match.group(1)
-
-        content = json.loads(response)
-        latest_issue = int(content['data'][0]['issue'])
-        return latest_issue
-    except json.JSONDecodeError as e:
-        logging.error(f"JSON解析错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")
-        return None
-    except (KeyError, IndexError) as e:
-        logging.error(f"JSON数据访问错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")
-        return None
-    except Exception as e:
-        logging.error(f"获取系统最新期号出错: {e}")
-        return None
 
 def write_to_excel(sheet, row_index, item):
     sheet.write(row_index, 0, item['issue'])
@@ -100,53 +39,78 @@ def write_to_excel(sheet, row_index, item):
             logging.error(f"中奖详情数据访问错误: {e}, 数据: {award}")
             continue
 
-latest_issue = get_latest_issue_from_system()
-if latest_issue is None:
+
+try:
+    df_existing = pd.read_excel('双色球开奖情况.xls')
+    last_issue_in_excel = int(df_existing['期号'].max())
+except FileNotFoundError:
+    last_issue_in_excel = 0
+
+latest_issue_in_system = get_latest_issue_from_system(Lottry_ID)
+if latest_issue_in_system is None:
     print("无法获取最新期号，程序终止。")
     exit()
 
-
-current_2025_times = latest_issue - 2025000
+current_2025_times = latest_issue_in_system - 2025000
 total_issueCount = 3247 + current_2025_times
 
-wb = xlwt.Workbook()
-sheet = wb.add_sheet('双色球')
+# 检查本地文件是否存在，如果存在则读取最后一期期号
 
-row = ["期号", "开奖日期", "WeekDay", "前区号码", "后区号码", "总销售额(元)", "奖池金额(元)",
-       "一等奖注数", "一等奖奖金", "二等奖注数", "二等奖奖金", "三等奖注数", "三等奖奖金",
-       "四等奖注数", "四等奖奖金", "五等奖注数", "五等奖奖金", "六等奖注数", "六等奖奖金"]
-for i in range(len(row)):
-    sheet.write(0, i, row[i])
 
-i = 1
-range_max = math.ceil(total_issueCount / 30)
+# 如果本地文件最后一期与系统最新期号相同，则跳过下载
+if last_issue_in_excel == latest_issue_in_system:
+    print(f"本地数据已是最新，跳过下载。最新期号: {latest_issue_in_system}")
+else:
+    wb = xlwt.Workbook()
+    sheet = wb.add_sheet('双色球')
+    row = ["期号", "开奖日期", "WeekDay", "前区号码", "后区号码", "总销售额(元)", "奖池金额(元)",
+           "一等奖注数", "一等奖奖金", "二等奖注数", "二等奖奖金", "三等奖注数", "三等奖奖金",
+           "四等奖注数", "四等奖奖金", "五等奖注数", "五等奖奖金", "六等奖注数", "六等奖奖金"]
+    for i in range(0, len(row)):
+        sheet.write(0, i, row[i])
 
-for pageNum_i in tqdm(range(1, range_max + 1), desc="爬取进度"):
-    tony_dict = requests_data(pageNum_i, total_issueCount,ID)
-    if tony_dict is None:
-        print(f"第 {pageNum_i} 页数据获取失败，跳过。")
-        continue
-
-    tony_dict = re.search(r'\((.*)\)', tony_dict).group(1)
-
-    try:
+    i = 1
+    range_max = math.floor(issueCount / 30 + 1) if issueCount % 30 == 0 else math.floor(issueCount / 30 + 2)
+    for pageNum_i in range(1, range_max):
+        tony_dict = requests_data(pageNum_i, issueCount)
+        for j in tony_dict:
+            if j != '{':
+                tony_dict = tony_dict[-(len(tony_dict) - 1):]
+            else:
+                break
+        if tony_dict[len(tony_dict) - 1] == ')':
+            tony_dict = tony_dict[:len(tony_dict) - 1]
         content = json.loads(tony_dict)
         content_data = content['data']
-    except json.JSONDecodeError as e:
-        logging.error(f"JSON解析错误: {e}, 数据: {tony_dict if 'tony_dict' in locals() else 'N/A'}")
-        continue
-
-    for item in content_data:
-        write_to_excel(sheet, i, item)
-        i += 1
-
-wb.save("双色球开奖情况.xls")
-print("数据爬取完成，已保存到 双色球开奖情况.xls")
+        for item in content_data:
+            sheet.write(i, 0, item['issue'])
+            sheet.write(i, 1, item['openTime'])
+            sheet.write(i, 2, item['week'])
+            sheet.write(i, 3, item['frontWinningNum'])
+            sheet.write(i, 4, item['backWinningNum'])
+            sheet.write(i, 5, item['saleMoney'])
+            sheet.write(i, 6, item['prizePoolMoney'])
+            winner_details = item.get('winnerDetails', [])
+            for award in winner_details:
+                award_etc = award.get('awardEtc', '')
+                base_bet_winner = award.get('baseBetWinner', {})
+                try:
+                    award_level = int(award_etc)
+                    if 1 <= award_level <= 6:
+                        col_index = 7 + (award_level - 1) * 2
+                        sheet.write(i, col_index, base_bet_winner.get('awardNum', ''))
+                        sheet.write(i, col_index + 1, base_bet_winner.get('awardMoney', ''))
+                except ValueError:
+                    print(f"awardEtc: {award_etc} 不是有效的数字")
+                    continue
+            i += 1
+    wb.save("双色球开奖情况.xls")
+    print("数据已成功下载并保存。")
 
 
 # 数据检验部分代码
 # 读取 Excel 文件
-df = pd.read_excel('双色球开奖情况.xls')
+df = pd.read_excel('双色球开奖情况.xls', header = 0)
 
 # 检查最早的数据是否为 2003001
 earliest_issue = df['期号'].min()
@@ -156,18 +120,14 @@ else:
     print(f"1.最早的数据是2003001，符合预期。")
 
 #检查最新一期的数据是否与系统里的相同
-import re
-import logging
-
 # Configure logging (as before)
 logging.basicConfig(filename='my_log_file.log', level=logging.INFO)
 
 last_issue_in_excel = df['期号'].max()  # Calculate AFTER reading and processing the Excel file
 last_issue_in_excel = int(last_issue_in_excel) #Convert to int for comparison
 
-
 # --- Comparison ---
-latest_issue_in_system = get_latest_issue_from_system()
+latest_issue_in_system = get_latest_issue_from_system(Lottry_ID)
 
 if latest_issue_in_system is None:
     print("Failed to get latest issue from system.")
@@ -192,7 +152,7 @@ else:
 
 #统计每年的开奖次数
 # 读取 Excel 文件
-df = pd.read_excel('双色球开奖情况.xls')
+df = pd.read_excel('双色球开奖情况.xls',header=0)
 
 # 将“开奖日期”列转换为 datetime 类型
 df['开奖日期'] = pd.to_datetime(df['开奖日期'])

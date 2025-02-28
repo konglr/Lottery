@@ -19,3 +19,8 @@ INFO:root:Data synchronized: 2025015
 2025-02-26 22:23:26,898 - INFO - Data synchronized: 2025020
 2025-02-26 22:23:50,318 - ERROR - 获取系统最新期号出错: name 'ID' is not defined
 2025-02-26 22:25:09,260 - INFO - Data synchronized: 2025020
+2025-02-27 19:05:31,015 - INFO - Data synchronized: 2025020
+2025-02-28 14:20:48,033 - ERROR - 获取系统最新期号出错: name 'ID' is not defined
+2025-02-28 14:43:49,447 - INFO - Data synchronized: 2025021
+2025-02-28 15:32:12,124 - INFO - Data synchronized: 2025021
+2025-02-28 15:40:28,726 - INFO - Data synchronized: 2025021
