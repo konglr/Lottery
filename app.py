@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 import io
 
@@ -20,11 +19,11 @@ def calculate_number_frequency(df, lottery_type):
         for _, row in df.iterrows():
             all_numbers.extend(row['前区号码'])
             all_numbers.extend(row['后区号码'])
-        num_range = range(1, 34)
+        num_range = range(1, 33)
     elif lottery_type == "快乐8":
         for _, row in df.iterrows():
             all_numbers.extend(row['前区号码'])
-        num_range = range(1, 81)
+        num_range = range(1, 80)
 
     frequency = pd.Series(all_numbers).value_counts().sort_index()
     total_draws = len(df) * (6 if lottery_type == "双色球" else 20)  # 双色球每期6个号码，快乐8每期20个号码
@@ -84,6 +83,7 @@ def main():
             <style>
             .stContainer {
                 width: 100% !important;
+                height: 500px; /* 调整行高度 */
                 margin: 0 auto;
             }
             </style>
@@ -103,13 +103,8 @@ def main():
     st.dataframe(frequency_df, use_container_width=True, column_config=column_config)
 
     # 绘制柱状图
-    fig, ax = plt.subplots(figsize=(20, 6))
-    colors = ['red' if count > frequency_df.loc['出现次数'].mean() else 'blue' for count in frequency_df.loc['出现次数']]
-    ax.bar(frequency_df.columns.astype(str), frequency_df.loc['出现次数'], color=colors)
-    ax.set_xlabel("Numbers")
-    ax.set_ylabel("Times")
-    ax.set_title("Frequency")
-    st.pyplot(fig)
+    st.subheader("号码出现次数统计图")
+    st.bar_chart(frequency_df.loc['出现次数'])
 
     # 下载按钮
     st.sidebar.subheader("下载数据")
