@@ -61,9 +61,9 @@ def main():
 
     # 读取Excel数据
     if lottery_type == "双色球":
-        df = pd.read_excel("双色球开奖情况.xls")
+        df = pd.read_excel("双色球开奖情况.xlsx")
     elif lottery_type == "快乐8":
-        df = pd.read_excel("快乐8开奖情况.xls")
+        df = pd.read_excel("快乐8开奖情况.xlsx")
 
     # 移除期号中的千分位分隔符
     df['期号'] = df['期号'].astype(str).str.replace(',', '')
