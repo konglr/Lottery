@@ -173,9 +173,9 @@ else:
             sheet.cell(row=i, column=82, value=winner_data.get('x1z1', {}).get('awardMoney', ''))
 
             i = i + 1
-# 保存
-wb.save("快乐8开奖情况.xlsx")  # 修改保存的文件格式
-print("数据已成功下载并保存。")
+    # 保存
+    wb.save("快乐8开奖情况.xlsx")  # 修改保存的文件格式
+    print("数据已成功下载并保存。")
 
 # 统计每年的开奖次数
 # 读取 Excel 文件
