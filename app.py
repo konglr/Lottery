@@ -109,13 +109,13 @@ def main():
 
     # 下载按钮
     st.sidebar.subheader("下载数据")
-    with open("双色球开奖情况.xls", "rb") as f:
+    with open("双色球开奖情况.xlsx", "rb") as f:
         bytes_data = f.read()
-    st.sidebar.download_button(label="下载双色球数据", data=bytes_data, file_name="双色球开奖情况.xls", mime="application/vnd.ms-excel")
+    st.sidebar.download_button(label="下载双色球数据", data=bytes_data, file_name="双色球开奖情况.xlsx", mime="application/vnd.ms-excel")
 
-    with open("快乐8开奖情况.xls", "rb") as f:
+    with open("快乐8开奖情况.xlsx", "rb") as f:
         bytes_data = f.read()
-    st.sidebar.download_button(label="下载快乐8数据", data=bytes_data, file_name="快乐8开奖情况.xls", mime="application/vnd.ms-excel")
+    st.sidebar.download_button(label="下载快乐8数据", data=bytes_data, file_name="快乐8开奖情况.xlsx", mime="application/vnd.ms-excel")
 
 if __name__ == "__main__":
     main()
