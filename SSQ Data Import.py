@@ -47,7 +47,7 @@ else:
     i = 2 #修改i的初始值
     range_max = math.floor(total_issueCount / 30 + 1) if total_issueCount % 30 == 0 else math.floor(total_issueCount / 30 + 2)
     for pageNum_i in tqdm(range(1, range_max), desc="下载进度"):  # 添加 tqdm 进度条
-        tony_dict = requests_data(pageNum_i, total_issueCount, Lottry_ID
+        tony_dict = requests_data(pageNum_i, total_issueCount, Lottry_ID)
         for j in tony_dict:
             if j != '{':
                 tony_dict = tony_dict[-(len(tony_dict) - 1):]
