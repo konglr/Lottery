@@ -26,7 +26,9 @@ if latest_issue_in_system is None:
     exit()
 
 current_2025_times = latest_issue_in_system - 2025000
-total_issueCount = 3247 + current_2025_times
+total_issueCount = 3299 + current_2025_times
+# 89 + 122 + 153 + 154 + 153 + 154 + 154 + 153 + 153 + 154 + 154 + 152 + 154
+# + 153 + 154 + 153 + 151 + 134 + 150 + 150 + 151 + 151 = 3299
 
 # 如果本地文件最后一期与系统最新期号相同，则跳过下载
 if last_issue_in_excel == latest_issue_in_system:
@@ -44,8 +46,8 @@ else:
 
     i = 2 #修改i的初始值
     range_max = math.floor(total_issueCount / 30 + 1) if total_issueCount % 30 == 0 else math.floor(total_issueCount / 30 + 2)
-    for pageNum_i in range(1, range_max):
-        tony_dict = requests_data(pageNum_i, total_issueCount,Lottry_ID)
+    for pageNum_i in tqdm(range(1, range_max), desc="下载进度"):  # 添加 tqdm 进度条
+        tony_dict = requests_data(pageNum_i, total_issueCount, Lottry_ID
         for j in tony_dict:
             if j != '{':
                 tony_dict = tony_dict[-(len(tony_dict) - 1):]
