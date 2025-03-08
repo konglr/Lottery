@@ -34,6 +34,7 @@ def calculate_combinations_step_by_step():
 def is_arithmetic_progression(nums):
     """
     检查列表中是否有超过3个数字构成等差数列 (即 4个或更多)。
+    连号也被视为公差为1的等差数列。
     """
     if len(nums) < 4: # 修改为检查至少4个数字
         return False
@@ -80,77 +81,18 @@ def is_geometric_progression(nums):
                 return True
     return False
 
-
-def has_consecutive_numbers(nums):
+def has_two_arithmetic_progressions_of_length_three(nums):
     """
-    检查列表中是否有超过3个连号 (即 4个或更多)。
+    检查列表中是否包含两个或更多套，每套由3个数字组成的等差数列。
+    例如: [1, 2, 3, 17, 18, 19] 包含两套3个数字的等差数列。
     """
-    if len(nums) < 4: # 修改为检查至少4个数字
-        return False
-    nums_sorted = sorted(nums)
-    max_consecutive_count = 1 # 初始化最大连号计数为1 (因为至少有1个数字)
-    current_consecutive_count = 1
-
-    for i in range(len(nums_sorted) - 1):
-        if nums_sorted[i+1] == nums_sorted[i] + 1:
-            current_consecutive_count += 1
-        else:
-            max_consecutive_count = max(max_consecutive_count, current_consecutive_count) # 更新最大计数
-            current_consecutive_count = 1 # 重置当前计数
-
-    max_consecutive_count = max(max_consecutive_count, current_consecutive_count) # 最后再更新一次，处理末尾的连号
-
-    return max_consecutive_count > 3 # 修改为 max_consecutive_count > 3， 排除4个及以上连号
-
-def has_multiple_consecutive_sets(nums):
-    """
-    检查是否同时存在 3个连号，且另外还有其他连号组合（无论多少个连号）。
-    """
-    if len(nums) < 3:
-        return False
-
-    nums_sorted = sorted(nums)
-    consecutive_sets_count = 0
-    has_three_consecutive = False
-    current_consecutive_count = 1
-
-    for i in range(len(nums_sorted) - 1):
-        if nums_sorted[i+1] == nums_sorted[i] + 1:
-            current_consecutive_count += 1
-        else:
-            if current_consecutive_count >= 2: # 只要是连号（至少2个），就算作一个连号组合
-                consecutive_sets_count += 1
-                if current_consecutive_count == 3: # 检查是否有正好3个连号的组合
-                    has_three_consecutive = True
-            current_consecutive_count = 1 # 重置计数器
-
-    if current_consecutive_count >= 2: # 检查末尾的连号组合
-        consecutive_sets_count += 1
-        if current_consecutive_count == 3:
-            has_three_consecutive = True
-
-    return has_three_consecutive and consecutive_sets_count >= 2 # 只有当有至少两个连号组合，且其中一个是3连号时，才排除
-
-
-def has_three_double_consecutive_sets(nums):
-    """
-    检查是否包含 3个或更多双连号 (例如 [1,2], [4,5], [7,8] 算3个双连号).
-    """
-    if len(nums) < 4: # 双连号至少需要4个数字
-        return False
-
-    nums_sorted = sorted(nums)
-    double_consecutive_sets_count = 0
-
-    i = 0
-    while i < len(nums_sorted) - 1:
-        if nums_sorted[i+1] == nums_sorted[i] + 1: # 发现双连号
-            double_consecutive_sets_count += 1
-            i += 2 # 跳过已计入双连号的两个数字
-        else:
-            i += 1 # 继续检查下一个数字
-
-    return double_consecutive_sets_count >= 3 # 检查双连号数量是否达到3个或更多
+    count_ap_3 = 0
+    for combo in itertools.combinations(nums, 3):
+        if len(combo) == 3:
+            diff = combo[1] - combo[0]
+            if combo[2] - combo[1] == diff and diff != 0: # 确保是等差数列，且公差不为0 (避免 [1,1,1] 这种情况)
+                count_ap_3 += 1
+    return count_ap_3 >= 2
 
 
 def is_valid_ratio(nums, ratio_type, valid_ratios):
@@ -183,6 +125,8 @@ def is_valid_sum_range(nums, min_sum=30, max_sum=170):
 def generate_valid_combinations_dataframe():
     """
     生成所有C(33, 6)组合，并筛选符合条件的组合，存储到 Pandas DataFrame 中, 并统计每种条件排除的组合数量, 增加进度条显示。
+    修改：连号判断已去除，等差数列判断已包含公差为1的连号。
+    新增：排除包含两套3个数字组成的等差数列的组合。
     """
     all_combinations = list(itertools.combinations(range(1, 34), 6)) # 生成所有红球组合并转换为列表
     initial_combinations_count = len(all_combinations)
@@ -193,13 +137,11 @@ def generate_valid_combinations_dataframe():
     valid_small_large_ratios = [(3, 3), (2, 4)] # 修改大小号比例 (冷热号比例) 为 3:3 和 2:4
 
     # 初始化计数器
-    arithmetic_geometric_count = 0
-    consecutive_count = 0
+    arithmetic_geometric_count = 0 # 等差等比数列计数器 (包含连号)
     invalid_odd_even_count = 0
     invalid_small_large_count = 0
     invalid_sum_range_count = 0 # 新增和值范围计数器
-    multiple_consecutive_sets_count = 0 # 新增 “3连号+其他连号” 计数器
-    three_double_consecutive_sets_count = 0 # 新增 “3个双连号” 计数器
+    two_ap_3_count = 0 # 新增 “两套3个数字等差数列” 计数器
 
 
     # 使用 tqdm 添加进度条
@@ -208,9 +150,6 @@ def generate_valid_combinations_dataframe():
 
         if is_arithmetic_progression(combination) or is_geometric_progression(combination):
             arithmetic_geometric_count += 1
-            is_valid = False
-        if has_consecutive_numbers(combination):
-            consecutive_count += 1
             is_valid = False
         if not is_valid_ratio(combination, 'odd_even', valid_odd_even_ratios):
             invalid_odd_even_count += 1
@@ -221,11 +160,8 @@ def generate_valid_combinations_dataframe():
         if not is_valid_sum_range(combination): # 新增和值范围检查
             invalid_sum_range_count += 1
             is_valid = False
-        if has_multiple_consecutive_sets(combination): # 新增 “3连号+其他连号” 检查
-            multiple_consecutive_sets_count += 1
-            is_valid = False
-        if has_three_double_consecutive_sets(combination): # 新增 “3个双连号” 检查
-            three_double_consecutive_sets_count += 1
+        if has_two_arithmetic_progressions_of_length_three(combination): # 新增 “两套3个数字等差数列” 检查
+            two_ap_3_count += 1
             is_valid = False
 
 
@@ -237,13 +173,11 @@ def generate_valid_combinations_dataframe():
     print(f"总共减少了 {initial_combinations_count - valid_combinations_count} 种组合")
 
     print("\n各种条件排除的组合数量统计:")
-    print(f"  - 包含4个或以上数字的等差或等比数列: {arithmetic_geometric_count} 种") # 修改了描述
-    print(f"  - 包含4个或以上连号: {consecutive_count} 种") # 修改了描述
+    print(f"  - 包含4个或以上数字的等差或等比数列 (包含连号): {arithmetic_geometric_count} 种") # 修改了描述，包含连号
     print(f"  - 奇偶比例不符合 2:4, 3:3, 4:2: {invalid_odd_even_count} 种")
     print(f"  - 大小号比例 (冷热号比例) 不符合 3:3, 2:4: {invalid_small_large_count} 种") # 修改了描述
     print(f"  - 红球和值小于30或大于170: {invalid_sum_range_count} 种") # 新增和值范围排除统计
-    print(f"  - 同时包含3连号和另一组连号: {multiple_consecutive_sets_count} 种") # 新增统计
-    print(f"  - 包含3个或更多双连号: {three_double_consecutive_sets_count} 种") # 新增统计
+    print(f"  - 包含两套3个数字组成的等差数列: {two_ap_3_count} 种") # 新增统计
 
 
     df_valid_combinations = pd.DataFrame(valid_combinations, columns=['红球1', '红球2', '红球3', '红球4', '红球5', '红球6'])
