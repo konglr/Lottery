@@ -1,7 +1,7 @@
 import json
 import math
 import requests
-import openpyxl  # 替换 xlwt
+import openpyxl
 import re
 import logging
 import pandas as pd
@@ -15,7 +15,7 @@ Lottry_ID = 1  # 快乐8的ID为6; 7乐彩 ID为3；双色球 ID为1，
 logging.basicConfig(filename='my_log_file.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 try:
-    df_existing = pd.read_excel('双色球开奖情况.xlsx') #替换xls为xlsx
+    df_existing = pd.read_excel('双色球开奖情况.xlsx')
     last_issue_in_excel = int(df_existing['期号'].max())
 except FileNotFoundError:
     last_issue_in_excel = 0
@@ -27,26 +27,25 @@ if latest_issue_in_system is None:
 
 current_2025_times = latest_issue_in_system - 2025000
 total_issueCount = 3299 + current_2025_times
-# 89 + 122 + 153 + 154 + 153 + 154 + 154 + 153 + 153 + 154 + 154 + 152 + 154
-# + 153 + 154 + 153 + 151 + 134 + 150 + 150 + 151 + 151 = 3299
 
 # 如果本地文件最后一期与系统最新期号相同，则跳过下载
-if last_issue_in_excel == latest_issue_in_system:
-    print(f"本地数据已是最新，跳过下载。最新期号: {latest_issue_in_system}")
-else:
-    wb = openpyxl.Workbook() #替换xlwt为openpyxl
-    sheet = wb.active  # 使用活动工作表
-    sheet.title = '双色球'  # 设置工作表标题
+#if last_issue_in_excel == latest_issue_in_system:
+ #   print(f"本地数据已是最新，跳过下载。最新期号: {latest_issue_in_system}")
+#else:
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    sheet.title = '双色球'
 
     row = ["期号", "开奖日期", "WeekDay", "前区号码", "后区号码", "总销售额(元)", "奖池金额(元)",
            "一等奖注数", "一等奖奖金", "二等奖注数", "二等奖奖金", "三等奖注数", "三等奖奖金",
-           "四等奖注数", "四等奖奖金", "五等奖注数", "五等奖奖金", "六等奖注数", "六等奖奖金"]
+           "四等奖注数", "四等奖奖金", "五等奖注数", "五等奖奖金", "六等奖注数", "六等奖奖金",
+           "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"]  # 添加红球和蓝球列
     for i, title in enumerate(row):
-        sheet.cell(row=1, column=i + 1, value=title) #修改写入方式
+        sheet.cell(row=1, column=i + 1, value=title)
 
-    i = 2 #修改i的初始值
+    i = 2
     range_max = math.floor(total_issueCount / 30 + 1) if total_issueCount % 30 == 0 else math.floor(total_issueCount / 30 + 2)
-    for pageNum_i in tqdm(range(1, range_max), desc="下载进度"):  # 添加 tqdm 进度条
+    for pageNum_i in tqdm(range(1, range_max), desc="下载进度"):
         tony_dict = requests_data(pageNum_i, total_issueCount, Lottry_ID)
         for j in tony_dict:
             if j != '{':
@@ -78,8 +77,14 @@ else:
                 except ValueError:
                     print(f"awardEtc: {award_etc} 不是有效的数字")
                     continue
+            # 写入红球和蓝球
+            front_nums = item['frontWinningNum'].split()
+            back_nums = item['backWinningNum'].split()
+            for j in range(6):
+                sheet.cell(row=i, column=20 + j, value=int(front_nums[j])) # 修改红球的写入列
+            sheet.cell(row=i, column=26, value=int(back_nums[0])) #修改蓝球的写入列
             i += 1
-    wb.save("双色球开奖情况.xlsx") #保存为xlsx格式
+    wb.save("双色球开奖情况.xlsx")
     print("数据已成功下载并保存。")
 
 # 数据检验部分代码
