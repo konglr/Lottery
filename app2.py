@@ -12,6 +12,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# 设置 matplotlib 使用 SimHei 字体
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
 
 # CSS styling
 st.markdown("""
@@ -54,7 +57,7 @@ st.markdown("""
         margin-bottom: 15px;
     }
     .subheader {
-        font-size: 18px;
+        font-size: 14px;
         font-weight: bold;
         margin: 10px 0;
     }
@@ -235,27 +238,62 @@ with tab1:
                 st.write(f"热门号码: {', '.join(map(str, hot_blue))}")
                 st.write(f"冷门号码: {', '.join(map(str, cold_blue))}")
 
-        st.subheader("奇偶比例分析")
-        # Calculate odd-even ratio for red balls in each draw
-        odd_even_ratios = []
-        for _, row in filtered_data.iterrows():
-            odd_count = 0
-            for i in range(1, 7):
-                col_name = f'红球{i}'
-                if col_name in row and row[col_name] % 2 == 1:
-                    odd_count += 1
-            odd_even_ratios.append((odd_count, 6 - odd_count))
+        col1, col2 = st.columns(2)
 
-        odd_even_df = pd.DataFrame(odd_even_ratios, columns=['奇数', '偶数'])
-        odd_even_counts = odd_even_df.groupby(['奇数', '偶数']).size().reset_index(name='次数')
+        with col1:
+            st.subheader("大小比例分析")
+            # Calculate big-small ratio for red balls in each draw
+            big_small_ratios = []
+            for _, row in filtered_data.iterrows():
+                big_count = 0
+                for i in range(1, 7):
+                    col_name = f'红球{i}'
+                    if col_name in row and row[col_name] > 16:  # 假设17及以上为大号
+                        big_count += 1
+                big_small_ratios.append((big_count, 6 - big_count))
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-        labels = [f"{row['奇数']}奇{row['偶数']}偶" for _, row in odd_even_counts.iterrows()]
-        ax.bar(labels, odd_even_counts['次数'])
-        ax.set_title('红球奇偶比例分布')
-        ax.set_xlabel('奇偶比例')
-        ax.set_ylabel('出现次数')
-        st.pyplot(fig)
+            big_small_df = pd.DataFrame(big_small_ratios, columns=['大号', '小号'])
+            big_small_counts = big_small_df.groupby(['大号', '小号']).size().reset_index(name='次数')
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+            labels = [f"{row['大号']}大{row['小号']}小" for _, row in big_small_counts.iterrows()]
+            ax.bar(labels, big_small_counts['次数'])
+            ax.set_title('红球大小比例分布')
+            ax.set_xlabel('大小比例')
+            ax.set_ylabel('出现次数')
+            st.pyplot(fig)
+
+        with col2:
+            st.subheader("奇偶比例分析")
+            # Calculate odd-even ratio for red balls in each draw
+            odd_even_counts = {
+                '1:5': 0,
+                '2:4': 0,
+                '3:3': 0,
+                '4:2': 0,
+                '5:1': 0
+            }
+
+            for _, row in filtered_data.iterrows():
+                odd_count = 0
+                for i in range(1, 7):
+                    col_name = f'红球{i}'
+                    if col_name in row and row[col_name] % 2 == 1:
+                        odd_count += 1
+
+                ratio = f"{odd_count}:{6 - odd_count}"
+                if ratio in odd_even_counts:
+                    odd_even_counts[ratio] += 1
+
+            ratios = list(odd_even_counts.keys())
+            counts = list(odd_even_counts.values())
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.bar(ratios, counts)
+            ax.set_title('红球奇偶比例分布')
+            ax.set_xlabel('奇偶比例')
+            ax.set_ylabel('出现次数')
+            st.pyplot(fig)
 
         col1, col2 = st.columns(2)
 
@@ -400,10 +438,10 @@ with tab2:
 
     # Red ball selection
     st.markdown("<div class='subheader'>选择红球 (1-33, 最少6个, 最多6个)</div>", unsafe_allow_html=True) # Corrected range to 1-33
-    cols_red = st.columns(8) # Adjust columns for layout
+    cols_red = st.columns(18) # Adjust columns for layout
 
     for i in range(1, 34): # Corrected range to 1-34 to align with UI
-        col_index = (i - 1) % 8 # Distribute balls across columns
+        col_index = (i - 1) % 18 # Distribute balls across columns
         with cols_red[col_index]:
             ball_key = f"red_{i}" # Unique key for each button
             if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_red_balls) >= 6 and i not in st.session_state.selected_red_balls ,  on_click=toggle_red_ball, args=(i,), use_container_width=True, ):
@@ -412,10 +450,10 @@ with tab2:
 
     # Blue ball selection
     st.markdown("<div class='subheader'>选择蓝球 (1-16, 最少1个, 最多1个)</div>", unsafe_allow_html=True)
-    cols_blue = st.columns(8) # Adjust columns for layout
+    cols_blue = st.columns(18) # Adjust columns for layout
 
     for i in range(1, 17):
-        col_index = (i - 1) % 8 # Distribute balls across columns
+        col_index = (i - 1) % 18 # Distribute balls across columns
         with cols_blue[col_index]:
             ball_key = f"blue_{i}" # Unique key for each button
             if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_blue_balls) >= 1 and i not in st.session_state.selected_blue_balls, on_click=toggle_blue_ball, args=(i,), use_container_width=True, ):
