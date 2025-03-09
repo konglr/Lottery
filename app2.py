@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 # 设置 matplotlib 使用 SimHei 字体
-plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['font.sans-serif'] = ['Hei']
 plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
 
 # CSS styling
@@ -78,7 +78,7 @@ st.markdown("""
         border: none;
         border-radius: 5px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 10px;
         margin-top: 10px;
     }
     .clear-button:hover {
