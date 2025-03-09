@@ -86,7 +86,7 @@ st.markdown("""
 
 # Sidebar
 with st.sidebar:
-    st.title("双色球分析与选号工具")
+    st.title("双色球分析选项")
 
     # Lottery type selection
     lottery_type = st.selectbox(
@@ -124,39 +124,23 @@ with st.sidebar:
     if sum_filter:
         sum_range = st.slider("红球和值范围", 21, 183, (70, 130))
 
-
-# Function to load data from Excel file
 @st.cache_data
-def load_historical_data():
+def load_historical_data(analysis_period):
     try:
-        # 读取 Excel 文件
-        df = pd.read_excel('双色球开奖情况.xlsx')
+        # 直接读取需要的列
+        df = pd.read_excel('双色球开奖情况.xlsx', usecols=["期号", "开奖日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+        if analysis_period > 0:
+            df = df.head(analysis_period)
 
-        # 检查是否存在 '前区号码' 和 '后区号码' 列，如果不存在则返回空 DataFrame 并报错
-        if '前区号码' not in df.columns or '后区号码' not in df.columns:
-            st.error("Excel 文件缺少 '前区号码' 或 '后区号码' 列，请检查文件格式。")
-            return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
-
-
-        # 将红球号码和蓝球号码转换为列表
-        df['红球号码'] = df['前区号码'].apply(lambda x: sorted([int(i) for i in x.split(' ')]))
-        df['蓝球号码'] = df['后区号码'].apply(lambda x: int(x))
-
-        # 展开红球号码列表为 "红球1" - "红球6" 列
-        for i in range(6):
-            df[f'红球{i+1}'] = df['红球号码'].apply(lambda x: x[i] if len(x) > i else 0) # 增加索引存在性判断
-
-        # 蓝球号码直接赋值给 "蓝球" 列
-        df['蓝球'] = df['蓝球号码']
+        # 将 "开奖日期" 列重命名为 "日期"
+        df = df.rename(columns={"开奖日期": "日期"})
 
         # 确保所有球号码列为整数类型
-        ball_columns = [f'红球{i+1}' for i in range(6)] + ['蓝球']
+        ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"]
         for col in ball_columns:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
 
-        # 返回处理后的 DataFrame，仅包含需要的列
-        return df[["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"]]
-
+        return df
 
     except FileNotFoundError:
         st.error("找不到 Excel 文件 '双色球开奖情况.xlsx'，请确保文件与代码在同一目录下，并检查文件名是否正确。")
@@ -165,36 +149,12 @@ def load_historical_data():
         st.error(f"加载或处理数据时出错: {e}")
         return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
 
-
-# Get historical data
-filtered_data = pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "蓝球"]) #  在 try...except 块之前初始化 filtered_data
-try:
-    historical_data = load_historical_data()
-    if historical_data.empty:
-        st.error("无法加载数据或数据为空。请检查Excel文件格式和数据。")
-    else:
-        # Sort data by date (newest first) if possible
-        if "日期" in historical_data.columns:
-            try:
-                historical_data["日期"] = pd.to_datetime(historical_data["日期"])
-                historical_data = historical_data.sort_values("日期", ascending=False)
-            except:
-                pass
-
-        # Filter data based on selected analysis period
-        filtered_data = historical_data.head(analysis_period) #  注意，这里仍然要赋值给 filtered_data，即使之前初始化了
-        #  如果数据加载成功，这里会用加载的数据覆盖之前初始化的空 DataFrame
-
-except Exception as e:
-    st.error(f"处理数据时出错: {e}")
-    # Create empty dataframe if there's an error
-    filtered_data = pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "蓝球"]) #  异常情况下，仍然要赋值，确保 filtered_data 是一个空 DataFrame
-
-
 # Main content area
 st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html=True)
 
-# Latest draw information
+# 加载历史数据，并根据分析期数筛选
+filtered_data = load_historical_data(analysis_period)
+
 if not filtered_data.empty:
     latest_draw = filtered_data.iloc[0]
     st.markdown("<div class='subheader'>最新开奖信息</div>", unsafe_allow_html=True)
@@ -467,6 +427,7 @@ with tab2:
 
 with tab3:
     st.subheader("历史开奖数据")
+    historical_data = load_historical_data(100) # 获取所有数据
     if not historical_data.empty:
         st.dataframe(historical_data, width=1000, height=500) # Display historical data in a table
     else:
