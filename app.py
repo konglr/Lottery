@@ -12,6 +12,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# 设置 matplotlib 使用 SimHei 字体
+plt.rcParams['font.sans-serif'] = ['Hei']
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
 
 # CSS styling
 st.markdown("""
@@ -54,7 +57,7 @@ st.markdown("""
         margin-bottom: 15px;
     }
     .subheader {
-        font-size: 18px;
+        font-size: 14px;
         font-weight: bold;
         margin: 10px 0;
     }
@@ -66,6 +69,7 @@ st.markdown("""
     }
     .selected-numbers-display p {
         margin-bottom: 5px;
+        text-align: center;
         font-weight: bold;
     }
     .clear-button {
@@ -75,7 +79,7 @@ st.markdown("""
         border: none;
         border-radius: 5px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 10px;
         margin-top: 10px;
     }
     .clear-button:hover {
@@ -86,7 +90,7 @@ st.markdown("""
 
 # Sidebar
 with st.sidebar:
-    st.title("双色球分析与选号工具")
+    st.title("双色球分析选项")
 
     # Lottery type selection
     lottery_type = st.selectbox(
@@ -124,35 +128,63 @@ with st.sidebar:
     if sum_filter:
         sum_range = st.slider("红球和值范围", 21, 183, (70, 130))
 
+@st.cache_data
+def load_historical_data(analysis_period):
+    try:
+        # 直接读取需要的列
+        df = pd.read_excel('双色球开奖情况.xlsx', usecols=["期号", "开奖日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+        if analysis_period > 0:
+            df = df.head(analysis_period)
+
+        # 将 "开奖日期" 列重命名为 "日期"
+        df = df.rename(columns={"开奖日期": "日期"})
+
+        # 确保所有球号码列为整数类型
+        ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"]
+        for col in ball_columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+        return df
+
+    except FileNotFoundError:
+        st.error("找不到 Excel 文件 '双色球开奖情况.xlsx'，请确保文件与代码在同一目录下，并检查文件名是否正确。")
+        return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+    except Exception as e:
+        st.error(f"加载或处理数据时出错: {e}")
+        return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
 
 # Main content area
 st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html=True)
 
-# Latest draw information
-if not filtered_data.empty:
-    latest_draw = filtered_data.iloc[0]
-    st.markdown("<div class='subheader'>最新开奖信息</div>", unsafe_allow_html=True)
-    latest_draw_html = f"""
-    <div class='latest-draw'>
-        <p>期号: {latest_draw.get('期号', 'N/A')} &nbsp;&nbsp;&nbsp; 开奖日期: {latest_draw.get('日期', 'N/A')}</p>
-        <div>
-    """
 
-    for i in range(1, 7):
-        ball_value = latest_draw.get(f'红球{i}', 0)
-        latest_draw_html += f"<span class='lottery-ball red-ball'>{ball_value}</span>"
-
-    latest_draw_html += f"<span class='lottery-ball blue-ball'>{latest_draw.get('蓝球', 0)}</span>"
-    latest_draw_html += "</div></div>"
-
-    st.markdown(latest_draw_html, unsafe_allow_html=True)
-else:
-    st.warning("没有可显示的开奖数据。请检查Excel文件。")
 
 # Display tabs for different analyses
 tab1, tab2, tab3 = st.tabs(["号码分析", "选号工具", "历史数据"])
 
 with tab1:
+    # 加载历史数据，并根据分析期数筛选
+    filtered_data = load_historical_data(analysis_period)
+
+    if not filtered_data.empty:
+        latest_draw = filtered_data.iloc[0]
+        st.markdown("<div class='subheader'>最新开奖信息</div>", unsafe_allow_html=True)
+        latest_draw_html = f"""
+        <div class='latest-draw'>
+            <p>期号: {latest_draw.get('期号', 'N/A')} &nbsp;&nbsp;&nbsp; 开奖日期: {latest_draw.get('日期', 'N/A')}</p>
+            <div>
+        """
+
+        for i in range(1, 7):
+            ball_value = latest_draw.get(f'红球{i}', 0)
+            latest_draw_html += f"<span class='lottery-ball red-ball'>{ball_value}</span>"
+
+        latest_draw_html += f"<span class='lottery-ball blue-ball'>{latest_draw.get('蓝球', 0)}</span>"
+        latest_draw_html += "</div></div>"
+
+        st.markdown(latest_draw_html, unsafe_allow_html=True)
+    else:
+        st.warning("没有可显示的开奖数据。请检查Excel文件。")
+
     if not filtered_data.empty:
         col1, col2 = st.columns(2)
 
@@ -209,27 +241,62 @@ with tab1:
                 st.write(f"热门号码: {', '.join(map(str, hot_blue))}")
                 st.write(f"冷门号码: {', '.join(map(str, cold_blue))}")
 
-        st.subheader("奇偶比例分析")
-        # Calculate odd-even ratio for red balls in each draw
-        odd_even_ratios = []
-        for _, row in filtered_data.iterrows():
-            odd_count = 0
-            for i in range(1, 7):
-                col_name = f'红球{i}'
-                if col_name in row and row[col_name] % 2 == 1:
-                    odd_count += 1
-            odd_even_ratios.append((odd_count, 6 - odd_count))
+        col1, col2 = st.columns(2)
 
-        odd_even_df = pd.DataFrame(odd_even_ratios, columns=['奇数', '偶数'])
-        odd_even_counts = odd_even_df.groupby(['奇数', '偶数']).size().reset_index(name='次数')
+        with col1:
+            st.subheader("大小比例分析")
+            # Calculate big-small ratio for red balls in each draw
+            big_small_ratios = []
+            for _, row in filtered_data.iterrows():
+                big_count = 0
+                for i in range(1, 7):
+                    col_name = f'红球{i}'
+                    if col_name in row and row[col_name] > 16:  # 假设17及以上为大号
+                        big_count += 1
+                big_small_ratios.append((big_count, 6 - big_count))
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-        labels = [f"{row['奇数']}奇{row['偶数']}偶" for _, row in odd_even_counts.iterrows()]
-        ax.bar(labels, odd_even_counts['次数'])
-        ax.set_title('红球奇偶比例分布')
-        ax.set_xlabel('奇偶比例')
-        ax.set_ylabel('出现次数')
-        st.pyplot(fig)
+            big_small_df = pd.DataFrame(big_small_ratios, columns=['大号', '小号'])
+            big_small_counts = big_small_df.groupby(['大号', '小号']).size().reset_index(name='次数')
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+            labels = [f"{row['大号']}大{row['小号']}小" for _, row in big_small_counts.iterrows()]
+            ax.bar(labels, big_small_counts['次数'])
+            ax.set_title('红球大小比例分布')
+            ax.set_xlabel('大小比例')
+            ax.set_ylabel('出现次数')
+            st.pyplot(fig)
+
+        with col2:
+            st.subheader("奇偶比例分析")
+            # Calculate odd-even ratio for red balls in each draw
+            odd_even_counts = {
+                '1:5': 0,
+                '2:4': 0,
+                '3:3': 0,
+                '4:2': 0,
+                '5:1': 0
+            }
+
+            for _, row in filtered_data.iterrows():
+                odd_count = 0
+                for i in range(1, 7):
+                    col_name = f'红球{i}'
+                    if col_name in row and row[col_name] % 2 == 1:
+                        odd_count += 1
+
+                ratio = f"{odd_count}:{6 - odd_count}"
+                if ratio in odd_even_counts:
+                    odd_even_counts[ratio] += 1
+
+            ratios = list(odd_even_counts.keys())
+            counts = list(odd_even_counts.values())
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.bar(ratios, counts)
+            ax.set_title('红球奇偶比例分布')
+            ax.set_xlabel('奇偶比例')
+            ax.set_ylabel('出现次数')
+            st.pyplot(fig)
 
         col1, col2 = st.columns(2)
 
@@ -319,8 +386,8 @@ with tab2:
     if 'selected_blue_balls' not in st.session_state:
         st.session_state.selected_blue_balls = []
 
-    # Display selected numbers
-    st.markdown("<div class='selected-numbers-display'></div>", unsafe_allow_html=True) # Placeholder
+    # Create an empty placeholder
+    placeholder = st.empty()
 
     def display_selected_numbers():
         selected_numbers_html = "<div class='selected-numbers-display'>"
@@ -338,62 +405,66 @@ with tab2:
             selected_numbers_html += "<p>尚未选择任何号码</p>"
 
         selected_numbers_html += "</div>"
-        st.markdown(selected_numbers_html, unsafe_allow_html=True)
+        # Update the placeholder with the selected numbers HTML
+        placeholder.markdown(selected_numbers_html, unsafe_allow_html=True)
 
-    display_selected_numbers() # Initial display
-
+    display_selected_numbers()  # Initial display
 
     # Function to handle ball selection
     def toggle_red_ball(ball):
         if ball in st.session_state.selected_red_balls:
             st.session_state.selected_red_balls.remove(ball)
         else:
-            if len(st.session_state.selected_red_balls) < 6: # 双色球红球最多选6个
+            if len(st.session_state.selected_red_balls) < 6:
                 st.session_state.selected_red_balls.append(ball)
             else:
                 st.warning("红球最多选择6个")
-        display_selected_numbers() # Update display after each selection
-
+        display_selected_numbers()  # Update display after each selection
 
     def toggle_blue_ball(ball):
         if ball in st.session_state.selected_blue_balls:
             st.session_state.selected_blue_balls.remove(ball)
         else:
-            if len(st.session_state.selected_blue_balls) < 1: # 双色球蓝球最多选1个
+            if len(st.session_state.selected_blue_balls) < 1:
                 st.session_state.selected_blue_balls.append(ball)
             else:
                 st.warning("蓝球最多选择1个")
-        display_selected_numbers() # Update display after each selection
+        display_selected_numbers()  # Update display after each selection
 
     def clear_selection():
         st.session_state.selected_red_balls = []
         st.session_state.selected_blue_balls = []
-        display_selected_numbers() # Update display after clear
-        st.rerun() # Important to refresh button states
-
+        display_selected_numbers()  # Update display after clear
+        st.rerun()  # Important to refresh button states
 
     # Red ball selection
-    st.markdown("<div class='subheader'>选择红球 (1-33, 最少6个, 最多6个)</div>", unsafe_allow_html=True) # Corrected range to 1-33
-    cols_red = st.columns(8) # Adjust columns for layout
+    st.markdown("<div class='subheader'>选择红球 (1-33, 最少6个, 最多6个)</div>", unsafe_allow_html=True)
+    cols_red = st.columns(16)
 
-    for i in range(1, 34): # Corrected range to 1-34 to align with UI
-        col_index = (i - 1) % 8 # Distribute balls across columns
+    for i in range(1, 34):
+        col_index = (i - 1) % 16
         with cols_red[col_index]:
-            ball_key = f"red_{i}" # Unique key for each button
-            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_red_balls) >= 6 and i not in st.session_state.selected_red_balls ,  on_click=toggle_red_ball, args=(i,), use_container_width=True, ):
-                pass # Button action is handled by on_click
-
+            ball_key = f"red_{i}"
+            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_red_balls) >= 6 and i not in st.session_state.selected_red_balls, on_click=toggle_red_ball, args=(i,), use_container_width=True):
+                pass
 
     # Blue ball selection
     st.markdown("<div class='subheader'>选择蓝球 (1-16, 最少1个, 最多1个)</div>", unsafe_allow_html=True)
-    cols_blue = st.columns(8) # Adjust columns for layout
+    cols_blue = st.columns(16)
 
     for i in range(1, 17):
-        col_index = (i - 1) % 8 # Distribute balls across columns
+        col_index = (i - 1) % 16
         with cols_blue[col_index]:
-            ball_key = f"blue_{i}" # Unique key for each button
-            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_blue_balls) >= 1 and i not in st.session_state.selected_blue_balls, on_click=toggle_blue_ball, args=(i,), use_container_width=True, ):
-                pass # Button action is handled by on_click
+            ball_key = f"blue_{i}"
+            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_blue_balls) >= 1 and i not in st.session_state.selected_blue_balls, on_click=toggle_blue_ball, args=(i,), use_container_width=True):
+                pass
 
+    st.button("清除所有选择", on_click=clear_selection, type="primary", key="clear_all_button")
 
-    st.button("清除所有选择", on_click=clear
+with tab3:
+    st.subheader("历史开奖数据")
+    historical_data = load_historical_data(100) # 获取所有数据
+    if not historical_data.empty:
+        st.dataframe(historical_data, width=1000, height=500) # Display historical data in a table
+    else:
+        st.warning("没有历史开奖数据可以显示。")
