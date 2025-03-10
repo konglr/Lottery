@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import random
 from datetime import datetime
 import itertools
+import altair as alt
 
 # Page configuration
 st.set_page_config(
@@ -67,11 +68,7 @@ st.markdown("""
         border: 1px solid #ced4da;
         border-radius: 5px;
     }
-    .selected-numbers-display p {
-        margin-bottom: 5px;
-        text-align: center;
-        font-weight: bold;
-    }
+ 
     .clear-button {
         padding: 8px 15px;
         background-color: #007bff;
@@ -202,12 +199,27 @@ with tab1:
             red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
             red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
 
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.bar(red_freq_df['号码'].astype(str), red_freq_df['出现次数'], color='red')
-            ax.set_title('红球出现频率')
-            ax.set_xlabel('号码')
-            ax.set_ylabel('出现次数')
-            st.pyplot(fig)
+           # fig, ax = plt.subplots(figsize=(10, 5))
+           # ax.bar(red_freq_df['号码'].astype(str), red_freq_df['出现次数'], color='red')
+           # ax.set_title('红球出现频率')
+           # ax.set_xlabel('号码')
+           # ax.set_ylabel('出现次数')
+           # st.pyplot(fig)
+
+            # 创建 Altair 柱状图
+            chart = alt.Chart(red_freq_df).mark_bar(color='red').encode(
+                x=alt.X('号码:O', title='号码', sort='-y'),  # 使用 Ordinal 类型，将号码作为离散值处理
+                y=alt.Y('出现次数:Q', title='出现次数'),  # 使用 Quantitative 类型，将出现次数作为数值处理
+                tooltip=['号码', '出现次数']  # 添加鼠标悬停提示
+            ).properties(
+                title='红球出现频率',
+                width=600,  # 设置图表宽度
+                height=300  # 设置图表高度
+            )
+
+            # 在 Streamlit 中显示 Altair 图表
+            st.altair_chart(chart, use_container_width=True)
+
 
             # Display hot and cold numbers
             hot_red = red_freq_df.head(5)['号码'].tolist()

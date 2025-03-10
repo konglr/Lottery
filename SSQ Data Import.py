@@ -29,9 +29,9 @@ current_2025_times = latest_issue_in_system - 2025000
 total_issueCount = 3299 + current_2025_times
 
 # 如果本地文件最后一期与系统最新期号相同，则跳过下载
-#if last_issue_in_excel == latest_issue_in_system:
- #   print(f"本地数据已是最新，跳过下载。最新期号: {latest_issue_in_system}")
-#else:
+if last_issue_in_excel == latest_issue_in_system:
+    print(f"本地数据已是最新，跳过下载。最新期号: {latest_issue_in_system}")
+else:
     wb = openpyxl.Workbook()
     sheet = wb.active
     sheet.title = '双色球'
