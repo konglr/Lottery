@@ -208,12 +208,12 @@ with tab1:
 
             # 创建 Altair 柱状图
             chart = alt.Chart(red_freq_df).mark_bar(color='red').encode(
-                x=alt.X('号码:O', title='号码', sort='-y'),  # 使用 Ordinal 类型，将号码作为离散值处理
+                x=alt.X('号码:O', title='红球号码', sort='-y', axis=alt.Axis(labelAngle= -45, labelOverlap=False, labelFontSize= 10)),  # 使用 Ordinal 类型，将号码作为离散值处理
                 y=alt.Y('出现次数:Q', title='出现次数'),  # 使用 Quantitative 类型，将出现次数作为数值处理
                 tooltip=['号码', '出现次数']  # 添加鼠标悬停提示
             ).properties(
                 title='红球出现频率',
-                width=600,  # 设置图表宽度
+                width=800,  # 设置图表宽度
                 height=300  # 设置图表高度
             )
 
@@ -236,15 +236,23 @@ with tab1:
                 for i in range(1, 17):
                     blue_frequency[i] = (filtered_data['蓝球'] == i).sum()
 
-                blue_freq_df = pd.DataFrame({'号码': blue_frequency.keys(), '出现次数': blue_frequency.values()})
+                blue_freq_df = pd.DataFrame(
+                    {'号码': list(blue_frequency.keys()), '出现次数': list(blue_frequency.values())})
                 blue_freq_df = blue_freq_df.sort_values('出现次数', ascending=False)
 
-                fig, ax = plt.subplots(figsize=(10, 5))
-                ax.bar(blue_freq_df['号码'].astype(str), blue_freq_df['出现次数'], color='blue')
-                ax.set_title('蓝球出现频率')
-                ax.set_xlabel('号码')
-                ax.set_ylabel('出现次数')
-                st.pyplot(fig)
+                # 创建 Altair 柱状图
+                chart = alt.Chart(blue_freq_df).mark_bar(color='blue').encode(
+                    x=alt.X('号码:O', title='篮球号码', sort='-y', axis=alt.Axis(labelAngle= 0, labelFontSize=10)),
+                    y=alt.Y('出现次数:Q', title='出现次数'),
+                    tooltip=['号码', '出现次数']
+                ).properties(
+                    title='蓝球出现频率',
+                    width=800,
+                    height=300
+                )
+
+                # 在 Streamlit 中显示 Altair 图表
+                st.altair_chart(chart, use_container_width=True)
 
                 # Display hot and cold numbers
                 hot_blue = blue_freq_df.head(3)['号码'].tolist()
