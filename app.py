@@ -220,13 +220,23 @@ with tab1:
             # 在 Streamlit 中显示 Altair 图表
             st.altair_chart(chart, use_container_width=True)
 
+            # 获取出现频率最高的前 5 个号码
+            top_5_freq = red_freq_df['出现次数'].iloc[4]
+            hot_red_df = red_freq_df[red_freq_df['出现次数'] >= top_5_freq]
+            hot_red = hot_red_df['号码'].tolist()
 
-            # Display hot and cold numbers
-            hot_red = red_freq_df.head(5)['号码'].tolist()
-            cold_red = red_freq_df.tail(5)['号码'].tolist()
+            # 获取出现频率最低的后 5 个号码
+            bottom_5_freq = red_freq_df['出现次数'].iloc[-5]
+            cold_red_df = red_freq_df[red_freq_df['出现次数'] <= bottom_5_freq]
+            cold_red = cold_red_df['号码'].tolist()
 
-            st.write(f"热门号码: {', '.join(map(str, hot_red))}")
-            st.write(f"冷门号码: {', '.join(map(str, cold_red))}")
+            # 格式化输出
+            hot_red_str = ', '.join(map(str, hot_red))
+            cold_red_str = ', '.join(map(str, cold_red))
+
+            # 显示热门和冷门号码
+            st.write(f"热门号码: {hot_red_str}")
+            st.write(f"冷门号码: {cold_red_str}")
 
         with col2:
             st.subheader("蓝球冷热分析")
@@ -254,12 +264,23 @@ with tab1:
                 # 在 Streamlit 中显示 Altair 图表
                 st.altair_chart(chart, use_container_width=True)
 
-                # Display hot and cold numbers
-                hot_blue = blue_freq_df.head(3)['号码'].tolist()
-                cold_blue = blue_freq_df.tail(3)['号码'].tolist()
+                # 获取出现频率最高的前 3 个号码
+                top_3_freq = blue_freq_df['出现次数'].iloc[2]
+                hot_blue_df = blue_freq_df[blue_freq_df['出现次数'] >= top_3_freq]
+                hot_blue = hot_blue_df['号码'].tolist()
 
-                st.write(f"热门号码: {', '.join(map(str, hot_blue))}")
-                st.write(f"冷门号码: {', '.join(map(str, cold_blue))}")
+                # 获取出现频率最低的后 3 个号码
+                bottom_3_freq = blue_freq_df['出现次数'].iloc[-3]
+                cold_blue_df = blue_freq_df[blue_freq_df['出现次数'] <= bottom_3_freq]
+                cold_blue = cold_blue_df['号码'].tolist()
+
+                # 格式化输出
+                hot_blue_str = ', '.join(map(str, hot_blue))
+                cold_blue_str = ', '.join(map(str, cold_blue))
+
+                # 显示热门和冷门号码
+                st.write(f"热门蓝球号码: {hot_blue_str}")
+                st.write(f"冷门蓝球号码: {cold_blue_str}")
 
         col1, col2 = st.columns(2)
 
@@ -394,8 +415,70 @@ with tab1:
                 st.pyplot(fig)
             else:
                 st.warning("同尾号分析数据不足")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("红球同号统计")
+
+            same_number_counts = []
+            for i in range(1, len(filtered_data)):
+                previous_row = filtered_data.iloc[i - 1]
+                current_row = filtered_data.iloc[i]
+                same_count = 0
+                for col in ['红球1', '红球2', '红球3', '红球4', '红球5', '红球6']:
+                    if current_row[col] in previous_row.values:
+                        same_count += 1
+                same_number_counts.append(same_count)
+
+            # 统计同号数量的频率
+            frequency = {}
+            for count in same_number_counts:
+                frequency[count] = frequency.get(count, 0) + 1
+
+            frequency_df = pd.DataFrame(
+                {'同号数量': list(frequency.keys()), '出现次数': list(frequency.values())})
+
+            # 创建 Altair 柱状图
+            chart = alt.Chart(frequency_df).mark_bar().encode(
+                x=alt.X('同号数量:O', title='同号数量', axis=alt.Axis(labelAngle= -90, labelOverlap=False)),
+                y=alt.Y('出现次数:Q', title='出现次数'),
+                tooltip=['同号数量', '出现次数']
+            ).properties(
+                title='红球同号数量统计',
+                width=800,
+                height=300
+            )
+
+            # 在 Streamlit 中显示 Altair 图表
+            st.altair_chart(chart, use_container_width=True)
+
+        with col2:
+            st.subheader("红球同号分析")
+
+            same_numbers_df = pd.DataFrame(
+                {'期数': range(2, len(filtered_data) + 1), '同号数量': same_number_counts})
+
+            # 创建 Altair 折线图
+            chart = alt.Chart(same_numbers_df).mark_line().encode(
+                x=alt.X('期数:O', title='期数',axis=alt.Axis(labelAngle= -90, labelOverlap=False)),
+                y=alt.Y('同号数量:Q', title='同号数量'),
+                tooltip=['期数', '同号数量']
+            ).properties(
+                title='红球同号趋势图',
+                width=800,
+                height=300
+            )
+
+            # 在 Streamlit 中显示 Altair 图表
+            st.altair_chart(chart, use_container_width=True)
+
+
+
     else:
         st.warning("没有足够的数据进行分析。请检查Excel文件。")
+
+
 
 with tab2:
     st.subheader("选号工具")
