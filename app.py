@@ -70,17 +70,25 @@ st.markdown("""
     }
  
     .clear-button {
-        padding: 8px 15px;
+        display: inline-block; /* Make it behave like lottery balls */
+        width: 40px; /* Same width as lottery balls */
+        height: 40px; /* Same height as lottery balls */
+        border-radius: 50%; /* Make it round */
         background-color: #007bff;
         color: white;
         border: none;
-        border-radius: 5px;
         cursor: pointer;
         font-size: 10px;
-        margin-top: 10px;
+        margin: 5px; /* Same margin as lottery balls */
+        line-height: 40px; /* Center text vertically */
+        text-align: center;
     }
     .clear-button:hover {
         background-color: #0056b3;
+    }
+
+    .selected-button { /* Add this class for selected buttons */
+        background-color: red;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -100,7 +108,7 @@ with st.sidebar:
         "分析期数",
         min_value=10,
         max_value=100,
-        value=30,
+        value=20,
         step=10
     )
 
@@ -149,6 +157,20 @@ def load_historical_data(analysis_period):
     except Exception as e:
         st.error(f"加载或处理数据时出错: {e}")
         return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+
+def calculate_same_number_counts(data):
+    """计算每期红球同号数量"""
+    same_number_counts = []
+    if len(data) > 1:
+        for i in range(1, len(data)):
+            previous_row = data.iloc[i - 1]
+            current_row = data.iloc[i]
+            same_count = 0
+            for col in ['红球1', '红球2', '红球3', '红球4', '红球5', '红球6']:
+                if current_row[col] in previous_row.values:
+                    same_count += 1
+            same_number_counts.append(same_count)
+    return same_number_counts
 
 # Main content area
 st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html=True)
@@ -419,18 +441,9 @@ with tab1:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.subheader("红球同号统计")
+            st.subheader("红球同号统计") # 由于缺少前一期的数据，统计中少一期数据
 
-            same_number_counts = []
-            for i in range(1, len(filtered_data)):
-                previous_row = filtered_data.iloc[i - 1]
-                current_row = filtered_data.iloc[i]
-                same_count = 0
-                for col in ['红球1', '红球2', '红球3', '红球4', '红球5', '红球6']:
-                    if current_row[col] in previous_row.values:
-                        same_count += 1
-                same_number_counts.append(same_count)
-
+            same_number_counts = calculate_same_number_counts(filtered_data)
             # 统计同号数量的频率
             frequency = {}
             for count in same_number_counts:
@@ -441,7 +454,7 @@ with tab1:
 
             # 创建 Altair 柱状图
             chart = alt.Chart(frequency_df).mark_bar().encode(
-                x=alt.X('同号数量:O', title='同号数量', axis=alt.Axis(labelAngle= -90, labelOverlap=False)),
+                x=alt.X('同号数量:O', title='同号数量', axis=alt.Axis(labelAngle=0, labelOverlap=False)),
                 y=alt.Y('出现次数:Q', title='出现次数'),
                 tooltip=['同号数量', '出现次数']
             ).properties(
@@ -453,17 +466,24 @@ with tab1:
             # 在 Streamlit 中显示 Altair 图表
             st.altair_chart(chart, use_container_width=True)
 
+
+
         with col2:
             st.subheader("红球同号分析")
 
-            same_numbers_df = pd.DataFrame(
-                {'期数': range(2, len(filtered_data) + 1), '同号数量': same_number_counts})
+            same_number_counts = calculate_same_number_counts(filtered_data)
+            # 修改 same_numbers_df 的创建方式，使用 filtered_data 的期号
+            same_numbers_df = pd.DataFrame({
+                '期号': filtered_data['期号'].tolist()[1:],  # 从第二期开始，获取期号
+                '同号数量': same_number_counts
+            })
 
             # 创建 Altair 折线图
             chart = alt.Chart(same_numbers_df).mark_line().encode(
-                x=alt.X('期数:O', title='期数',axis=alt.Axis(labelAngle= -90, labelOverlap=False)),
-                y=alt.Y('同号数量:Q', title='同号数量'),
-                tooltip=['期数', '同号数量']
+                x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # 使用期号作为 x 轴
+                y=alt.Y('同号数量:Q', title='同号数量', axis=alt.Axis(tickCount=same_numbers_df['同号数量'].max() + 1)),
+                # 设置 y 轴标尺为整数
+                tooltip=['期号', '同号数量']
             ).properties(
                 title='红球同号趋势图',
                 width=800,
@@ -472,7 +492,6 @@ with tab1:
 
             # 在 Streamlit 中显示 Altair 图表
             st.altair_chart(chart, use_container_width=True)
-
 
 
     else:
@@ -548,7 +567,9 @@ with tab2:
         col_index = (i - 1) % 16
         with cols_red[col_index]:
             ball_key = f"red_{i}"
-            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_red_balls) >= 6 and i not in st.session_state.selected_red_balls, on_click=toggle_red_ball, args=(i,), use_container_width=True):
+            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_red_balls) >= 6
+                                                        and i not in st.session_state.selected_red_balls,
+                                                        on_click=toggle_red_ball, args=(i,), use_container_width=True):
                 pass
 
     # Blue ball selection
@@ -559,7 +580,9 @@ with tab2:
         col_index = (i - 1) % 16
         with cols_blue[col_index]:
             ball_key = f"blue_{i}"
-            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_blue_balls) >= 1 and i not in st.session_state.selected_blue_balls, on_click=toggle_blue_ball, args=(i,), use_container_width=True):
+            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_blue_balls) >= 1
+                                                        and i not in st.session_state.selected_blue_balls,
+                                                        on_click=toggle_blue_ball, args=(i,), use_container_width=True):
                 pass
 
     st.button("清除所有选择", on_click=clear_selection, type="primary", key="clear_all_button")
