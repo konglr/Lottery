@@ -69,7 +69,7 @@ st.markdown("""
         border-radius: 5px;
     }
  
-    .clear-button {
+    .red-ball-button {
         display: inline-block; /* Make it behave like lottery balls */
         width: 40px; /* Same width as lottery balls */
         height: 40px; /* Same height as lottery balls */
@@ -88,7 +88,7 @@ st.markdown("""
     }
 
     .selected-button { /* Add this class for selected buttons */
-        background-color: red;
+        background-color: gray;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -188,10 +188,10 @@ with tab1:
         latest_draw = filtered_data.iloc[0]
         st.markdown("<div class='subheader'>最新开奖信息</div>", unsafe_allow_html=True)
         latest_draw_html = f"""
-        <div class='latest-draw'>
-            <p>期号: {latest_draw.get('期号', 'N/A')} &nbsp;&nbsp;&nbsp; 开奖日期: {latest_draw.get('日期', 'N/A')}</p>
-            <div>
-        """
+            <div class='latest-draw'>
+                <p>期号: {latest_draw.get('期号', 'N/A')} &nbsp;&nbsp;&nbsp; 开奖日期: {latest_draw.get('日期', 'N/A')}</p>
+                <div>
+            """
 
         for i in range(1, 7):
             ball_value = latest_draw.get(f'红球{i}', 0)
@@ -211,7 +211,7 @@ with tab1:
             st.subheader("红球冷热分析")
             # Calculate frequency for red balls
             red_frequency = {}
-            for i in range(1, 34): # Corrected range to 1-33 in previous version, now 1-34 to align with UI
+            for i in range(1, 34):  # Corrected range to 1-33 in previous version, now 1-34 to align with UI
                 count = 0
                 for j in range(1, 7):
                     if f'红球{j}' in filtered_data.columns:
@@ -221,16 +221,18 @@ with tab1:
             red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
             red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
 
-           # fig, ax = plt.subplots(figsize=(10, 5))
-           # ax.bar(red_freq_df['号码'].astype(str), red_freq_df['出现次数'], color='red')
-           # ax.set_title('红球出现频率')
-           # ax.set_xlabel('号码')
-           # ax.set_ylabel('出现次数')
-           # st.pyplot(fig)
+            # fig, ax = plt.subplots(figsize=(10, 5))
+            # ax.bar(red_freq_df['号码'].astype(str), red_freq_df['出现次数'], color='red')
+            # ax.set_title('红球出现频率')
+            # ax.set_xlabel('号码')
+            # ax.set_ylabel('出现次数')
+            # st.pyplot(fig)
 
             # 创建 Altair 柱状图
             chart = alt.Chart(red_freq_df).mark_bar(color='red').encode(
-                x=alt.X('号码:O', title='红球号码', sort='-y', axis=alt.Axis(labelAngle= -45, labelOverlap=False, labelFontSize= 10)),  # 使用 Ordinal 类型，将号码作为离散值处理
+                x=alt.X('号码:O', title='红球号码', sort='-y',
+                        axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
+                # 使用 Ordinal 类型，将号码作为离散值处理
                 y=alt.Y('出现次数:Q', title='出现次数'),  # 使用 Quantitative 类型，将出现次数作为数值处理
                 tooltip=['号码', '出现次数']  # 添加鼠标悬停提示
             ).properties(
@@ -274,7 +276,7 @@ with tab1:
 
                 # 创建 Altair 柱状图
                 chart = alt.Chart(blue_freq_df).mark_bar(color='blue').encode(
-                    x=alt.X('号码:O', title='篮球号码', sort='-y', axis=alt.Axis(labelAngle= 0, labelFontSize=10)),
+                    x=alt.X('号码:O', title='篮球号码', sort='-y', axis=alt.Axis(labelAngle=0, labelFontSize=10)),
                     y=alt.Y('出现次数:Q', title='出现次数'),
                     tooltip=['号码', '出现次数']
                 ).properties(
@@ -441,7 +443,7 @@ with tab1:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.subheader("红球同号统计") # 由于缺少前一期的数据，统计中少一期数据
+            st.subheader("红球同号统计")  # 由于缺少前一期的数据，统计中少一期数据
 
             same_number_counts = calculate_same_number_counts(filtered_data)
             # 统计同号数量的频率
@@ -465,8 +467,6 @@ with tab1:
 
             # 在 Streamlit 中显示 Altair 图表
             st.altair_chart(chart, use_container_width=True)
-
-
 
         with col2:
             st.subheader("红球同号分析")
@@ -498,94 +498,104 @@ with tab1:
         st.warning("没有足够的数据进行分析。请检查Excel文件。")
 
 
+import streamlit as st
 
-with tab2:
-    st.subheader("选号工具")
+with st.container():
+    with st.container():
+        st.subheader("选号工具")
 
-    # Initialize session state for selected numbers if not exists
-    if 'selected_red_balls' not in st.session_state:
-        st.session_state.selected_red_balls = []
-    if 'selected_blue_balls' not in st.session_state:
-        st.session_state.selected_blue_balls = []
+        # 初始化会话状态
+        if 'selected_red_balls' not in st.session_state:
+            st.session_state.selected_red_balls = []
+        if 'selected_blue_balls' not in st.session_state:
+            st.session_state.selected_blue_balls = []
+        if 'bets' not in st.session_state:
+            st.session_state.bets = []
 
-    # Create an empty placeholder
-    placeholder = st.empty()
+        # 创建占位符
+        placeholder = st.empty()
 
-    def display_selected_numbers():
-        selected_numbers_html = "<div class='selected-numbers-display'>"
-        selected_numbers_html += "<p>已选红球:</p><div>"
-        for ball in sorted(st.session_state.selected_red_balls):
-            selected_numbers_html += f"<span class='lottery-ball red-ball selected'>{ball}</span>"
-        selected_numbers_html += "</div>"
+        def display_selected_numbers():
+            selected_numbers_html = "<div class='selected-numbers-display'>"
+            selected_numbers_html += "<p>已选红球:</p><div>"
+            for ball in sorted(st.session_state.selected_red_balls):
+                selected_numbers_html += f"<span class='lottery-ball red-ball selected'>{ball}</span>"
+            selected_numbers_html += "</div>"
 
-        selected_numbers_html += "<p>已选蓝球:</p><div>"
-        for ball in sorted(st.session_state.selected_blue_balls):
-            selected_numbers_html += f"<span class='lottery-ball blue-ball selected'>{ball}</span>"
-        selected_numbers_html += "</div>"
+            selected_numbers_html += "<p>已选蓝球:</p><div>"
+            for ball in sorted(st.session_state.selected_blue_balls):
+                selected_numbers_html += f"<span class='lottery-ball blue-ball selected'>{ball}</span>"
+            selected_numbers_html += "</div>"
 
-        if not st.session_state.selected_red_balls and not st.session_state.selected_blue_balls:
-            selected_numbers_html += "<p>尚未选择任何号码</p>"
+            if not st.session_state.selected_red_balls and not st.session_state.selected_blue_balls:
+                selected_numbers_html += "<p>尚未选择任何号码</p>"
 
-        selected_numbers_html += "</div>"
-        # Update the placeholder with the selected numbers HTML
-        placeholder.markdown(selected_numbers_html, unsafe_allow_html=True)
+            selected_numbers_html += "</div>"
+            placeholder.markdown(selected_numbers_html, unsafe_allow_html=True)
 
-    display_selected_numbers()  # Initial display
+        display_selected_numbers()
 
-    # Function to handle ball selection
-    def toggle_red_ball(ball):
-        if ball in st.session_state.selected_red_balls:
-            st.session_state.selected_red_balls.remove(ball)
-        else:
-            if len(st.session_state.selected_red_balls) < 6:
+        def toggle_red_ball(ball):
+            if ball in st.session_state.selected_red_balls:
+                st.session_state.selected_red_balls.remove(ball)
+            else:
                 st.session_state.selected_red_balls.append(ball)
-            else:
-                st.warning("红球最多选择6个")
-        display_selected_numbers()  # Update display after each selection
+            display_selected_numbers()
 
-    def toggle_blue_ball(ball):
-        if ball in st.session_state.selected_blue_balls:
-            st.session_state.selected_blue_balls.remove(ball)
-        else:
-            if len(st.session_state.selected_blue_balls) < 1:
+        def toggle_blue_ball(ball):
+            if ball in st.session_state.selected_blue_balls:
+                st.session_state.selected_blue_balls.remove(ball)
+            else:
                 st.session_state.selected_blue_balls.append(ball)
+            display_selected_numbers()
+
+        def clear_selection():
+            st.session_state.selected_red_balls = []
+            st.session_state.selected_blue_balls = []
+            display_selected_numbers()
+
+        def add_bet():
+            if st.session_state.selected_red_balls and st.session_state.selected_blue_balls:
+                red_balls_str = ",".join(map(str, sorted(st.session_state.selected_red_balls)))
+                blue_balls_str = ",".join(map(str, sorted(st.session_state.selected_blue_balls)))
+                bet_str = f"{red_balls_str} + {blue_balls_str}"
+                st.session_state.bets.append(bet_str)
             else:
-                st.warning("蓝球最多选择1个")
-        display_selected_numbers()  # Update display after each selection
+                st.warning("请选择红球和蓝球号码")
 
-    def clear_selection():
-        st.session_state.selected_red_balls = []
-        st.session_state.selected_blue_balls = []
-        display_selected_numbers()  # Update display after clear
-        st.rerun()  # Important to refresh button states
+        # 红球选择
+        st.markdown("<div class='subheader'>选择红球 (1-33)</div>", unsafe_allow_html=True)
+        cols_red = st.columns(16)
 
-    # Red ball selection
-    st.markdown("<div class='subheader'>选择红球 (1-33, 最少6个, 最多6个)</div>", unsafe_allow_html=True)
-    cols_red = st.columns(16)
+        for i in range(1, 34):
+            col_index = (i - 1) % 16
+            with cols_red[col_index]:
+                ball_key = f"red_{i}"
+                if st.button(f"{i}", key=ball_key, on_click=toggle_red_ball, args=(i,), use_container_width=True):
+                    pass
 
-    for i in range(1, 34):
-        col_index = (i - 1) % 16
-        with cols_red[col_index]:
-            ball_key = f"red_{i}"
-            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_red_balls) >= 6
-                                                        and i not in st.session_state.selected_red_balls,
-                                                        on_click=toggle_red_ball, args=(i,), use_container_width=True):
-                pass
+        # 蓝球选择
+        st.markdown("<div class='subheader'>选择蓝球 (1-16)</div>", unsafe_allow_html=True)
+        cols_blue = st.columns(16)
 
-    # Blue ball selection
-    st.markdown("<div class='subheader'>选择蓝球 (1-16, 最少1个, 最多1个)</div>", unsafe_allow_html=True)
-    cols_blue = st.columns(16)
+        for i in range(1, 17):
+            col_index = (i - 1) % 16
+            with cols_blue[col_index]:
+                ball_key = f"blue_{i}"
+                if st.button(f"{i}", key=ball_key, on_click=toggle_blue_ball, args=(i,), use_container_width=True):
+                    pass
 
-    for i in range(1, 17):
-        col_index = (i - 1) % 16
-        with cols_blue[col_index]:
-            ball_key = f"blue_{i}"
-            if st.button(f"{i}", key=ball_key, disabled=len(st.session_state.selected_blue_balls) >= 1
-                                                        and i not in st.session_state.selected_blue_balls,
-                                                        on_click=toggle_blue_ball, args=(i,), use_container_width=True):
-                pass
+        st.button("清除所有选择", on_click=clear_selection, type="primary", key="clear_all_button")
+        st.button("增加一个投注", on_click=add_bet, type="primary", key="add_bet_button")
 
-    st.button("清除所有选择", on_click=clear_selection, type="primary", key="clear_all_button")
+    with st.container():
+        # 显示投注记录
+        st.subheader("投注记录")
+        if st.session_state.bets:
+            for bet in st.session_state.bets:
+                st.text(f"复式: {bet}")
+        else:
+            st.text("尚未添加任何投注")
 
 with tab3:
     st.subheader("历史开奖数据")
