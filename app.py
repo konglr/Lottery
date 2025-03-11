@@ -527,7 +527,7 @@ with tab2:
             selected_numbers_html += "</div>"
 
             if not st.session_state.selected_red_balls and not st.session_state.selected_blue_balls:
-                selected_numbers_html += "<p>尚未选择任何号码</p>"
+                selected_numbers_html += "<p></p>"
 
             selected_numbers_html += "</div>"
             placeholder.markdown(selected_numbers_html, unsafe_allow_html=True)
@@ -537,12 +537,10 @@ with tab2:
     with col2:
         st.subheader("选号记录")
         if st.session_state.bets:
-            for bet in st.session_state.bets:
-                st.markdown(
-                    f"<div style='border: 1px solid #ccc; padding: 10px; margin-bottom: 5px; width: 500px;'>复式: {bet}</div>",
-                    unsafe_allow_html=True)
+            bets_text = "\n".join([f" {bet}" for bet in st.session_state.bets])
+            st.text_area( label="", value=bets_text, height=200)  # 使用 text_area 显示投注记录
         else:
-            st.text("尚未添加任何投注")
+            st.text("请选择你的投注")
 
 
     def toggle_red_ball(ball):
@@ -560,7 +558,6 @@ with tab2:
             st.session_state.selected_blue_balls.append(ball)
         display_selected_numbers()
 
-
     def clear_selection():
         st.session_state.selected_red_balls = []
         st.session_state.selected_blue_balls = []
@@ -568,14 +565,18 @@ with tab2:
 
 
     def add_bet():
-        if st.session_state.selected_red_balls and st.session_state.selected_blue_balls:
+        if len(st.session_state.selected_red_balls) >= 6 and len(st.session_state.selected_blue_balls) >= 1:
             red_balls_str = ",".join(map(str, sorted(st.session_state.selected_red_balls)))
             blue_balls_str = ",".join(map(str, sorted(st.session_state.selected_blue_balls)))
             bet_str = f"{red_balls_str} + {blue_balls_str}"
             st.session_state.bets.append(bet_str)
         else:
-            st.warning("请选择红球和蓝球号码")
-
+            if len(st.session_state.selected_red_balls) < 6:
+                st.warning("红球选择至少6个")
+            elif len(st.session_state.selected_blue_balls) < 1:
+                st.warning("蓝球选择至少1个")
+            else:
+                st.warning("请选择红球和蓝球号码")
 
     # 红球选择
     st.markdown("<div class='subheader'>选择红球 (1-33)</div>", unsafe_allow_html=True)
