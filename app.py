@@ -498,10 +498,10 @@ with tab1:
         st.warning("没有足够的数据进行分析。请检查Excel文件。")
 
 
-import streamlit as st
+with tab2:
+    col1, col2 = st.columns(2)  # 创建两列布局
 
-with st.container():
-    with st.container():
+    with col1:
         st.subheader("选号工具")
 
         # 初始化会话状态
@@ -514,9 +514,8 @@ with st.container():
 
         # 创建占位符
         placeholder = st.empty()
-
         def display_selected_numbers():
-            selected_numbers_html = "<div class='selected-numbers-display'>"
+            selected_numbers_html = "<div class='selected-numbers-display' style='width: 500px;'>"
             selected_numbers_html += "<p>已选红球:</p><div>"
             for ball in sorted(st.session_state.selected_red_balls):
                 selected_numbers_html += f"<span class='lottery-ball red-ball selected'>{ball}</span>"
@@ -535,67 +534,76 @@ with st.container():
 
         display_selected_numbers()
 
-        def toggle_red_ball(ball):
-            if ball in st.session_state.selected_red_balls:
-                st.session_state.selected_red_balls.remove(ball)
-            else:
-                st.session_state.selected_red_balls.append(ball)
-            display_selected_numbers()
-
-        def toggle_blue_ball(ball):
-            if ball in st.session_state.selected_blue_balls:
-                st.session_state.selected_blue_balls.remove(ball)
-            else:
-                st.session_state.selected_blue_balls.append(ball)
-            display_selected_numbers()
-
-        def clear_selection():
-            st.session_state.selected_red_balls = []
-            st.session_state.selected_blue_balls = []
-            display_selected_numbers()
-
-        def add_bet():
-            if st.session_state.selected_red_balls and st.session_state.selected_blue_balls:
-                red_balls_str = ",".join(map(str, sorted(st.session_state.selected_red_balls)))
-                blue_balls_str = ",".join(map(str, sorted(st.session_state.selected_blue_balls)))
-                bet_str = f"{red_balls_str} + {blue_balls_str}"
-                st.session_state.bets.append(bet_str)
-            else:
-                st.warning("请选择红球和蓝球号码")
-
-        # 红球选择
-        st.markdown("<div class='subheader'>选择红球 (1-33)</div>", unsafe_allow_html=True)
-        cols_red = st.columns(16)
-
-        for i in range(1, 34):
-            col_index = (i - 1) % 16
-            with cols_red[col_index]:
-                ball_key = f"red_{i}"
-                if st.button(f"{i}", key=ball_key, on_click=toggle_red_ball, args=(i,), use_container_width=True):
-                    pass
-
-        # 蓝球选择
-        st.markdown("<div class='subheader'>选择蓝球 (1-16)</div>", unsafe_allow_html=True)
-        cols_blue = st.columns(16)
-
-        for i in range(1, 17):
-            col_index = (i - 1) % 16
-            with cols_blue[col_index]:
-                ball_key = f"blue_{i}"
-                if st.button(f"{i}", key=ball_key, on_click=toggle_blue_ball, args=(i,), use_container_width=True):
-                    pass
-
-        st.button("清除所有选择", on_click=clear_selection, type="primary", key="clear_all_button")
-        st.button("增加一个投注", on_click=add_bet, type="primary", key="add_bet_button")
-
-    with st.container():
-        # 显示投注记录
-        st.subheader("投注记录")
+    with col2:
+        st.subheader("选号记录")
         if st.session_state.bets:
             for bet in st.session_state.bets:
-                st.text(f"复式: {bet}")
+                st.markdown(
+                    f"<div style='border: 1px solid #ccc; padding: 10px; margin-bottom: 5px; width: 500px;'>复式: {bet}</div>",
+                    unsafe_allow_html=True)
         else:
             st.text("尚未添加任何投注")
+
+
+    def toggle_red_ball(ball):
+        if ball in st.session_state.selected_red_balls:
+            st.session_state.selected_red_balls.remove(ball)
+        else:
+            st.session_state.selected_red_balls.append(ball)
+        display_selected_numbers()
+
+
+    def toggle_blue_ball(ball):
+        if ball in st.session_state.selected_blue_balls:
+            st.session_state.selected_blue_balls.remove(ball)
+        else:
+            st.session_state.selected_blue_balls.append(ball)
+        display_selected_numbers()
+
+
+    def clear_selection():
+        st.session_state.selected_red_balls = []
+        st.session_state.selected_blue_balls = []
+        display_selected_numbers()
+
+
+    def add_bet():
+        if st.session_state.selected_red_balls and st.session_state.selected_blue_balls:
+            red_balls_str = ",".join(map(str, sorted(st.session_state.selected_red_balls)))
+            blue_balls_str = ",".join(map(str, sorted(st.session_state.selected_blue_balls)))
+            bet_str = f"{red_balls_str} + {blue_balls_str}"
+            st.session_state.bets.append(bet_str)
+        else:
+            st.warning("请选择红球和蓝球号码")
+
+
+    # 红球选择
+    st.markdown("<div class='subheader'>选择红球 (1-33)</div>", unsafe_allow_html=True)
+    cols_red = st.columns(16)
+
+    for i in range(1, 34):
+        col_index = (i - 1) % 16
+        with cols_red[col_index]:
+            ball_key = f"red_{i}"
+            if st.button(f"{i}", key=ball_key, on_click=toggle_red_ball, args=(i,), use_container_width=True):
+                pass
+
+    # 蓝球选择
+    st.markdown("<div class='subheader'>选择蓝球 (1-16)</div>", unsafe_allow_html=True)
+    cols_blue = st.columns(16)
+
+    for i in range(1, 17):
+        col_index = (i - 1) % 16
+        with cols_blue[col_index]:
+            ball_key = f"blue_{i}"
+            if st.button(f"{i}", key=ball_key, on_click=toggle_blue_ball, args=(i,), use_container_width=True):
+                pass
+
+    st.button("清除所有选择", on_click=clear_selection, type="primary", key="clear_all_button")
+    st.button("增加一个投注", on_click=add_bet, type="primary", key="add_bet_button")
+
+
+
 
 with tab3:
     st.subheader("历史开奖数据")
