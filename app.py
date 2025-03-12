@@ -107,7 +107,7 @@ with st.sidebar:
     analysis_period = st.slider(
         "分析期数",
         min_value=10,
-        max_value=100,
+        max_value=500,
         value=20,
         step=10
     )
@@ -283,24 +283,37 @@ with tab1:
             red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
             red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
 
-            # fig, ax = plt.subplots(figsize=(10, 5))
-            # ax.bar(red_freq_df['号码'].astype(str), red_freq_df['出现次数'], color='red')
-            # ax.set_title('红球出现频率')
-            # ax.set_xlabel('号码')
-            # ax.set_ylabel('出现次数')
-            # st.pyplot(fig)
+            # 计算总出现次数
+            total_counts = red_freq_df['出现次数'].sum()
 
-            # 创建 Altair 柱状图
-            chart = alt.Chart(red_freq_df).mark_bar(color='red').encode(
+            # 计算百分比并添加到 DataFrame
+            red_freq_df['百分比'] = (red_freq_df['出现次数'] / total_counts) * 100
+
+            # 创建 Altair 柱状图和文本图层
+            bars = alt.Chart(red_freq_df).mark_bar(color='red').encode(
                 x=alt.X('号码:O', title='红球号码', sort='-y',
                         axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
-                # 使用 Ordinal 类型，将号码作为离散值处理
-                y=alt.Y('出现次数:Q', title='出现次数'),  # 使用 Quantitative 类型，将出现次数作为数值处理
-                tooltip=['号码', '出现次数']  # 添加鼠标悬停提示
-            ).properties(
-                title='红球出现频率',
-                width=800,  # 设置图表宽度
-                height=300  # 设置图表高度
+                y=alt.Y('出现次数:Q', title='出现次数'),
+                tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".2f")]  # Tooltip 中也显示百分比
+            )
+
+            text = alt.Chart(red_freq_df).mark_text(
+                dy=-10
+            ).encode(
+                x=alt.X('号码:O', sort='-y'),
+                y=alt.Y('出现次数:Q'),
+                text=alt.Text(
+                    '百分比:Q',
+                    format=".1f",  # 使用 format=".1f" 格式化数值部分
+                    formatType='number',  # 显式指定 formatType 为 'number'
+                )
+            )
+
+            # 将柱状图和文本标签图层叠加
+            chart = (bars).properties(
+                title='红球出现频率 (出现次数及百分比)',
+                width=800,
+                height=300
             )
 
             # 在 Streamlit 中显示 Altair 图表
@@ -336,19 +349,42 @@ with tab1:
                     {'号码': list(blue_frequency.keys()), '出现次数': list(blue_frequency.values())})
                 blue_freq_df = blue_freq_df.sort_values('出现次数', ascending=False)
 
+                # 计算蓝球总出现次数
+                blue_total_counts = blue_freq_df['出现次数'].sum()
+
+                # 计算百分比并添加到 DataFrame
+                blue_freq_df['百分比'] = (blue_freq_df['出现次数'] / blue_total_counts) * 100
+
                 # 创建 Altair 柱状图
-                chart = alt.Chart(blue_freq_df).mark_bar(color='blue').encode(
-                    x=alt.X('号码:O', title='篮球号码', sort='-y', axis=alt.Axis(labelAngle=0, labelFontSize=10)),
+                blue_bars = alt.Chart(blue_freq_df).mark_bar(color='blue').encode(
+                    x=alt.X('号码:O', title='蓝球号码', sort='-y',
+                            axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
                     y=alt.Y('出现次数:Q', title='出现次数'),
-                    tooltip=['号码', '出现次数']
-                ).properties(
-                    title='蓝球出现频率',
+                    tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".2f")]
+                    # Tooltip 中也显示百分比, 并添加百分号
+                )
+
+                # 文本标签图层  (模仿红球分析)
+                blue_text = alt.Chart(blue_freq_df).mark_text(
+                    dy=-10  # 调整文本垂直位置
+                ).encode(
+                    x=alt.X('号码:O', sort='-y'),
+                    y=alt.Y('出现次数:Q'),
+                    text=alt.Text(
+                        '百分比:Q',
+                        format=".1f",  # 使用 format=".1f" 格式化数值部分
+                        formatType='number',  # 显式指定 formatType 为 'number'
+                    )
+                )
+
+                # 将柱状图和文本标签图层叠加
+                blue_chart = (blue_bars).properties(
+                    title='蓝球出现频率 (出现次数及百分比)',
                     width=800,
                     height=300
                 )
 
-                # 在 Streamlit 中显示 Altair 图表
-                st.altair_chart(chart, use_container_width=True)
+                st.altair_chart(blue_chart, use_container_width=True)
 
                 # 获取出现频率最高的前 3 个号码
                 top_3_freq = blue_freq_df['出现次数'].iloc[2]
