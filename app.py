@@ -172,6 +172,67 @@ def calculate_same_number_counts(data):
             same_number_counts.append(same_count)
     return same_number_counts
 
+def analyze_red_balls(red_balls):
+    """
+    分析红球号码。
+    Args:
+        red_balls (list): 选中的红球号码列表。
+    Returns:
+        dict: 包含分析结果的字典。
+    """
+    if not red_balls:
+        return {}  # 如果没有红球，返回空字典
+    results = {}
+
+    # 1. 热号冷号数量
+    cold_count = sum(1 for ball in red_balls if ball in cold_red)
+    hot_count = sum(1 for ball in red_balls if ball in hot_red)
+    results['热冷'] = f"{hot_count}:{cold_count}"
+
+    # 2. 奇偶号比例
+    odd_count = sum(1 for ball in red_balls if ball % 2 != 0)
+    even_count = sum(1 for ball in red_balls if ball % 2 == 0)
+    results['奇偶'] = f"{odd_count}:{even_count}"
+
+    # 3. 大小号比例（1-16为小，17-33为大）
+    small_count = sum(1 for ball in red_balls if 1 <= ball <= 16)
+    large_count = sum(1 for ball in red_balls if 17 <= ball <= 33)
+    results['大小'] = f"{large_count}:{small_count}"
+
+    # 4. 连号
+    red_balls.sort()
+    consecutive_counts = {}
+    count = 1
+    for i in range(1, len(red_balls)):
+        if red_balls[i] == red_balls[i - 1] + 1:
+            count += 1
+        else:
+            if count > 1:
+                consecutive_counts[count] = consecutive_counts.get(count, 0) + 1
+            count = 1
+    if count > 1:
+        consecutive_counts[count] = consecutive_counts.get(count, 0) + 1
+    results['连号'] = ", ".join([f"{length}连={c}" for length, c in consecutive_counts.items()])
+
+    # 5. 同尾号
+    tails = [ball % 10 for ball in red_balls] # 取模操作，取个位数的数字
+    tail_counts = {}
+    for tail in tails:
+        tail_counts[tail] = tail_counts.get(tail, 0) + 1
+
+    same_tail_counts = {}
+    for tail, count in tail_counts.items():
+        if count > 1:
+            same_tail_counts[count] = same_tail_counts.get(count, 0) + 1
+    results['同尾'] = ", ".join([f"={count}" for count in same_tail_counts.keys()])
+
+    # 6. 最新一期同号
+    last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)] #提取latest_draw中的红球。
+    same_count = sum(1 for ball in red_balls if ball in last_draw_reds)
+    results['同号'] = f"={same_count}"
+
+    return results
+
 # Main content area
 st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html=True)
 
@@ -205,6 +266,7 @@ with tab1:
         st.warning("没有可显示的开奖数据。请检查Excel文件。")
 
     if not filtered_data.empty:
+
         col1, col2 = st.columns(2)
 
         with col1:
@@ -515,7 +577,7 @@ with tab2:
         # 创建占位符
         placeholder = st.empty()
         def display_selected_numbers():
-            selected_numbers_html = "<div class='selected-numbers-display' style='width: 500px;'>"
+            selected_numbers_html = "<div class='selected-numbers-display' style='width: 500px;height: 200px'>"
             selected_numbers_html += "<p>已选红球:</p><div>"
             for ball in sorted(st.session_state.selected_red_balls):
                 selected_numbers_html += f"<span class='lottery-ball red-ball selected'>{ball}</span>"
@@ -536,12 +598,17 @@ with tab2:
 
     with col2:
         st.subheader("选号记录")
+        if 'bets_text' not in st.session_state:
+            st.session_state.bets_text = ""  # 初始化 bets_text
+
         if st.session_state.bets:
             bets_text = "\n".join([f" {bet}" for bet in st.session_state.bets])
-            st.text_area( label="", value=bets_text, height=200)  # 使用 text_area 显示投注记录
+            st.session_state.bets_text = bets_text  # 更新 bets_text
         else:
-            st.text("请选择你的投注")
+           pass
 
+        st.text_area(label="你的选号:", value=st.session_state.bets_text, height=200,
+                     key="bets_text_area")  # 更新 text_area
 
     def toggle_red_ball(ball):
         if ball in st.session_state.selected_red_balls:
@@ -566,10 +633,20 @@ with tab2:
 
     def add_bet():
         if len(st.session_state.selected_red_balls) >= 6 and len(st.session_state.selected_blue_balls) >= 1:
+            red_balls_analysis = analyze_red_balls(st.session_state.selected_red_balls)
+
+            # 格式化分析结果
+            analysis_str = ", ".join([f"{key}: {value}" for key, value in red_balls_analysis.items()])
+
             red_balls_str = ",".join(map(str, sorted(st.session_state.selected_red_balls)))
             blue_balls_str = ",".join(map(str, sorted(st.session_state.selected_blue_balls)))
-            bet_str = f"{red_balls_str} + {blue_balls_str}"
+            bet_str = f"{red_balls_str}+{blue_balls_str} ({analysis_str})"  # 将分析结果加在号码后面
+
             st.session_state.bets.append(bet_str)
+
+            # 更新 text_area 的值
+            bets_text = "\n".join([f" {bet}" for bet in st.session_state.bets])
+            st.session_state.bets_text = bets_text
         else:
             if len(st.session_state.selected_red_balls) < 6:
                 st.warning("红球选择至少6个")
