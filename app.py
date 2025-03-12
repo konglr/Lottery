@@ -133,6 +133,7 @@ with st.sidebar:
     if sum_filter:
         sum_range = st.slider("红球和值范围", 21, 183, (70, 130))
 
+
 @st.cache_data
 def load_historical_data(analysis_period):
     try:
