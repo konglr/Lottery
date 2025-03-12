@@ -16,7 +16,10 @@ logging.basicConfig(filename='my_log_file.log', level=logging.INFO, format='%(as
 
 try:
     df_existing = pd.read_excel('双色球开奖情况.xlsx')
-    last_issue_in_excel = int(df_existing['期号'].max())
+    if df_existing.empty:  # 如果Excel文件存在，但是是空的，则也设置last_issue_in_excel = 0
+        last_issue_in_excel = 0
+    else:
+        last_issue_in_excel = int(df_existing['期号'].max())
 except FileNotFoundError:
     last_issue_in_excel = 0
 
@@ -26,7 +29,7 @@ if latest_issue_in_system is None:
     exit()
 
 current_2025_times = latest_issue_in_system - 2025000
-total_issueCount = 3299 + current_2025_times
+total_issueCount = 3246 + current_2025_times
 
 # 如果本地文件最后一期与系统最新期号相同，则跳过下载
 if last_issue_in_excel == latest_issue_in_system:
