@@ -127,6 +127,7 @@ def generate_valid_combinations_dataframe():
     生成所有C(33, 6)组合，并筛选符合条件的组合，存储到 Pandas DataFrame 中, 并统计每种条件排除的组合数量, 增加进度条显示。
     修改：连号判断已去除，等差数列判断已包含公差为1的连号。
     新增：排除包含两套3个数字组成的等差数列的组合。
+    新增：根据最新一期开奖数据进行排除。
     """
     all_combinations = list(itertools.combinations(range(1, 34), 6)) # 生成所有红球组合并转换为列表
     initial_combinations_count = len(all_combinations)
@@ -142,11 +143,26 @@ def generate_valid_combinations_dataframe():
     invalid_small_large_count = 0
     invalid_sum_range_count = 0 # 新增和值范围计数器
     two_ap_3_count = 0 # 新增 “两套3个数字等差数列” 计数器
+    no_overlap_latest_count = 0 # 新增 “与最新一期开奖红球没有相同组合” 计数器
+    two_or_more_overlap_latest_count = 0 # 新增 “与最新一期开奖红球有2个及以上相同组合” 计数器
+
+    # 读取 Excel 文件获取开奖数据
+    df_lottery = pd.read_excel('双色球开奖情况.xlsx', usecols=["期号", "开奖日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6"])
+
+    # 找到最新一期开奖数据，假设期号越大，日期越新。可以根据 '期号' 列排序后取最后一行
+    latest_lottery_data = df_lottery.sort_values(by='期号', ascending=False).iloc[0]
+
+    # 获取最新一期的红球号码
+    latest_red_balls = [latest_lottery_data['红球{}'.format(i)] for i in range(1, 7)]
+    print(f"最新一期开奖红球号码: {latest_red_balls}")
 
 
     # 使用 tqdm 添加进度条
     for combination in tqdm(all_combinations, desc="筛选组合"):
         is_valid = True # 假设组合有效，除非被排除条件否定
+
+        # 检查与最新一期开奖红球的重复情况
+        overlap_count = sum(1 for ball in combination if ball in latest_red_balls)
 
         if is_arithmetic_progression(combination) or is_geometric_progression(combination):
             arithmetic_geometric_count += 1
@@ -164,6 +180,14 @@ def generate_valid_combinations_dataframe():
             two_ap_3_count += 1
             is_valid = False
 
+        # 新增的排除规则：
+        if overlap_count == 0: # 排除红球与新一期开奖红球中没有相同的组合
+            no_overlap_latest_count += 1
+            is_valid = False
+        if overlap_count >= 2: # 排除红球与最新一期开奖红球中有2个及以上相同的组合
+            two_or_more_overlap_latest_count += 1
+            is_valid = False
+
 
         if is_valid: # 只有当组合通过所有检查时才加入有效列表
             valid_combinations.append(list(combination))
@@ -178,6 +202,8 @@ def generate_valid_combinations_dataframe():
     print(f"  - 大小号比例 (冷热号比例) 不符合 3:3, 2:4: {invalid_small_large_count} 种") # 修改了描述
     print(f"  - 红球和值小于30或大于170: {invalid_sum_range_count} 种") # 新增和值范围排除统计
     print(f"  - 包含两套3个数字组成的等差数列: {two_ap_3_count} 种") # 新增统计
+    print(f"  - 红球与最新一期开奖红球没有相同组合: {no_overlap_latest_count} 种") # 新增统计
+    print(f"  - 红球与最新一期开奖红球有2个及以上相同组合: {two_or_more_overlap_latest_count} 种") # 新增统计
 
 
     df_valid_combinations = pd.DataFrame(valid_combinations, columns=['红球1', '红球2', '红球3', '红球4', '红球5', '红球6'])
