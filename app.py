@@ -134,6 +134,8 @@ with st.sidebar:
         sum_range = st.slider("红球和值范围", 21, 183, (70, 130))
 
 
+
+
 @st.cache_data
 def load_historical_data(analysis_period):
     try:
@@ -158,6 +160,29 @@ def load_historical_data(analysis_period):
     except Exception as e:
         st.error(f"加载或处理数据时出错: {e}")
         return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+
+# 加载历史数据，并根据分析期数筛选
+filtered_data = load_historical_data(analysis_period)
+# Calculate frequency for red balls
+red_frequency = {}
+for i in range(1, 34):  # Corrected range to 1-33 in previous version, now 1-34 to align with UI
+    count = 0
+    for j in range(1, 7):
+        if f'红球{j}' in filtered_data.columns:
+            count += (filtered_data[f'红球{j}'] == i).sum()
+    red_frequency[i] = count
+
+red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
+red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
+# 获取出现频率最高的前 5 个号码
+top_5_freq = red_freq_df['出现次数'].iloc[4]
+hot_red_df = red_freq_df[red_freq_df['出现次数'] >= top_5_freq]
+hot_red = hot_red_df['号码'].tolist()
+
+# 获取出现频率最低的后 5 个号码
+bottom_5_freq = red_freq_df['出现次数'].iloc[-5]
+cold_red_df = red_freq_df[red_freq_df['出现次数'] <= bottom_5_freq]
+cold_red = cold_red_df['号码'].tolist()
 
 def calculate_same_number_counts(data):
     """计算每期红球同号数量"""
@@ -234,37 +259,43 @@ def analyze_red_balls(red_balls):
 
     return results
 
+
 # Main content area
 st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html=True)
-
 
 
 # Display tabs for different analyses
 tab1, tab2, tab3 = st.tabs(["号码分析", "选号工具", "历史数据"])
 
 with tab1:
-    # 加载历史数据，并根据分析期数筛选
-    filtered_data = load_historical_data(analysis_period)
 
-    if not filtered_data.empty:
-        latest_draw = filtered_data.iloc[0]
-        st.markdown("<div class='subheader'>最新开奖信息</div>", unsafe_allow_html=True)
-        latest_draw_html = f"""
+    latest_draw = filtered_data.iloc[0]
+    st.markdown("<div class='subheader'>最新开奖信息</div>", unsafe_allow_html=True)
+    latest_draw_html = f"""
             <div class='latest-draw'>
                 <p>期号: {latest_draw.get('期号', 'N/A')} &nbsp;&nbsp;&nbsp; 开奖日期: {latest_draw.get('日期', 'N/A')}</p>
                 <div>
             """
 
-        for i in range(1, 7):
-            ball_value = latest_draw.get(f'红球{i}', 0)
-            latest_draw_html += f"<span class='lottery-ball red-ball'>{ball_value}</span>"
+    red_balls_latest_draw = []  # Collect red balls for analysis
+    for i in range(1, 7):
+        ball_value = latest_draw.get(f'红球{i}', 0)
+        latest_draw_html += f"<span class='lottery-ball red-ball'>{ball_value}</span>"
+        red_balls_latest_draw.append(ball_value)  # Add red ball to list
 
-        latest_draw_html += f"<span class='lottery-ball blue-ball'>{latest_draw.get('蓝球', 0)}</span>"
-        latest_draw_html += "</div></div>"
+    latest_draw_html += f"<span class='lottery-ball blue-ball'>{latest_draw.get('蓝球', 0)}</span>"
+    latest_draw_html += "</div>"  # 结束 开奖号码 div
 
-        st.markdown(latest_draw_html, unsafe_allow_html=True)
-    else:
-        st.warning("没有可显示的开奖数据。请检查Excel文件。")
+    # 调用 analyze_red_balls 函数获取分析结果 HTML
+    red_analysis_result_html = analyze_red_balls(red_balls_latest_draw)
+
+    # 将分析结果 HTML 追加到 latest_draw_html
+    latest_draw_html += f"""
+                <div class='analysis-box'>  <div class='analysis-title'>红球分析:</div>
+                    {red_analysis_result_html}  </div>
+            </div> """
+
+    st.markdown(latest_draw_html, unsafe_allow_html=True)  # 显示完整 HTML 代码，包含分析结果
 
     if not filtered_data.empty:
 
@@ -320,15 +351,6 @@ with tab1:
             # 在 Streamlit 中显示 Altair 图表
             st.altair_chart(chart, use_container_width=True)
 
-            # 获取出现频率最高的前 5 个号码
-            top_5_freq = red_freq_df['出现次数'].iloc[4]
-            hot_red_df = red_freq_df[red_freq_df['出现次数'] >= top_5_freq]
-            hot_red = hot_red_df['号码'].tolist()
-
-            # 获取出现频率最低的后 5 个号码
-            bottom_5_freq = red_freq_df['出现次数'].iloc[-5]
-            cold_red_df = red_freq_df[red_freq_df['出现次数'] <= bottom_5_freq]
-            cold_red = cold_red_df['号码'].tolist()
 
             # 格式化输出
             hot_red_str = ', '.join(map(str, hot_red))
@@ -674,7 +696,6 @@ with tab2:
 
             # 格式化分析结果
             analysis_str = ", ".join([f"{key}: {value}" for key, value in red_balls_analysis.items()])
-
             red_balls_str = ",".join(map(str, sorted(st.session_state.selected_red_balls)))
             blue_balls_str = ",".join(map(str, sorted(st.session_state.selected_blue_balls)))
             bet_str = f"{red_balls_str}+{blue_balls_str} ({analysis_str})"  # 将分析结果加在号码后面

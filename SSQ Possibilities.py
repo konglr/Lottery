@@ -184,7 +184,7 @@ def generate_valid_combinations_dataframe():
         if overlap_count == 0: # 排除红球与新一期开奖红球中没有相同的组合
             no_overlap_latest_count += 1
             is_valid = False
-        if overlap_count >= 2: # 排除红球与最新一期开奖红球中有2个及以上相同的组合
+        if overlap_count >=2: # 排除红球与最新一期开奖红球中有2个及以上相同的组合
             two_or_more_overlap_latest_count += 1
             is_valid = False
 
