@@ -58,10 +58,11 @@ st.markdown("""
         margin-bottom: 15px;
     }
     .subheader {
-        font-size: 14px;
+        font-size: 10px;
         font-weight: bold;
         margin: 10px 0;
     }
+    
     .selected-numbers-display {
         margin-top: 20px;
         padding: 10px;
@@ -332,378 +333,448 @@ with tab1:
 
     st.markdown(latest_draw_html, unsafe_allow_html=True)  # 显示完整 HTML 代码，包含分析结果
 
-    if not filtered_data.empty:
 
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-        with col1:
-            st.subheader("红球冷热分析")
-            # Calculate frequency for red balls
-            red_frequency = {}
-            for i in range(1, 34):  # Corrected range to 1-33 in previous version, now 1-34 to align with UI
-                count = 0
-                for j in range(1, 7):
-                    if f'红球{j}' in filtered_data.columns:
-                        count += (filtered_data[f'红球{j}'] == i).sum()
-                red_frequency[i] = count
+    with col1:
+        st.subheader("红球冷热分析")
+        # Calculate frequency for red balls
+        red_frequency = {}
+        for i in range(1, 34):  # Corrected range to 1-33 in previous version, now 1-34 to align with UI
+            count = 0
+            for j in range(1, 7):
+                if f'红球{j}' in filtered_data.columns:
+                    count += (filtered_data[f'红球{j}'] == i).sum()
+            red_frequency[i] = count
 
-            red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
-            red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
+        red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
+        red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
 
-            # 计算总出现次数
-            total_counts = red_freq_df['出现次数'].sum()
+        # 计算总出现次数
+        total_counts = red_freq_df['出现次数'].sum()
+
+        # 计算百分比并添加到 DataFrame
+        red_freq_df['百分比'] = (red_freq_df['出现次数'] / total_counts)
+
+        # 创建 Altair 柱状图和文本图层
+        bars = alt.Chart(red_freq_df).mark_bar(color='red').encode(
+            x=alt.X('号码:O', title='红球号码', sort='-y',
+                    axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
+            y=alt.Y('出现次数:Q', title='出现次数'),
+            color= alt.Color('出现次数:Q',scale=alt.Scale(scheme='reds'), legend=None),
+            tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".1%")]  # Tooltip 中也显示百分比
+        )
+
+        text = alt.Chart(red_freq_df).mark_text(
+            dy=-10
+        ).encode(
+            x=alt.X('号码:O', sort='-y'),
+            y=alt.Y('出现次数:Q'),
+            text=alt.Text(
+                '百分比:Q',
+                format=".1%'",  # 使用 format=".1f" 格式化数值部分
+                formatType='number',  # 显式指定 formatType 为 'number'
+            )
+        )
+
+        # 将柱状图和文本标签图层叠加
+        chart = (bars).properties(
+            title='红球出现频率 (出现次数及百分比)',
+            width=800,
+            height=300
+        )
+
+        # 在 Streamlit 中显示 Altair 图表
+        st.altair_chart(chart, use_container_width=True)
+
+
+        # 格式化输出
+        hot_red_str = ', '.join(map(str, hot_red))
+        cold_red_str = ', '.join(map(str, cold_red))
+
+        # 显示热门和冷门号码
+        st.write(f"热门号码: {hot_red_str}")
+        st.write(f"冷门号码: {cold_red_str}")
+
+    with col2:
+        st.subheader("蓝球冷热分析")
+        # Calculate frequency for blue balls
+        if '蓝球' in filtered_data.columns:
+            blue_frequency = {}
+            for i in range(1, 17):
+                blue_frequency[i] = (filtered_data['蓝球'] == i).sum()
+
+            blue_freq_df = pd.DataFrame(
+                {'号码': list(blue_frequency.keys()), '出现次数': list(blue_frequency.values())})
+            blue_freq_df = blue_freq_df.sort_values('出现次数', ascending=False)
+
+            # 计算蓝球总出现次数
+            blue_total_counts = blue_freq_df['出现次数'].sum()
 
             # 计算百分比并添加到 DataFrame
-            red_freq_df['百分比'] = (red_freq_df['出现次数'] / total_counts)
+            blue_freq_df['百分比'] = (blue_freq_df['出现次数'] / blue_total_counts)
 
-            # 创建 Altair 柱状图和文本图层
-            bars = alt.Chart(red_freq_df).mark_bar(color='red').encode(
-                x=alt.X('号码:O', title='红球号码', sort='-y',
+            # 创建 Altair 柱状图
+            blue_bars = alt.Chart(blue_freq_df).mark_bar(color='blue').encode(
+                x=alt.X('号码:O', title='蓝球号码', sort='-y',
                         axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
                 y=alt.Y('出现次数:Q', title='出现次数'),
-                tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".1%")]  # Tooltip 中也显示百分比
+                tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".1%")]
+                # Tooltip 中也显示百分比, 并添加百分号
             )
 
-            text = alt.Chart(red_freq_df).mark_text(
-                dy=-10
+            # 文本标签图层
+            blue_text = alt.Chart(blue_freq_df).mark_text(
+                dy=-10  # 调整文本垂直位置
             ).encode(
                 x=alt.X('号码:O', sort='-y'),
                 y=alt.Y('出现次数:Q'),
                 text=alt.Text(
                     '百分比:Q',
-                    format=".1%'",  # 使用 format=".1f" 格式化数值部分
+                    format=".1%",  # 使用 format=".1f" 格式化数值部分
                     formatType='number',  # 显式指定 formatType 为 'number'
                 )
             )
 
             # 将柱状图和文本标签图层叠加
-            chart = (bars).properties(
-                title='红球出现频率 (出现次数及百分比)',
+            blue_chart = (blue_bars).properties(
+                title='蓝球出现频率 (出现次数及百分比)',
                 width=800,
                 height=300
             )
 
-            # 在 Streamlit 中显示 Altair 图表
-            st.altair_chart(chart, use_container_width=True)
+            st.altair_chart(blue_chart, use_container_width=True)
 
+            # 获取出现频率最高的前 3 个号码
+            top_3_freq = blue_freq_df['出现次数'].iloc[2]
+            hot_blue_df = blue_freq_df[blue_freq_df['出现次数'] >= top_3_freq]
+            hot_blue = hot_blue_df['号码'].tolist()
+
+            # 获取出现频率最低的后 3 个号码
+            bottom_3_freq = blue_freq_df['出现次数'].iloc[-3]
+            cold_blue_df = blue_freq_df[blue_freq_df['出现次数'] <= bottom_3_freq]
+            cold_blue = cold_blue_df['号码'].tolist()
 
             # 格式化输出
-            hot_red_str = ', '.join(map(str, hot_red))
-            cold_red_str = ', '.join(map(str, cold_red))
+            hot_blue_str = ', '.join(map(str, hot_blue))
+            cold_blue_str = ', '.join(map(str, cold_blue))
 
             # 显示热门和冷门号码
-            st.write(f"热门号码: {hot_red_str}")
-            st.write(f"冷门号码: {cold_red_str}")
+            st.write(f"热门蓝球号码: {hot_blue_str}")
+            st.write(f"冷门蓝球号码: {cold_blue_str}")
 
-        with col2:
-            st.subheader("蓝球冷热分析")
-            # Calculate frequency for blue balls
-            if '蓝球' in filtered_data.columns:
-                blue_frequency = {}
-                for i in range(1, 17):
-                    blue_frequency[i] = (filtered_data['蓝球'] == i).sum()
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("大小比例分析")
 
-                blue_freq_df = pd.DataFrame(
-                    {'号码': list(blue_frequency.keys()), '出现次数': list(blue_frequency.values())})
-                blue_freq_df = blue_freq_df.sort_values('出现次数', ascending=False)
+        # 初始化大小比例的计数字典
+        size_ratio_counts = {
+            '0:6': 0,
+            '1:5': 0,
+            '2:4': 0,
+            '3:3': 0,
+            '4:2': 0,
+            '5:1': 0,
+            '6:0': 0
+        }
 
-                # 计算蓝球总出现次数
-                blue_total_counts = blue_freq_df['出现次数'].sum()
+        # 统计每种大小组合的出现次数
+        for _, row in filtered_data.iterrows():
+            # 获取大号数量
+            large_count = row['大号']
+            # 小号数量是 6 - 大号数量
+            small_count = 6 - large_count
 
-                # 计算百分比并添加到 DataFrame
-                blue_freq_df['百分比'] = (blue_freq_df['出现次数'] / blue_total_counts)
+            # 计算大小比例字符串
+            ratio = f"{large_count}:{small_count}"
 
-                # 创建 Altair 柱状图
-                blue_bars = alt.Chart(blue_freq_df).mark_bar(color='blue').encode(
-                    x=alt.X('号码:O', title='蓝球号码', sort='-y',
-                            axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
-                    y=alt.Y('出现次数:Q', title='出现次数'),
-                    tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".1%")]
-                    # Tooltip 中也显示百分比, 并添加百分号
-                )
+            # 如果这个比例在字典中，则计数加 1
+            if ratio in size_ratio_counts:
+                size_ratio_counts[ratio] += 1
 
-                # 文本标签图层  (模仿红球分析)
-                blue_text = alt.Chart(blue_freq_df).mark_text(
-                    dy=-10  # 调整文本垂直位置
-                ).encode(
-                    x=alt.X('号码:O', sort='-y'),
-                    y=alt.Y('出现次数:Q'),
-                    text=alt.Text(
-                        '百分比:Q',
-                        format=".1%",  # 使用 format=".1f" 格式化数值部分
-                        formatType='number',  # 显式指定 formatType 为 'number'
-                    )
-                )
+        # 将计数结果转为 DataFrame
+        size_ratio_df = pd.DataFrame(list(size_ratio_counts.items()), columns=["大小比例", "出现次数"])
 
-                # 将柱状图和文本标签图层叠加
-                blue_chart = (blue_bars).properties(
-                    title='蓝球出现频率 (出现次数及百分比)',
-                    width=800,
-                    height=300
-                )
+        # 计算百分比
+        total_count = size_ratio_df["出现次数"].sum()
+        size_ratio_df["百分比"] = (size_ratio_df["出现次数"] / total_count)
 
-                st.altair_chart(blue_chart, use_container_width=True)
+        # 使用 Altair 绘制柱状图
+        chart = alt.Chart(size_ratio_df).mark_bar().encode(
+            x=alt.X('大小比例:O', title='大小比例', axis=alt.Axis(labelAngle=0)),  # 旋转X轴标签
+            y=alt.Y('出现次数:Q', title='出现次数'),
+            color=alt.Color('出现次数:Q', legend=None),  # 使用大小比例的不同值显示不同颜色
+            tooltip=['大小比例', '出现次数',
+                     alt.Tooltip('百分比:Q', format='.1%', title='百分比')]  # 鼠标悬停显示的内容
+        ).properties(
+            title='大小比例分布',  # 图表标题
+            width=800,  # 图表宽度
+            height=300  # 图表高度
+        )
 
-                # 获取出现频率最高的前 3 个号码
-                top_3_freq = blue_freq_df['出现次数'].iloc[2]
-                hot_blue_df = blue_freq_df[blue_freq_df['出现次数'] >= top_3_freq]
-                hot_blue = hot_blue_df['号码'].tolist()
+        # 添加百分比文本标签
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5  # 调整文字位置
+        ).encode(
+            text=alt.Text('百分比:Q', format='.1%')
+        )
 
-                # 获取出现频率最低的后 3 个号码
-                bottom_3_freq = blue_freq_df['出现次数'].iloc[-3]
-                cold_blue_df = blue_freq_df[blue_freq_df['出现次数'] <= bottom_3_freq]
-                cold_blue = cold_blue_df['号码'].tolist()
-
-                # 格式化输出
-                hot_blue_str = ', '.join(map(str, hot_blue))
-                cold_blue_str = ', '.join(map(str, cold_blue))
-
-                # 显示热门和冷门号码
-                st.write(f"热门蓝球号码: {hot_blue_str}")
-                st.write(f"冷门蓝球号码: {cold_blue_str}")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.subheader("大小比例分析")
-            # Calculate big-small ratio for red balls in each draw
-            big_small_ratios = []
-            for _, row in filtered_data.iterrows():
-                big_count = 0
-                for i in range(1, 7):
-                    col_name = f'红球{i}'
-                    if col_name in row and row[col_name] > 16:  # 假设17及以上为大号
-                        big_count += 1
-                big_small_ratios.append((big_count, 6 - big_count))
-
-            big_small_df = pd.DataFrame(big_small_ratios, columns=['大号', '小号'])
-            big_small_counts = big_small_df.groupby(['大号', '小号']).size().reset_index(name='次数')
-
-            # 计算百分比并添加到 DataFrame  (新增代码)
-            total_big_small_counts = big_small_counts['次数'].sum()
-            big_small_counts['百分比'] = (big_small_counts['次数'] / total_big_small_counts)
-
-            # 创建Altair图表
-            chart = alt.Chart(big_small_counts).transform_calculate(
-                比例标签="datum.大号 + '大' + datum.小号 + '小'"
-            ).mark_bar().encode(
-                x=alt.X('比例标签:N',
-                        title='大小比例',
-                        sort=alt.EncodingSortField('大号', order='ascending'),  # 按大号排序
-                        axis=alt.Axis(labelAngle=-45)),
-                y=alt.Y('次数:Q', title='出现次数'),
-                color='次数:Q',  # 不同值显示不同颜色
-                tooltip=[
-                    alt.Tooltip('比例标签:N', title='比例'),
-                    alt.Tooltip('次数:Q', title='出现次数'),
-                    alt.Tooltip('百分比:Q', format='.1%', title='百分比')
-                ]
-            ).properties(
-                width=800,
-                height=300,
-                title='红球大小比例分布'
-            )
-
-            # 添加百分比文本标签
-            text = chart.mark_text(
-                align='center',
-                baseline='bottom',
-                dy=-5  # 调整文字位置
-            ).encode(
-                text=alt.Text('百分比:Q', format='.1%')
-            )
-
-            # 组合图表并显示
-            st.altair_chart(chart + text, use_container_width=True)
+        # 组合图表并显示
+        st.altair_chart(chart + text, use_container_width=True)
 
 
+    with col2:
+        st.subheader("大号和小号变化趋势")
+        # 进行数据转换
+        # 将 '大号' 和 '小号' 两列折叠为两列：类别 ('大号' 或 '小号') 和 数量
+        chart_data = filtered_data.melt(id_vars=["期号"], value_vars=["大号", "小号"], var_name="类别",
+                                        value_name="数量")
 
-        with col2:
-            st.subheader("奇偶比例分析")
+        # 将 '小号' 的数量转换为负数
+        chart_data.loc[chart_data['类别'] == '小号', '数量'] *= -1
 
-            # 初始化奇偶比例的计数字典
-            odd_even_counts = {
-                '1:5': 0,
-                '2:4': 0,
-                '3:3': 0,
-                '4:2': 0,
-                '5:1': 0
-            }
+        # 绘制柱状图
+        chart = alt.Chart(chart_data).mark_bar().encode(
+            x=alt.X('期号:O', title='期号',
+                    axis=alt.Axis(labelAngle=-45)),  # X轴为期号
+            y=alt.Y('数量:Q', title='数量', axis=alt.Axis(grid=True)),  # Y轴为数量，定量数据
+            color=alt.Color('类别:N', legend=None),  # 根据类别（大号、小号）颜色区分
+            tooltip=['期号', '类别', '数量']  # 鼠标悬停显示期号、类别和数量
+        ).properties(
+            title='大小号趋势',  # 图表标题
+            width=800,  # 图表宽度
+            height=300  # 图表高度
+        )
 
-            # 统计每种奇偶组合的出现次数
-            for _, row in filtered_data.iterrows():
-                # 获取奇数数量
-                odd_count = row['奇数']
-                # 偶数数量是 6 - 奇数数量
-                even_count = 6 - odd_count
+        # 将大号显示在中轴之上，小号显示在中轴之下
+        chart = chart.encode(
+            y=alt.Y('数量:Q', title='数量', scale=alt.Scale(domain=[-6, 6]))  # 将 Y 轴设置为对称的区间
+        )
 
-                # 计算奇偶比例字符串
-                ratio = f"{odd_count}:{even_count}"
-
-                # 如果这个比例在字典中，则计数加 1
-                if ratio in odd_even_counts:
-                    odd_even_counts[ratio] += 1
-
-            # 将计数结果转为 DataFrame
-            odd_even_df = pd.DataFrame(list(odd_even_counts.items()), columns=["奇偶比例", "出现次数"])
-
-            # 计算百分比
-            total_count = odd_even_df["出现次数"].sum()
-            odd_even_df["百分比"] = (odd_even_df["出现次数"] / total_count)
-
-            # 使用 Altair 绘制柱状图
-            chart = alt.Chart(odd_even_df).mark_bar().encode(
-                x=alt.X('奇偶比例:O', title='奇偶比例', axis=alt.Axis(labelAngle=0)),  # 旋转X轴标签
-                y=alt.Y('出现次数:Q', title='出现次数'),
-                color='奇偶比例:O',  # 使用奇偶比例的不同值显示不同颜色
-                tooltip=['奇偶比例', '出现次数',
-                         alt.Tooltip('百分比:Q', format='.1%', title='百分比')]  # 鼠标悬停显示的内容
-
-            ).properties(
-                title='奇偶比例分布',  # 图表标题
-                width=400,  # 图表宽度
-                height=300  # 图表高度
-            ).configure_view(
-                stroke=None  # 去除图表边框
-            )
-
-            # 显示图表
-            st.altair_chart(chart, use_container_width=True)
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.subheader("连号分析")
-            # Analyze consecutive numbers
-            consecutive_counts = []
-            for _, row in filtered_data.iterrows():
-                red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
-                red_balls = [b for b in red_balls if b > 0]  # Filter out zeros or missing values
-
-                if len(red_balls) < 2:
-                    continue
-
-                red_balls.sort()
-                max_consecutive = 1
-                current_consecutive = 1
-
-                for i in range(1, len(red_balls)):
-                    if red_balls[i] == red_balls[i - 1] + 1:
-                        current_consecutive += 1
-                    else:
-                        max_consecutive = max(max_consecutive, current_consecutive)
-                        current_consecutive = 1
-
-                max_consecutive = max(max_consecutive, current_consecutive)
-                consecutive_counts.append(max_consecutive)
-
-            if consecutive_counts:
-                consecutive_df = pd.DataFrame({'最大连号数': consecutive_counts})
-                consecutive_count = consecutive_df['最大连号数'].value_counts().sort_index()
-
-                fig, ax = plt.subplots(figsize=(8, 4))
-                ax.bar(consecutive_count.index.astype(str), consecutive_count.values)
-                ax.set_title('最大连号数分布')
-                ax.set_xlabel('连号数')
-                ax.set_ylabel('出现次数')
-                st.pyplot(fig)
-            else:
-                st.warning("连号分析数据不足")
-
-        with col2:
-            st.subheader("同尾号分析")
-            # Analyze same tail numbers
-            same_tail_counts = []
-            for _, row in filtered_data.iterrows():
-                red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
-                red_balls = [b for b in red_balls if b > 0]  # Filter out zeros or missing values
-
-                if len(red_balls) < 2:
-                    continue
-
-                tails = [num % 10 for num in red_balls]
-                tail_counts = {}
-
-                for tail in tails:
-                    if tail in tail_counts:
-                        tail_counts[tail] += 1
-                    else:
-                        tail_counts[tail] = 1
-
-                if tail_counts:
-                    max_same_tail = max(tail_counts.values())
-                    same_tail_counts.append(max_same_tail)
-
-            if same_tail_counts:
-                same_tail_df = pd.DataFrame({'最大同尾数': same_tail_counts})
-                same_tail_count = same_tail_df['最大同尾数'].value_counts().sort_index()
-
-                fig, ax = plt.subplots(figsize=(8, 4))
-                ax.bar(same_tail_count.index.astype(str), same_tail_count.values)
-                ax.set_title('最大同尾号数分布')
-                ax.set_xlabel('同尾号数')
-                ax.set_ylabel('出现次数')
-                st.pyplot(fig)
-            else:
-                st.warning("同尾号分析数据不足")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.subheader("红球同号统计")  # 由于缺少前一期的数据，统计中少一期数据
-
-            same_number_counts = calculate_same_number_counts(filtered_data)
-            # 统计同号数量的频率
-            frequency = {}
-            for count in same_number_counts:
-                frequency[count] = frequency.get(count, 0) + 1
-
-            frequency_df = pd.DataFrame(
-                {'同号数量': list(frequency.keys()), '出现次数': list(frequency.values())})
-
-            # 创建 Altair 柱状图
-            chart = alt.Chart(frequency_df).mark_bar().encode(
-                x=alt.X('同号数量:O', title='同号数量', axis=alt.Axis(labelAngle=0, labelOverlap=False)),
-                y=alt.Y('出现次数:Q', title='出现次数'),
-                tooltip=['同号数量', '出现次数']
-            ).properties(
-                title='红球同号数量统计',
-                width=800,
-                height=300
-            )
-
-            # 在 Streamlit 中显示 Altair 图表
-            st.altair_chart(chart, use_container_width=True)
-
-        with col2:
-            st.subheader("红球同号分析")
-
-            same_number_counts = calculate_same_number_counts(filtered_data)
-            # 修改 same_numbers_df 的创建方式，使用 filtered_data 的期号
-            same_numbers_df = pd.DataFrame({
-                '期号': filtered_data['期号'].tolist()[1:],  # 从第二期开始，获取期号
-                '同号数量': same_number_counts
-            })
-
-            # 创建 Altair 折线图
-            chart = alt.Chart(same_numbers_df).mark_line().encode(
-                x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # 使用期号作为 x 轴
-                y=alt.Y('同号数量:Q', title='同号数量', axis=alt.Axis(tickCount=same_numbers_df['同号数量'].max() + 1)),
-                # 设置 y 轴标尺为整数
-                tooltip=['期号', '同号数量']
-            ).properties(
-                title='红球同号趋势图',
-                width=800,
-                height=300
-            )
-
-            # 在 Streamlit 中显示 Altair 图表
-            st.altair_chart(chart, use_container_width=True)
+        # 显示图表
+        st.altair_chart(chart, use_container_width=True)
 
 
-    else:
-        st.warning("没有足够的数据进行分析。请检查Excel文件。")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("奇偶比例分析")
 
+        # 初始化奇偶比例的计数字典
+        odd_even_counts = {
+            '1:5': 0,
+            '2:4': 0,
+            '3:3': 0,
+            '4:2': 0,
+            '5:1': 0
+        }
+
+        # 统计每种奇偶组合的出现次数
+        for _, row in filtered_data.iterrows():
+            # 获取奇数数量
+            odd_count = row['奇数']
+            # 偶数数量是 6 - 奇数数量
+            even_count = 6 - odd_count
+
+            # 计算奇偶比例字符串
+            ratio = f"{odd_count}:{even_count}"
+
+            # 如果这个比例在字典中，则计数加 1
+            if ratio in odd_even_counts:
+                odd_even_counts[ratio] += 1
+
+        # 将计数结果转为 DataFrame
+        odd_even_df = pd.DataFrame(list(odd_even_counts.items()), columns=["奇偶比例", "出现次数"])
+
+        # 计算百分比
+        total_count = odd_even_df["出现次数"].sum()
+        odd_even_df["百分比"] = (odd_even_df["出现次数"] / total_count)
+
+        # 使用 Altair 绘制柱状图
+        chart = alt.Chart(odd_even_df).mark_bar().encode(
+            x=alt.X('奇偶比例:O', title='奇偶比例', axis=alt.Axis(labelAngle=0)),  # 旋转X轴标签
+            y=alt.Y('出现次数:Q', title='出现次数'),
+            color=alt.Color('出现次数:Q', legend=None),  # 使用奇偶比例的不同值显示不同颜色
+            tooltip=['奇偶比例', '出现次数',
+                     alt.Tooltip('百分比:Q', format='.1%', title='百分比')]  # 鼠标悬停显示的内容
+        ).properties(
+            title='奇偶比例分布',  # 图表标题
+            width=800,  # 图表宽度
+            height=300  # 图表高度
+        )
+
+        # 添加百分比文本标签
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5  # 调整文字位置
+        ).encode(
+            text=alt.Text('百分比:Q', format='.1%')
+        )
+
+        # 组合图表并显示
+        st.altair_chart(chart + text, use_container_width=True)
+
+    with col2:
+        st.subheader("奇数和偶数变化趋势")
+
+        # 进行数据转换，将 '奇数' 和 '偶数' 两列折叠为两列：类别 ('奇数' 或 '偶数') 和 数量
+        chart_data = filtered_data.melt(id_vars=["期号"], value_vars=["奇数", "偶数"], var_name="类别",
+                                        value_name="数量")
+
+        # 将 '偶数' 的数量转换为负数，使其显示在中轴之下
+        chart_data.loc[chart_data['类别'] == '偶数', '数量'] *= -1
+
+        # 绘制柱状图
+        chart = alt.Chart(chart_data).mark_bar().encode(
+            x=alt.X('期号:O', title='期号',
+                    axis=alt.Axis(labelAngle=-45)),  # X轴为期号
+            y=alt.Y('数量:Q', title='数量', axis=alt.Axis(grid=True)),  # Y轴为数量，定量数据
+            color=alt.Color('类别:N', legend=None),  # 根据类别（奇数、偶数）颜色区分
+            tooltip=['期号', '类别', '数量']  # 鼠标悬停显示期号、类别和数量
+        ).properties(
+            title='奇偶号趋势',  # 图表标题
+            width=800,  # 图表宽度
+            height=300  # 图表高度
+        )
+
+        # 设置 Y 轴范围，使奇数在中轴之上，偶数在中轴之下
+        chart = chart.encode(
+            y=alt.Y('数量:Q', title='数量', scale=alt.Scale(domain=[-6, 6]))  # 设定 Y 轴范围，确保对称
+        )
+
+        # 显示图表
+        st.altair_chart(chart, use_container_width=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("连号分析")
+        # Analyze consecutive numbers
+        consecutive_counts = []
+        for _, row in filtered_data.iterrows():
+            red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
+            red_balls = [b for b in red_balls if b > 0]  # Filter out zeros or missing values
+
+            if len(red_balls) < 2:
+                continue
+
+            red_balls.sort()
+            max_consecutive = 1
+            current_consecutive = 1
+
+            for i in range(1, len(red_balls)):
+                if red_balls[i] == red_balls[i - 1] + 1:
+                    current_consecutive += 1
+                else:
+                    max_consecutive = max(max_consecutive, current_consecutive)
+                    current_consecutive = 1
+
+            max_consecutive = max(max_consecutive, current_consecutive)
+            consecutive_counts.append(max_consecutive)
+
+        if consecutive_counts:
+            consecutive_df = pd.DataFrame({'最大连号数': consecutive_counts})
+            consecutive_count = consecutive_df['最大连号数'].value_counts().sort_index()
+
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.bar(consecutive_count.index.astype(str), consecutive_count.values)
+            ax.set_title('最大连号数分布')
+            ax.set_xlabel('连号数')
+            ax.set_ylabel('出现次数')
+            st.pyplot(fig)
+        else:
+            st.warning("连号分析数据不足")
+
+    with col2:
+        st.subheader("同尾号分析")
+        # Analyze same tail numbers
+        same_tail_counts = []
+        for _, row in filtered_data.iterrows():
+            red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
+            red_balls = [b for b in red_balls if b > 0]  # Filter out zeros or missing values
+
+            if len(red_balls) < 2:
+                continue
+
+            tails = [num % 10 for num in red_balls]
+            tail_counts = {}
+
+            for tail in tails:
+                if tail in tail_counts:
+                    tail_counts[tail] += 1
+                else:
+                    tail_counts[tail] = 1
+
+            if tail_counts:
+                max_same_tail = max(tail_counts.values())
+                same_tail_counts.append(max_same_tail)
+
+        if same_tail_counts:
+            same_tail_df = pd.DataFrame({'最大同尾数': same_tail_counts})
+            same_tail_count = same_tail_df['最大同尾数'].value_counts().sort_index()
+
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.bar(same_tail_count.index.astype(str), same_tail_count.values)
+            ax.set_title('最大同尾号数分布')
+            ax.set_xlabel('同尾号数')
+            ax.set_ylabel('出现次数')
+            st.pyplot(fig)
+        else:
+            st.warning("同尾号分析数据不足")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("红球同号统计")  # 由于缺少前一期的数据，统计中少一期数据
+
+        same_number_counts = calculate_same_number_counts(filtered_data)
+        # 统计同号数量的频率
+        frequency = {}
+        for count in same_number_counts:
+            frequency[count] = frequency.get(count, 0) + 1
+
+        frequency_df = pd.DataFrame(
+            {'同号数量': list(frequency.keys()), '出现次数': list(frequency.values())})
+
+        # 创建 Altair 柱状图
+        chart = alt.Chart(frequency_df).mark_bar().encode(
+            x=alt.X('同号数量:O', title='同号数量', axis=alt.Axis(labelAngle=0, labelOverlap=False)),
+            y=alt.Y('出现次数:Q', title='出现次数'),
+            tooltip=['同号数量', '出现次数']
+        ).properties(
+            title='红球同号数量统计',
+            width=800,
+            height=300
+        )
+
+        # 在 Streamlit 中显示 Altair 图表
+        st.altair_chart(chart, use_container_width=True)
+
+    with col2:
+        st.subheader("红球同号分析")
+
+        same_number_counts = calculate_same_number_counts(filtered_data)
+        # 修改 same_numbers_df 的创建方式，使用 filtered_data 的期号
+        same_numbers_df = pd.DataFrame({
+            '期号': filtered_data['期号'].tolist()[1:],  # 从第二期开始，获取期号
+            '同号数量': same_number_counts
+        })
+
+        # 创建 Altair 折线图
+        chart = alt.Chart(same_numbers_df).mark_line().encode(
+            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # 使用期号作为 x 轴
+            y=alt.Y('同号数量:Q', title='同号数量', axis=alt.Axis(tickCount=same_numbers_df['同号数量'].max() + 1)),
+            # 设置 y 轴标尺为整数
+            tooltip=['期号', '同号数量']
+        ).properties(
+            title='红球同号趋势图',
+            width=800,
+            height=300
+        )
+
+        # 在 Streamlit 中显示 Altair 图表
+        st.altair_chart(chart, use_container_width=True)
 
 with tab2:
     col1, col2 = st.columns(2)  # 创建两列布局
@@ -823,8 +894,6 @@ with tab2:
 
     st.button("清除所有选择", on_click=clear_selection, type="primary", key="clear_all_button")
     st.button("增加一个投注", on_click=add_bet, type="primary", key="add_bet_button")
-
-
 
 
 with tab3:
