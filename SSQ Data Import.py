@@ -146,14 +146,13 @@ yearly_counts = df.groupby('年份')['期号'].count()
 # 打印结果
 print(yearly_counts)
 
-#import pandas as pd
-
-# 红球列
-red_ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6"]
 
 # 读取历史数据
 df = pd.read_excel("双色球开奖情况.xlsx")
 
+
+# 定义红球列名（假设为6个红球列名）
+red_ball_columns = ['红球1', '红球2', '红球3', '红球4', '红球5', '红球6']
 # 确保红球列为整数类型
 df[red_ball_columns] = df[red_ball_columns].astype(int)
 
@@ -165,9 +164,9 @@ df[red_ball_columns] = df[red_ball_columns].astype(int)
 一区 = []
 二区 = []
 三区 = []
-重号 = [0]  # 第一行没有上一期数据，默认填 0
-邻号 = [0]
-孤号 = [0]
+重号 = []
+邻号 = []
+孤号 = []
 二连 = []
 三连 = []
 四连 = []
@@ -182,8 +181,8 @@ df[red_ball_columns] = df[red_ball_columns].astype(int)
 AC = []
 跨度 = []
 
-# 遍历每一期数据
-for i in range(len(df)):
+# 遍历每一期数据（倒序遍历，从最新的开始）
+for i in range(0, len(df), 1):
     nums = sorted(df.loc[i, red_ball_columns].tolist())  # 当前期红球数据（已排序）
 
     # 1. 计算奇数和偶数数量
@@ -207,21 +206,19 @@ for i in range(len(df)):
     三区.append(zone3_count)
 
     # 4. 计算重号（与上一期相同的号码）
-    if i > 0:
-        if i + 1 < len(df):  # 判断是否有下一行数据
-            last_nums = sorted(df.loc[i + 1, red_ball_columns].tolist())  # 上一期红球
-        else:
-            last_nums = []  # 如果没有下一行数据，则设为空
-        #last_nums = sorted(df.loc[i + 1, red_ball_columns].tolist())  # 上一期红球
-        repeat_count = len(set(nums) & set(last_nums))
-        重号.append(repeat_count)
+    if i < len(df) - 1:  # 判断是否有上一期数据
+        last_nums = sorted(df.loc[i + 1, red_ball_columns].tolist())  # 上一期红球
+    else:
+        last_nums = []  # 如果没有上一期数据，则设为空
+    repeat_count = len(set(nums) & set(last_nums))
+    重号.append(repeat_count)
 
-        # 5. 计算邻号（与上一期号码相邻的号码）
-        adjacent_count = sum(1 for num in nums if (num - 1 in last_nums) or (num + 1 in last_nums))
-        邻号.append(adjacent_count)
+    # 5. 计算邻号（与上一期号码相邻的号码）
+    adjacent_count = sum(1 for num in nums if((num - 1 in last_nums) or (num + 1 in last_nums)))
+    邻号.append(adjacent_count)
 
-        # 6. 计算孤号（去掉重号和邻号后剩下的号码）
-        孤号.append(6 - repeat_count - adjacent_count)
+    # 6. 计算孤号（去掉重号和邻号后剩下的号码）
+    孤号.append(6 - repeat_count - adjacent_count)
 
     # 7. 计算连号
     two_consecutive = sum(1 for j in range(5) if nums[j] + 1 == nums[j + 1])  # 二连
@@ -232,9 +229,9 @@ for i in range(len(df)):
 
     二连.append(two_consecutive)
     三连.append(three_consecutive)
-    四连 = four_consecutive
-    五连 = five_consecutive
-    六连 = six_consecutive
+    四连.append(four_consecutive)
+    五连.append(five_consecutive)
+    六连.append(six_consecutive)
 
     # 8. 计算跳号
     two_jump = sum(1 for j in range(5) if nums[j] + 2 == nums[j + 1])  # 二跳
@@ -245,9 +242,9 @@ for i in range(len(df)):
 
     二跳.append(two_jump)
     三跳.append(three_jump)
-    四跳 = four_jump
-    五跳 = five_jump
-    六跳 = six_jump
+    四跳.append(four_jump)
+    五跳.append(five_jump)
+    六跳.append(six_jump)
 
     # 9. 计算和值
     sum_value = sum(nums)
