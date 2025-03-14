@@ -492,6 +492,7 @@ with tab1:
                         sort=alt.EncodingSortField('大号', order='ascending'),  # 按大号排序
                         axis=alt.Axis(labelAngle=-45)),
                 y=alt.Y('次数:Q', title='出现次数'),
+                color='次数:Q',  # 不同值显示不同颜色
                 tooltip=[
                     alt.Tooltip('比例标签:N', title='比例'),
                     alt.Tooltip('次数:Q', title='出现次数'),
@@ -519,7 +520,8 @@ with tab1:
 
         with col2:
             st.subheader("奇偶比例分析")
-            # Calculate odd-even ratio for red balls in each draw
+
+            # 初始化奇偶比例的计数字典
             odd_even_counts = {
                 '1:5': 0,
                 '2:4': 0,
@@ -528,26 +530,45 @@ with tab1:
                 '5:1': 0
             }
 
+            # 统计每种奇偶组合的出现次数
             for _, row in filtered_data.iterrows():
-                odd_count = 0
-                for i in range(1, 7):
-                    col_name = f'红球{i}'
-                    if col_name in row and row[col_name] % 2 == 1:
-                        odd_count += 1
+                # 获取奇数数量
+                odd_count = row['奇数']
+                # 偶数数量是 6 - 奇数数量
+                even_count = 6 - odd_count
 
-                ratio = f"{odd_count}:{6 - odd_count}"
+                # 计算奇偶比例字符串
+                ratio = f"{odd_count}:{even_count}"
+
+                # 如果这个比例在字典中，则计数加 1
                 if ratio in odd_even_counts:
                     odd_even_counts[ratio] += 1
 
-            ratios = list(odd_even_counts.keys())
-            counts = list(odd_even_counts.values())
+            # 将计数结果转为 DataFrame
+            odd_even_df = pd.DataFrame(list(odd_even_counts.items()), columns=["奇偶比例", "出现次数"])
 
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.bar(ratios, counts)
-            ax.set_title('红球奇偶比例分布')
-            ax.set_xlabel('奇偶比例')
-            ax.set_ylabel('出现次数')
-            st.pyplot(fig)
+            # 计算百分比
+            total_count = odd_even_df["出现次数"].sum()
+            odd_even_df["百分比"] = (odd_even_df["出现次数"] / total_count)
+
+            # 使用 Altair 绘制柱状图
+            chart = alt.Chart(odd_even_df).mark_bar().encode(
+                x=alt.X('奇偶比例:O', title='奇偶比例', axis=alt.Axis(labelAngle=0)),  # 旋转X轴标签
+                y=alt.Y('出现次数:Q', title='出现次数'),
+                color='奇偶比例:O',  # 使用奇偶比例的不同值显示不同颜色
+                tooltip=['奇偶比例', '出现次数',
+                         alt.Tooltip('百分比:Q', format='.1%', title='百分比')]  # 鼠标悬停显示的内容
+
+            ).properties(
+                title='奇偶比例分布',  # 图表标题
+                width=400,  # 图表宽度
+                height=300  # 图表高度
+            ).configure_view(
+                stroke=None  # 去除图表边框
+            )
+
+            # 显示图表
+            st.altair_chart(chart, use_container_width=True)
 
         col1, col2 = st.columns(2)
 
