@@ -146,21 +146,15 @@ yearly_counts = df.groupby('年份')['期号'].count()
 # 打印结果
 print(yearly_counts)
 
-# 红球数据处理
-# 1.奇数/偶数 - 写入 “奇数”和“偶数”列
-# 2.小号/大号 - 小号：16及一下的数字，大号16以上的数字， 写入 “小号”和“大号”列
-# 2，三区 - 一区：1-11， 二区：12-24， 三区：25-33， 分别把每个区的出现几个数字写入列
-# 3.重号 - 与上一期相同号码数量，写入“重号”列
-# 4.邻号-  与上期开奖号相邻的号，也称边码， 出现邻号的数量，写入 “邻号”
-# 5.孤号- 去掉重号与邻号剩下的所有号，把数字数量写入 “孤号”
-# 6.连号- 相邻两个号码相连，“二连” 数量， “三连”数量； 一个三连号，就一定有2个二连号
-# 7，跳号 - 两个相邻号码中间差1个号码， 如 2和4， 13和15， “二跳”，“三跳”，一个三跳，就有2个二跳
-# 8.和值 - 6个红球相加， 写入“和值”
-# 9.AC值-AC值 = 不同差值数量 - (红球数量 - 1)， 写入“AC”
-# 10.跨度- 最小数字和最大数字的差，写入“跨度”
+#import pandas as pd
+
+# 红球列
+red_ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6"]
+
+# 读取历史数据
+df = pd.read_excel("双色球开奖情况.xlsx")
 
 # 确保红球列为整数类型
-red_ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6"]
 df[red_ball_columns] = df[red_ball_columns].astype(int)
 
 # 计算各项特征
@@ -222,14 +216,28 @@ for i in range(len(df)):
     # 7. 计算连号（“二连”和“三连”）
     two_consecutive = sum(1 for j in range(5) if nums[j] + 1 == nums[j + 1])  # 二连
     three_consecutive = sum(1 for j in range(4) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2])  # 三连
+    four_consecutive = sum(1 for j in range(3) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2] and nums[j + 2] + 1 == nums[j + 3])  # 四连
+    five_consecutive = sum(1 for j in range(2) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2] and nums[j + 2] + 1 == nums[j + 3] and nums[j + 3] + 1 == nums[j + 4])  # 五连
+    six_consecutive = sum(1 for j in range(1) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2] and nums[j + 2] + 1 == nums[j + 3] and nums[j + 3] + 1 == nums[j + 4] and nums[j + 4] + 1 == nums[j + 5])  # 六连
+
     二连.append(two_consecutive)
     三连.append(three_consecutive)
+    四连 = four_consecutive
+    五连 = five_consecutive
+    六连 = six_consecutive
 
     # 8. 计算跳号（“二跳”和“三跳”）
     two_jump = sum(1 for j in range(5) if nums[j] + 2 == nums[j + 1])  # 二跳
     three_jump = sum(1 for j in range(4) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2])  # 三跳
+    four_jump = sum(1 for j in range(3) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2] and nums[j + 2] + 2 == nums[j + 3])  # 四跳
+    five_jump = sum(1 for j in range(2) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2] and nums[j + 2] + 2 == nums[j + 3])  # 五跳
+    six_jump = sum(1 for j in range(1) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2] and nums[j + 2] + 2 == nums[j + 3])  # 六跳
+
     二跳.append(two_jump)
     三跳.append(three_jump)
+    四跳 = four_jump
+    五跳 = five_jump
+    六跳 = six_jump
 
     # 9. 计算和值
     sum_value = sum(nums)
@@ -257,8 +265,14 @@ df["邻号"] = 邻号
 df["孤号"] = 孤号
 df["二连"] = 二连
 df["三连"] = 三连
+df["四连"] = 四连
+df["五连"] = 五连
+df["六连"] = 六连
 df["二跳"] = 二跳
 df["三跳"] = 三跳
+df["四跳"] = 四跳
+df["五跳"] = 五跳
+df["六跳"] = 六跳
 df["和值"] = 和值
 df["AC"] = AC
 df["跨度"] = 跨度
@@ -267,4 +281,5 @@ df["跨度"] = 跨度
 df.to_excel("双色球开奖情况.xlsx", index=False)
 
 print("数据处理完成，并已写入 Excel！")
+
 df.head(10)
