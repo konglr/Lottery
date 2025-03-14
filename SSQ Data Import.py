@@ -170,8 +170,14 @@ df[red_ball_columns] = df[red_ball_columns].astype(int)
 孤号 = [0]
 二连 = []
 三连 = []
+四连 = []
+五连 = []
+六连 = []
 二跳 = []
 三跳 = []
+四跳 = []
+五跳 = []
+六跳 = []
 和值 = []
 AC = []
 跨度 = []
@@ -213,7 +219,7 @@ for i in range(len(df)):
         # 6. 计算孤号（去掉重号和邻号后剩下的号码）
         孤号.append(6 - repeat_count - adjacent_count)
 
-    # 7. 计算连号（“二连”和“三连”）
+    # 7. 计算连号
     two_consecutive = sum(1 for j in range(5) if nums[j] + 1 == nums[j + 1])  # 二连
     three_consecutive = sum(1 for j in range(4) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2])  # 三连
     four_consecutive = sum(1 for j in range(3) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2] and nums[j + 2] + 1 == nums[j + 3])  # 四连
@@ -226,7 +232,7 @@ for i in range(len(df)):
     五连 = five_consecutive
     六连 = six_consecutive
 
-    # 8. 计算跳号（“二跳”和“三跳”）
+    # 8. 计算跳号
     two_jump = sum(1 for j in range(5) if nums[j] + 2 == nums[j + 1])  # 二跳
     three_jump = sum(1 for j in range(4) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2])  # 三跳
     four_jump = sum(1 for j in range(3) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2] and nums[j + 2] + 2 == nums[j + 3])  # 四跳
