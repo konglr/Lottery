@@ -153,9 +153,11 @@ print(yearly_counts)
 # 3.重号 - 与上一期相同号码数量，写入“重号”列
 # 4.邻号-  与上期开奖号相邻的号，也称边码， 出现邻号的数量，写入 “邻号”
 # 5.孤号- 去掉重号与邻号剩下的所有号，把数字数量写入 “孤号”
-# 4.和值 - 6个红球相加， 写入“和值”
-# 5.AC值-AC值 = 不同差值数量 - (红球数量 - 1)， 写入“AC”
-# 6.跨度- 最小数字和最大数字的差，写入“跨度”
+# 6.连号- 相邻两个号码相连，“二连” 数量， “三连”数量，
+# 7，跳号 - 两个相邻号码中间差1个号码， 如 2和4， 13和15， “二跳”，“三跳”
+# 8.和值 - 6个红球相加， 写入“和值”
+# 9.AC值-AC值 = 不同差值数量 - (红球数量 - 1)， 写入“AC”
+# 10.跨度- 最小数字和最大数字的差，写入“跨度”
 
 # 确保红球列为整数类型
 red_ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6"]
@@ -172,6 +174,10 @@ df[red_ball_columns] = df[red_ball_columns].astype(int)
 重号 = [0]  # 第一行没有上一期数据，默认填 0
 邻号 = [0]
 孤号 = [0]
+二连 = []
+三连 = []
+二跳 = []
+三跳 = []
 和值 = []
 AC = []
 跨度 = []
@@ -213,16 +219,28 @@ for i in range(len(df)):
         # 6. 计算孤号（去掉重号和邻号后剩下的号码）
         孤号.append(6 - repeat_count - adjacent_count)
 
-    # 7. 计算和值
+    # 7. 计算连号（“二连”和“三连”）
+    two_consecutive = sum(1 for j in range(5) if nums[j] + 1 == nums[j + 1])  # 二连
+    three_consecutive = sum(1 for j in range(4) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2])  # 三连
+    二连.append(two_consecutive)
+    三连.append(three_consecutive)
+
+    # 8. 计算跳号（“二跳”和“三跳”）
+    two_jump = sum(1 for j in range(5) if nums[j] + 2 == nums[j + 1])  # 二跳
+    three_jump = sum(1 for j in range(4) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2])  # 三跳
+    二跳.append(two_jump)
+    三跳.append(three_jump)
+
+    # 9. 计算和值
     sum_value = sum(nums)
     和值.append(sum_value)
 
-    # 8. 计算 AC 值
+    # 10. 计算 AC 值
     differences = sorted(set(abs(a - b) for a in nums for b in nums if a > b))
     ac_value = len(differences) - 5
     AC.append(ac_value)
 
-    # 9. 计算跨度
+    # 11. 计算跨度
     span_value = max(nums) - min(nums)
     跨度.append(span_value)
 
@@ -237,6 +255,10 @@ df["三区"] = 三区
 df["重号"] = 重号
 df["邻号"] = 邻号
 df["孤号"] = 孤号
+df["二连"] = 二连
+df["三连"] = 三连
+df["二跳"] = 二跳
+df["三跳"] = 三跳
 df["和值"] = 和值
 df["AC"] = AC
 df["跨度"] = 跨度

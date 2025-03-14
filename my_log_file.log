@@ -704,3 +704,4 @@ INFO:root:Data synchronized: 2025024
 2025-03-14 11:42:47,083 - ERROR - JSON 解析失败: Expecting value: line 1 column 1 (char 0)
 2025-03-14 11:42:47,124 - WARNING - 数据不匹配: Excel: 0, 系统: 2025027
 2025-03-14 12:01:45,182 - INFO - Data synchronized: 2025027
+2025-03-14 12:40:02,482 - INFO - Data synchronized: 2025027
