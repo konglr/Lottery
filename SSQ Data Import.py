@@ -146,3 +146,103 @@ yearly_counts = df.groupby('年份')['期号'].count()
 # 打印结果
 print(yearly_counts)
 
+# 红球数据处理
+# 1.奇数/偶数 - 写入 “奇数”和“偶数”列
+# 2.小号/大号 - 小号：16及一下的数字，大号16以上的数字， 写入 “小号”和“大号”列
+# 2，三区 - 一区：1-11， 二区：12-24， 三区：25-33， 分别把每个区的出现几个数字写入列
+# 3.重号 - 与上一期相同号码数量，写入“重号”列
+# 4.邻号-  与上期开奖号相邻的号，也称边码， 出现邻号的数量，写入 “邻号”
+# 5.孤号- 去掉重号与邻号剩下的所有号，把数字数量写入 “孤号”
+# 4.和值 - 6个红球相加， 写入“和值”
+# 5.AC值-AC值 = 不同差值数量 - (红球数量 - 1)， 写入“AC”
+# 6.跨度- 最小数字和最大数字的差，写入“跨度”
+
+# 确保红球列为整数类型
+red_ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6"]
+df[red_ball_columns] = df[red_ball_columns].astype(int)
+
+# 计算各项特征
+奇数 = []
+偶数 = []
+小号 = []
+大号 = []
+一区 = []
+二区 = []
+三区 = []
+重号 = [0]  # 第一行没有上一期数据，默认填 0
+邻号 = [0]
+孤号 = [0]
+和值 = []
+AC = []
+跨度 = []
+
+# 遍历每一期数据
+for i in range(len(df)):
+    nums = sorted(df.loc[i, red_ball_columns].tolist())  # 当前期红球数据（已排序）
+
+    # 1. 计算奇数和偶数数量
+    odd_count = sum(1 for num in nums if num % 2 == 1)
+    even_count = 6 - odd_count
+    奇数.append(odd_count)
+    偶数.append(even_count)
+
+    # 2. 计算小号和大号数量
+    small_count = sum(1 for num in nums if num <= 16)
+    big_count = 6 - small_count
+    小号.append(small_count)
+    大号.append(big_count)
+
+    # 3. 计算三区分布
+    zone1_count = sum(1 for num in nums if 1 <= num <= 11)
+    zone2_count = sum(1 for num in nums if 12 <= num <= 24)
+    zone3_count = sum(1 for num in nums if 25 <= num <= 33)
+    一区.append(zone1_count)
+    二区.append(zone2_count)
+    三区.append(zone3_count)
+
+    # 4. 计算重号（与上一期相同的号码）
+    if i > 0:
+        last_nums = sorted(df.loc[i - 1, red_ball_columns].tolist())  # 上一期红球
+        repeat_count = len(set(nums) & set(last_nums))
+        重号.append(repeat_count)
+
+        # 5. 计算邻号（与上一期号码相邻的号码）
+        adjacent_count = sum(1 for num in nums if (num - 1 in last_nums) or (num + 1 in last_nums))
+        邻号.append(adjacent_count)
+
+        # 6. 计算孤号（去掉重号和邻号后剩下的号码）
+        孤号.append(6 - repeat_count - adjacent_count)
+
+    # 7. 计算和值
+    sum_value = sum(nums)
+    和值.append(sum_value)
+
+    # 8. 计算 AC 值
+    differences = sorted(set(abs(a - b) for a in nums for b in nums if a > b))
+    ac_value = len(differences) - 5
+    AC.append(ac_value)
+
+    # 9. 计算跨度
+    span_value = max(nums) - min(nums)
+    跨度.append(span_value)
+
+# 将计算结果加入 DataFrame
+df["奇数"] = 奇数
+df["偶数"] = 偶数
+df["小号"] = 小号
+df["大号"] = 大号
+df["一区"] = 一区
+df["二区"] = 二区
+df["三区"] = 三区
+df["重号"] = 重号
+df["邻号"] = 邻号
+df["孤号"] = 孤号
+df["和值"] = 和值
+df["AC"] = AC
+df["跨度"] = 跨度
+
+# 保存更新后的数据到 Excel
+df.to_excel("双色球开奖情况.xlsx", index=False)
+
+print("数据处理完成，并已写入 Excel！")
+df.head(10)

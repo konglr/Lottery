@@ -134,32 +134,50 @@ with st.sidebar:
         sum_range = st.slider("红球和值范围", 21, 183, (70, 130))
 
 
-
-
 @st.cache_data
 def load_historical_data(analysis_period):
     try:
-        # 直接读取需要的列
-        df = pd.read_excel('双色球开奖情况.xlsx', usecols=["期号", "开奖日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+        # 读取 Excel 并加载所有需要的列
+        df = pd.read_excel(
+            "双色球开奖情况.xlsx",
+            usecols=[
+                "期号", "开奖日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球",
+                "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
+                "重号", "邻号", "孤号", "和值", "AC", "跨度"
+            ]
+        )
+
+        # 只保留最近 `analysis_period` 期的数据
         if analysis_period > 0:
             df = df.head(analysis_period)
 
-        # 将 "开奖日期" 列重命名为 "日期"
+        # 重命名 "开奖日期" 列为 "日期"
         df = df.rename(columns={"开奖日期": "日期"})
 
-        # 确保所有球号码列为整数类型
-        ball_columns = ["红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"]
-        for col in ball_columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+        # 确保所有数字列为整数类型
+        ball_columns = [
+            "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球",
+            "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
+            "重号", "邻号", "孤号", "和值", "AC", "跨度"
+        ]
+        df[ball_columns] = df[ball_columns].apply(pd.to_numeric, errors="coerce").fillna(0).astype(int)
 
         return df
 
     except FileNotFoundError:
-        st.error("找不到 Excel 文件 '双色球开奖情况.xlsx'，请确保文件与代码在同一目录下，并检查文件名是否正确。")
-        return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+        st.error("找不到 Excel 文件 '双色球开奖情况.xlsx'，请确保文件在当前目录，并检查文件名是否正确。")
+        return pd.DataFrame(columns=[
+            "期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球",
+            "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
+            "重号", "邻号", "孤号", "和值", "AC", "跨度"
+        ])
     except Exception as e:
         st.error(f"加载或处理数据时出错: {e}")
-        return pd.DataFrame(columns=["期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球"])
+        return pd.DataFrame(columns=[
+            "期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球",
+            "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
+            "重号", "邻号", "孤号", "和值", "AC", "跨度"
+        ])
 
 # 加载历史数据，并根据分析期数筛选
 filtered_data = load_historical_data(analysis_period)
@@ -252,9 +270,17 @@ def analyze_red_balls(red_balls):
             same_tail_counts[count] = same_tail_counts.get(count, 0) + 1
     results['同尾'] = ", ".join([f"={count}" for count in same_tail_counts.keys()])
 
-    # 6. 最新一期同号
-    last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)] #提取latest_draw中的红球。
-    same_count = sum(1 for ball in red_balls if ball in last_draw_reds)
+    # 6. 最新一期同号 (修改部分 - 仅替换 #6 部分)
+    last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)]  # 提取 latest_draw 的红球
+    if red_balls == last_draw_reds:  # <---  判断 red_balls 是否与 latest_draw_reds 完全相同
+        if len(filtered_data) > 1:  # <---  确保 filtered_data 中至少有两期数据，防止 IndexError
+            previous_draw = filtered_data.iloc[1]  # 获取前一期数据
+            previous_draw_reds = [previous_draw[f'红球{i}'] for i in range(1, 7)]  # 提取前一期红球
+            same_count = sum(1 for ball in red_balls if ball in previous_draw_reds)  # 与前一期红球比较
+        else:
+            same_count = 0  # 如果只有一期或没有数据，则同号数量为 0
+    else:
+        same_count = sum(1 for ball in red_balls if ball in last_draw_reds)  # 否则，与最新一期红球比较
     results['同号'] = f"={same_count}"
 
     return results
@@ -291,7 +317,7 @@ with tab1:
 
     # 将分析结果 HTML 追加到 latest_draw_html
     latest_draw_html += f"""
-                <div class='analysis-box'>  <div class='analysis-title'>红球分析:</div>
+                <div class='analysis-box'>  <div class='analysis-title'>红球分析:
                     {red_analysis_result_html}  </div>
             </div> """
 
@@ -319,14 +345,14 @@ with tab1:
             total_counts = red_freq_df['出现次数'].sum()
 
             # 计算百分比并添加到 DataFrame
-            red_freq_df['百分比'] = (red_freq_df['出现次数'] / total_counts) * 100
+            red_freq_df['百分比'] = (red_freq_df['出现次数'] / total_counts)
 
             # 创建 Altair 柱状图和文本图层
             bars = alt.Chart(red_freq_df).mark_bar(color='red').encode(
                 x=alt.X('号码:O', title='红球号码', sort='-y',
                         axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
                 y=alt.Y('出现次数:Q', title='出现次数'),
-                tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".2f")]  # Tooltip 中也显示百分比
+                tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".1%")]  # Tooltip 中也显示百分比
             )
 
             text = alt.Chart(red_freq_df).mark_text(
@@ -336,7 +362,7 @@ with tab1:
                 y=alt.Y('出现次数:Q'),
                 text=alt.Text(
                     '百分比:Q',
-                    format=".1f",  # 使用 format=".1f" 格式化数值部分
+                    format=".1%'",  # 使用 format=".1f" 格式化数值部分
                     formatType='number',  # 显式指定 formatType 为 'number'
                 )
             )
@@ -376,14 +402,14 @@ with tab1:
                 blue_total_counts = blue_freq_df['出现次数'].sum()
 
                 # 计算百分比并添加到 DataFrame
-                blue_freq_df['百分比'] = (blue_freq_df['出现次数'] / blue_total_counts) * 100
+                blue_freq_df['百分比'] = (blue_freq_df['出现次数'] / blue_total_counts)
 
                 # 创建 Altair 柱状图
                 blue_bars = alt.Chart(blue_freq_df).mark_bar(color='blue').encode(
                     x=alt.X('号码:O', title='蓝球号码', sort='-y',
                             axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
                     y=alt.Y('出现次数:Q', title='出现次数'),
-                    tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".2f")]
+                    tooltip=['号码', '出现次数', alt.Tooltip('百分比', format=".1%")]
                     # Tooltip 中也显示百分比, 并添加百分号
                 )
 
@@ -395,7 +421,7 @@ with tab1:
                     y=alt.Y('出现次数:Q'),
                     text=alt.Text(
                         '百分比:Q',
-                        format=".1f",  # 使用 format=".1f" 格式化数值部分
+                        format=".1%",  # 使用 format=".1f" 格式化数值部分
                         formatType='number',  # 显式指定 formatType 为 'number'
                     )
                 )
@@ -444,13 +470,43 @@ with tab1:
             big_small_df = pd.DataFrame(big_small_ratios, columns=['大号', '小号'])
             big_small_counts = big_small_df.groupby(['大号', '小号']).size().reset_index(name='次数')
 
-            fig, ax = plt.subplots(figsize=(10, 5))
-            labels = [f"{row['大号']}大{row['小号']}小" for _, row in big_small_counts.iterrows()]
-            ax.bar(labels, big_small_counts['次数'])
-            ax.set_title('红球大小比例分布')
-            ax.set_xlabel('大小比例')
-            ax.set_ylabel('出现次数')
-            st.pyplot(fig)
+            # 计算百分比并添加到 DataFrame  (新增代码)
+            total_big_small_counts = big_small_counts['次数'].sum()
+            big_small_counts['百分比'] = (big_small_counts['次数'] / total_big_small_counts)
+
+            # 创建Altair图表
+            chart = alt.Chart(big_small_counts).transform_calculate(
+                比例标签="datum.大号 + '大' + datum.小号 + '小'"
+            ).mark_bar().encode(
+                x=alt.X('比例标签:N',
+                        title='大小比例',
+                        sort=alt.EncodingSortField('大号', order='ascending'),  # 按大号排序
+                        axis=alt.Axis(labelAngle=-45)),
+                y=alt.Y('次数:Q', title='出现次数'),
+                tooltip=[
+                    alt.Tooltip('比例标签:N', title='比例'),
+                    alt.Tooltip('次数:Q', title='出现次数'),
+                    alt.Tooltip('百分比:Q', format='.1%', title='百分比')
+                ]
+            ).properties(
+                width=800,
+                height=300,
+                title='红球大小比例分布'
+            )
+
+            # 添加百分比文本标签
+            text = chart.mark_text(
+                align='center',
+                baseline='bottom',
+                dy=-5  # 调整文字位置
+            ).encode(
+                text=alt.Text('百分比:Q', format='.1%')
+            )
+
+            # 组合图表并显示
+            st.altair_chart(chart + text, use_container_width=True)
+
+
 
         with col2:
             st.subheader("奇偶比例分析")
@@ -743,8 +799,8 @@ with tab2:
 
 with tab3:
     st.subheader("历史开奖数据")
-    historical_data = load_historical_data(100) # 获取所有数据
-    if not historical_data.empty:
-        st.dataframe(historical_data, width=1000, height=500) # Display historical data in a table
-    else:
-        st.warning("没有历史开奖数据可以显示。")
+    historical_data = load_historical_data(100)
+    historical_data=historical_data.style.set_properties(**{'text-align': 'left'})
+ # 获取所有数据
+
+    st.dataframe(historical_data, width=1000, height=500) # Display historical data in a table
