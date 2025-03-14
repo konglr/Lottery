@@ -208,7 +208,11 @@ for i in range(len(df)):
 
     # 4. 计算重号（与上一期相同的号码）
     if i > 0:
-        last_nums = sorted(df.loc[i - 1, red_ball_columns].tolist())  # 上一期红球
+        if i + 1 < len(df):  # 判断是否有下一行数据
+            last_nums = sorted(df.loc[i + 1, red_ball_columns].tolist())  # 上一期红球
+        else:
+            last_nums = []  # 如果没有下一行数据，则设为空
+        #last_nums = sorted(df.loc[i + 1, red_ball_columns].tolist())  # 上一期红球
         repeat_count = len(set(nums) & set(last_nums))
         重号.append(repeat_count)
 
