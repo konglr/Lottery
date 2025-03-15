@@ -808,7 +808,7 @@ with tab1:
         # 显示折线图
         st.altair_chart(chart, use_container_width=True)
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)  #重号分析
     with col1:
         st.subheader("红球重号统计")
 
@@ -872,17 +872,17 @@ with tab1:
         # 创建 DataFrame，包含 "期号" 和 "重号"
         same_numbers_df = pd.DataFrame({
             '期号': filtered_data['期号'],  # 期号
-            '同号数量': filtered_data['重号']  # 已计算的重号数量
+            '重号数量': filtered_data['重号']  # 已计算的重号数量
         })
 
         # 创建 Altair 折线图
         chart = alt.Chart(same_numbers_df).mark_line().encode(
             x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # X 轴
-            y=alt.Y('同号数量:Q', title='同号数量',axis=alt.Axis(format='d')),  # Y 轴显示整数
-            color=alt.value('#FF5733'),  # 设定线条颜色
-            tooltip=['期号', '同号数量']
+            y=alt.Y('重号数量:Q', title='重号数量',axis=alt.Axis(format='d')),  # Y 轴显示整数
+            #color=alt.value(''),  # 设定线条颜色
+            tooltip=['期号', '重号数量']
         ).properties(
-            title='红球同号趋势图',
+            title='红球重号趋势图',
             width=800,
             height=300
         )
@@ -890,48 +890,179 @@ with tab1:
         # 显示折线图
         st.altair_chart(chart, use_container_width=True)
 
-    col1,col2 = st.columns(2)
+    col1,col2 = st.columns(2) #邻号分析
 
     with col1:
         st.subheader("红球邻号统计")
 
-        # **确保 "邻号" 列是整数，并填充 NaN**
+        # 数据预处理
         filtered_data['邻号'] = filtered_data['邻号'].fillna(0).astype(int)
 
-        # **统计各个 "邻号" 出现的次数**
-        frequency_df = filtered_data['邻号'].value_counts().reset_index()
+        # 生成完整数据范围并统计
+        all_values = pd.DataFrame({'邻号数量': list(range(7))})  # 0-6
+        frequency_df = (
+            filtered_data['邻号']
+            .value_counts()
+            .reindex(all_values['邻号数量'], fill_value=0)
+            .reset_index()
+        )
         frequency_df.columns = ['邻号数量', '出现次数']
 
-        # **确保 X 轴包含所有可能的值 [0, 1, 2, 3, 4, 5, 6]**
-        all_values = pd.DataFrame({'邻号数量': list(range(7))})  # 假设最大邻号数量为 6
-        frequency_df = all_values.merge(frequency_df, on='邻号数量', how='left').fillna(0)  # 缺失值填 0
+        # 强制转换数据类型（关键修复）
+        frequency_df['出现次数'] = frequency_df['出现次数'].astype(int)  # 确保为整数
 
-        # **计算百分比**
+        # 计算百分比（保持小数形式）
         total_count = frequency_df["出现次数"].sum()
-        frequency_df["百分比"] = (frequency_df["出现次数"] / total_count) # 转换为百分比
+        frequency_df["百分比"] = frequency_df["出现次数"] / total_count if total_count > 0 else 0
 
-        # **创建 Altair 柱状图**
+        # 创建Altair图表（修复编码问题）
         chart = alt.Chart(frequency_df).mark_bar().encode(
-            x=alt.X('邻号数量:O', title='邻号数量（个）', sort=list(range(7))),  # **固定 X 轴排序**
-            y=alt.Y('出现次数:Q', title='出现次数', axis=alt.Axis(format='d')),  # **Y 轴整数格式**
-            tooltip=['邻号数量', '出现次数', alt.Tooltip('百分比:Q', format='.1f%', title='百分比')]
+            x=alt.X('邻号数量:N',  # 使用名义类型
+                    title='邻号数量（个）',
+                    sort=alt.EncodingSortField('邻号数量', order='ascending'),  # 明确排序
+                    axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('出现次数:Q',
+                    title='出现次数',
+                    axis=alt.Axis(format='d'),
+                    scale=alt.Scale(domainMin=0)),  # 强制从0开始
+
+            tooltip=[
+                alt.Tooltip('邻号数量:N', title='邻号数'),
+                alt.Tooltip('出现次数:Q', title='出现次数'),
+                alt.Tooltip('百分比:Q', format='.1%', title='占比')  # 正确百分比格式
+            ]
         ).properties(
             title='红球邻号数量统计',
             width=800,
             height=300
         )
 
-        # **添加百分比文本标签**
+        # 添加文本标签（修复显示条件）
         text = chart.mark_text(
             align='center',
             baseline='bottom',
-            dy=-5  # 调整文字位置
+            dy=-5,
+            color='black'
         ).encode(
-            text=alt.Text('百分比:Q', format='.1f%')  # **显示百分比**
+            text=alt.condition(
+                alt.datum.出现次数 > 0,  # 仅显示非零值
+                alt.Text('百分比:Q', format='.1%'),
+                alt.value('')
+            )
+        )
+
+        st.altair_chart(chart + text, use_container_width=True)
+    with col2:
+        st.subheader("红球邻号分析")
+
+        # **创建 DataFrame，包含 "期号" 和 "邻号"**
+        neighbor_numbers_df = pd.DataFrame({
+            '期号': filtered_data['期号'],  # 期号
+            '邻号数量': filtered_data['邻号']  # 已计算的邻号数量
+        })
+
+        # **创建 Altair 折线图**
+        chart = alt.Chart(neighbor_numbers_df).mark_line().encode(
+            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # **X 轴，期号**
+            y=alt.Y('邻号数量:Q', title='邻号数量', axis=alt.Axis(format='d')),  # **Y 轴，整数**
+            color=alt.value('#1E90FF'),  # **设定折线颜色为蓝色**
+            tooltip=['期号', '邻号数量']  # **鼠标悬停显示数据**
+        ).properties(
+            title='红球邻号趋势图',  # **图表标题**
+            width=800,  # **宽度**
+            height=300  # **高度**
+        )
+
+        # **显示折线图**
+        st.altair_chart(chart, use_container_width=True)
+
+    col1,col2 = st.columns(2)
+    with col1:
+        st.subheader("红球孤号统计")
+
+        # **数据预处理**
+        filtered_data['孤号'] = filtered_data['孤号'].fillna(0).astype(int)
+
+        # **生成完整数据范围并统计**
+        all_values = pd.DataFrame({'孤号数量': list(range(7))})  # 假设最大孤号数量为 6
+        frequency_df = (
+            filtered_data['孤号']
+            .value_counts()
+            .reindex(all_values['孤号数量'], fill_value=0)
+            .reset_index()
+        )
+        frequency_df.columns = ['孤号数量', '出现次数']
+
+        # **强制转换数据类型（关键修复）**
+        frequency_df['出现次数'] = frequency_df['出现次数'].astype(int)  # 确保为整数
+
+        # **计算百分比（保持小数形式）**
+        total_count = frequency_df["出现次数"].sum()
+        frequency_df["百分比"] = frequency_df["出现次数"] / total_count if total_count > 0 else 0
+
+        # **创建 Altair 图表**
+        chart = alt.Chart(frequency_df).mark_bar().encode(
+            x=alt.X('孤号数量:N',  # **使用名义类型**
+                    title='孤号数量（个）',
+                    sort=alt.EncodingSortField('孤号数量', order='ascending'),  # **明确排序**
+                    axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('出现次数:Q',
+                    title='出现次数',
+                    axis=alt.Axis(format='d'),
+                    scale=alt.Scale(domainMin=0)),  # **强制从0开始**
+
+            tooltip=[
+                alt.Tooltip('孤号数量:N', title='孤号数'),
+                alt.Tooltip('出现次数:Q', title='出现次数'),
+                alt.Tooltip('百分比:Q', format='.1%', title='占比')  # **正确百分比格式**
+            ]
+        ).properties(
+            title='红球孤号数量统计',
+            width=800,
+            height=300
+        )
+
+        # **添加文本标签**
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,
+            color='black'
+        ).encode(
+            text=alt.condition(
+                alt.datum.出现次数 > 0,  # **仅显示非零值**
+                alt.Text('百分比:Q', format='.1%'),
+                alt.value('')
+            )
         )
 
         # **显示图表**
         st.altair_chart(chart + text, use_container_width=True)
+
+    with col2:
+
+        st.subheader("红球孤号分析")
+
+        # **创建 DataFrame，包含 "期号" 和 "孤号"**
+        isolated_numbers_df = pd.DataFrame({
+            '期号': filtered_data['期号'],  # 期号
+            '孤号数量': filtered_data['孤号']  # 已计算的孤号数量
+        })
+
+        # **创建 Altair 折线图**
+        chart = alt.Chart(isolated_numbers_df).mark_line().encode(
+            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # **X 轴，期号**
+            y=alt.Y('孤号数量:Q', title='孤号数量', axis=alt.Axis(format='d')),  # **Y 轴，整数**
+            #color=alt.value('blue'),  #
+            tooltip=['期号', '孤号数量']  # **鼠标悬停显示数据**
+        ).properties(
+            title='红球孤号趋势图',  # **图表标题**
+            width=800,  # **宽度**
+            height=300  # **高度**
+        )
+
+        # **显示折线图**
+        st.altair_chart(chart, use_container_width=True)
 
 with tab2:
     col1, col2 = st.columns(2)  # 创建两列布局
