@@ -157,11 +157,11 @@ with st.sidebar:
 
     sum_filter = st.checkbox("和值筛选")
     if sum_filter:
-        sum_range = st.slider("红球和值范围", 21, 183, (70, 130))
+        sum_range = st.slider("红球和值范围", 20, 200, (70, 130))
 
     span_filter = st.checkbox("跨度筛选")
     if span_filter:
-        span_range = st.slider("红球跨度范围", 21, 183, (70, 130))
+        span_range = st.slider("红球跨度范围", 10, 33, (15, 25))
 
 
 @st.cache_data
@@ -330,7 +330,7 @@ st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html
 
 
 # Display tabs for different analyses
-tab1, tab2, tab3 = st.tabs(["号码分析", "选号工具", "历史数据"])
+tab1, tab2, tab3,tab4= st.tabs(["号码分析", "选号工具","全量筛选","历史数据"])
 
 with tab1:
 
@@ -1320,7 +1320,6 @@ with tab2:
 with tab3:
     st.subheader("全量筛选")
 
-    historical_data=historical_data.style.set_properties(**{'text-align': 'center'})
 
 
 
