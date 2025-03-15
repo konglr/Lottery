@@ -6,6 +6,7 @@ import random
 from datetime import datetime
 import itertools
 import altair as alt
+from pandas.io.sas.sas_constants import column_data_length_length
 
 # Page configuration
 st.set_page_config(
@@ -116,11 +117,35 @@ with st.sidebar:
     st.divider()
 
     # Filter settings (These filters are currently only UI elements and not yet applied to data analysis or number selection logic)
-    st.subheader("筛选条件设置 (暂未应用)") # Added clarification that filters are not yet functional
+    st.subheader("红球筛选条件设置") # Added clarification that filters are not yet functional
 
-    odd_even_filter = st.checkbox("奇偶比例筛选")
+    hot_nums_filter = st.checkbox("热号筛选")
+    if hot_nums_filter:
+        hot_nums = st.slider("红球热号个数", 0, 6, (1, 2))
+
+    cold_nums_filter = st.checkbox("冷号筛选")
+    if cold_nums_filter:
+        cold_nums = st.slider("红球冷号个数", 0, 6, (1, 2))
+
+    odd_even_filter = st.checkbox("奇偶筛选")
     if odd_even_filter:
         odd_count = st.slider("红球奇数个数", 0, 6, (2, 4))
+
+    small_big_filter = st.checkbox("大小筛选")
+    if small_big_filter:
+        small_big = st.slider("红球小号个数", 0, 6, (2, 4))
+
+    same_nums_filter = st.checkbox("重号筛选")
+    if same_nums_filter:
+        same_nums = st.slider("红球重号个数（与上期）", 0, 6, (0, 2))
+
+    neigh_nums_filter = st.checkbox("邻号筛选")
+    if neigh_nums_filter:
+        neigh_nums = st.slider("红球邻号个数（与上期）", 0, 6, (0, 2))
+
+    sep_nums_filter = st.checkbox("孤号筛选")
+    if sep_nums_filter:
+        sep_nums = st.slider("红球孤号个数（与上期）", 0, 6, (0, 2))
 
     consecutive_filter = st.checkbox("连号筛选")
     if consecutive_filter:
@@ -133,6 +158,10 @@ with st.sidebar:
     sum_filter = st.checkbox("和值筛选")
     if sum_filter:
         sum_range = st.slider("红球和值范围", 21, 183, (70, 130))
+
+    span_filter = st.checkbox("跨度筛选")
+    if span_filter:
+        span_range = st.slider("红球跨度范围", 21, 183, (70, 130))
 
 
 @st.cache_data
@@ -1040,7 +1069,6 @@ with tab1:
         st.altair_chart(chart + text, use_container_width=True)
 
     with col2:
-
         st.subheader("红球孤号分析")
 
         # **创建 DataFrame，包含 "期号" 和 "孤号"**
@@ -1063,6 +1091,111 @@ with tab1:
 
         # **显示折线图**
         st.altair_chart(chart, use_container_width=True)
+    col1,col2 = st.columns(2)
+    with col1:
+        st.subheader("红球和值分析")
+
+        # **创建 DataFrame，包含 "期号" 和 "和值"**
+        sum_numbers_df = pd.DataFrame({
+            '期号': filtered_data['期号'],  # 期号
+            '和值': filtered_data['和值']  # 已计算的和值
+        })
+
+        # **创建 Altair 折线图**
+        chart = alt.Chart(sum_numbers_df).mark_line().encode(
+            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # **X 轴，期号**
+            y=alt.Y('和值:Q', title='和值', axis=alt.Axis(format='d')),  # **Y 轴，整数**
+            color=alt.value('#FF5733'),  # **设定折线颜色为橙色**
+            tooltip=['期号', '和值']  # **鼠标悬停显示数据**
+        ).properties(
+            title='红球和值趋势图',  # **图表标题**
+            width=800,  # **宽度**
+            height=300  # **高度**
+        )
+        # **添加数据标签**
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,  # **调整标签位置**
+            fontSize=10,  # **设置字体大小**
+            color='black'  # **标签颜色**
+        ).encode(
+            text=alt.Text('和值:Q', format='.0f')  # **数值格式化为整数**
+        )
+
+        # **显示折线图**
+        st.altair_chart(chart + text, use_container_width=True)
+
+    with col2:
+        st.subheader("红球跨度分析")
+
+        # **创建 DataFrame，包含 "期号" 和 "跨度"**
+        range_numbers_df = pd.DataFrame({
+            '期号': filtered_data['期号'],  # 期号
+            '跨度': filtered_data['跨度']  # 已计算的跨度
+        })
+
+        # **创建 Altair 折线图**
+        chart = alt.Chart(range_numbers_df).mark_line().encode(
+            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # **X 轴，期号**
+            y=alt.Y('跨度:Q', title='跨度', axis=alt.Axis(format='d')),  # **Y 轴，整数**
+            color=alt.value('#1E90FF'),  # **设定折线颜色为蓝色**
+            tooltip=['期号', '跨度']  # **鼠标悬停显示数据**
+        ).properties(
+            title='红球跨度趋势图',  # **图表标题**
+            width=800,  # **宽度**
+            height=300  # **高度**
+        )
+        # **添加数据标签**
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,  # **调整标签位置**
+            fontSize=10,  # **设置字体大小**
+            color='black'  # **标签颜色**
+        ).encode(
+            text=alt.Text('跨度:Q', format='.0f')  # **数值格式化为整数**
+        )
+
+        # **显示折线图**
+        st.altair_chart(chart + text, use_container_width=True)
+
+    col1,col2 = st.columns(2)
+    with col1:
+        st.subheader("红球 AC 值分析")
+
+        # **创建 DataFrame，包含 "期号" 和 "AC"**
+        ac_numbers_df = pd.DataFrame({
+            '期号': filtered_data['期号'],  # 期号
+            'AC 值': filtered_data['AC']  # 已计算的 AC 值
+        })
+
+        # **创建 Altair 折线图**
+        chart = alt.Chart(ac_numbers_df).mark_line().encode(
+            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # **X 轴，期号**
+            y=alt.Y('AC 值:Q', title='AC 值', axis=alt.Axis(format='d'),
+                    scale=alt.Scale(domain=[4, 12])), # **Y 轴范围 4 到 12**)
+            #color=alt.value('#FF5733'),  # **设定折线颜色为橙色**
+            tooltip=['期号', 'AC 值']  # **鼠标悬停显示数据**
+        ).properties(
+            title='红球 AC 值趋势图',  # **图表标题**
+            width=800,  # **宽度**
+            height=300  # **高度**
+        )
+
+        # **添加数据标签**
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,  # **调整标签位置**
+            fontSize=10,  # **设置字体大小**
+            color='black'  # **标签颜色**
+        ).encode(
+            text=alt.Text('AC 值:Q', format='.0f')  # **数值格式化为整数**
+        )
+
+        # **显示折线图**
+        st.altair_chart(chart + text, use_container_width=True)
 
 with tab2:
     col1, col2 = st.columns(2)  # 创建两列布局
@@ -1185,9 +1318,16 @@ with tab2:
 
 
 with tab3:
+    st.subheader("全量筛选")
+
+    historical_data=historical_data.style.set_properties(**{'text-align': 'center'})
+
+
+
+with tab4:
     st.subheader("历史开奖数据")
     historical_data = load_historical_data(100)
-    historical_data=historical_data.style.set_properties(**{'text-align': 'left'})
+    historical_data=historical_data.style.set_properties(**{'text-align': 'center'})
  # 获取所有数据
 
     st.dataframe(historical_data, width=1000, height=500) # Display historical data in a table
