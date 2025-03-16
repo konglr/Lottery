@@ -736,13 +736,13 @@ with tab1:
         chart = alt.Chart(stats_df).mark_bar(color='#4C78A8').encode(
             x=alt.X('同尾类型:N',
                     title='同尾类型',
-                    sort = tail_categories,
+                    sort=tail_categories,
                     axis=alt.Axis(labelAngle=0)),
             y=alt.Y('出现次数:Q',
                     title='出现次数',
                     axis=alt.Axis(format='d'),
                     scale=alt.Scale(domainMin=0)),
-            color=alt.Color('出现次数:Q', legend=None),  #颜色区分
+            color=alt.Color('出现次数:Q', legend=None),  # 颜色区分
             tooltip=[
                 alt.Tooltip('同尾类型:N', title='类型'),
                 alt.Tooltip('出现次数:Q', title='次数'),
@@ -766,69 +766,76 @@ with tab1:
 
         st.altair_chart(chart + text, use_container_width=True)
 
-    with col2:
-        st.subheader("同尾号趋势分析")
+        with col2:
+            st.subheader("同尾号趋势分析")
 
-        # 生成趋势分析数据
-        trend_data = []
-        for _, row in filtered_data.iterrows():
-            issue_no = row['期号']
-            red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
-            red_balls = [b for b in red_balls if b > 0]
+            # 生成趋势分析数据
+            trend_data = []
+            for _, row in filtered_data.iterrows():
+                issue_no = row['期号']
+                red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
+                red_balls = [b for b in red_balls if b > 0]
 
-            if len(red_balls) < 2:
-                continue
+                if len(red_balls) < 2:
+                    continue
 
-            # 统计尾号并获取最大同尾数
-            tail_counter = Counter(num % 10 for num in red_balls)
-            max_count = max(tail_counter.values(), default=0)
+                # 统计尾号并获取同尾数组
+                tail_counter = Counter(num % 10 for num in red_balls)
+                same_tails = [count for count in tail_counter.values() if count >= 2]
 
-            if max_count >= 2:
-                trend_data.append({
-                    '期号': int(issue_no),  # 保持为整数类型
-                    '最大同尾数': min(max_count, 6),
-                    '同尾类型': category_map.get(min(max_count, 6), f'{min(max_count, 6)}尾')
-                })
+                if same_tails:
+                    for count in same_tails:
+                        trend_data.append({
+                            '期号': int(issue_no),
+                            '最大同尾数': min(count, 6),
+                            '同尾类型': category_map.get(min(count, 6), f'{min(count, 6)}尾'),
+                            '同尾组数': same_tails.count(count)  # 添加同尾组数
+                        })
 
-        # 创建趋势分析DataFrame
-        trend_df = pd.DataFrame(trend_data)
+            # 创建趋势分析DataFrame
+            trend_df = pd.DataFrame(trend_data)
 
-        # 创建交互式趋势图
-        base = alt.Chart(trend_df).properties(
-            width=800,
-            height=400
-        )
+            # 创建交互式趋势图
+            base = alt.Chart(trend_df).properties(
+                width=800,
+                height=300
+            )
 
-        points = base.mark_circle(size=60).encode(
-            x=alt.X('期号:O',  # 使用序数类型
-                    title='期号',
-                    axis=alt.Axis(labelAngle=-45)),
-            y=alt.Y('最大同尾数:Q',
-                    title='最大同尾数',
-                    scale=alt.Scale(domain=[1, 4])),
-            color=alt.Color('同尾类型:N',
-                            scale=alt.Scale(
-                                domain=['二尾', '三尾', '四尾', '五尾', '六尾'],
-                                range=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-                            )),
-            tooltip=[
-                '期号:O',
-                '同尾类型:N',
-                '最大同尾数:Q'
-            ]
-        )
+            points = base.mark_circle(size=60).encode(
+                x=alt.X('期号:O',
+                        title='期号',
+                        axis=alt.Axis(labelAngle=-45)),
+                y=alt.Y('最大同尾数:Q',
+                        title='最大同尾数',
+                        axis=alt.Axis(format='d'),
+                        scale=alt.Scale(domain=[1, 6])),  # 修改y轴domain
+                color=alt.Color('同尾类型:N',
+                                scale=alt.Scale(
+                                    domain=['二尾', '三尾', '四尾', '五尾', '六尾'],
+                                    range=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+                                )),
+                tooltip=[
+                    '期号:O',
+                    '同尾类型:N',
+                    '最大同尾数:Q',
+                    '同尾组数:Q'  # 添加同尾组数到tooltips
+                ]
+            )
 
-        line = base.mark_line(color='gray', strokeWidth=1).transform_window(
-            rolling_mean='mean(最大同尾数)',
-            frame=[-10, 0]  # 10期移动平均
-        ).encode(
-            x='期号:O',
-            y='rolling_mean:Q'
-        )
+            text = base.mark_text(
+                align='center',
+                baseline='bottom',
+                dy=-5
+            ).encode(
+                x='期号:O',
+                y='最大同尾数:Q',
+                text='同尾组数:Q',  # 添加文本标签
+                color=alt.value('black')  # 添加文本颜色
+            )
 
-        st.altair_chart(
-            (points + line).properties(title='同尾类型历史趋势'),
-            use_container_width=True)
+            st.altair_chart(
+                (points + text).properties(title='同尾类型历史趋势'),  # 添加文本标签
+                use_container_width=True)
 
     col1, col2 = st.columns(2)
     with col1:

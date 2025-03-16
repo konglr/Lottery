@@ -221,30 +221,134 @@ for i in range(0, len(df), 1):
     孤号.append(6 - repeat_count - adjacent_count)
 
     # 7. 计算连号
-    two_consecutive = sum(1 for j in range(5) if nums[j] + 1 == nums[j + 1])  # 二连
-    three_consecutive = sum(1 for j in range(4) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2])  # 三连
-    four_consecutive = sum(1 for j in range(3) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2] and nums[j + 2] + 1 == nums[j + 3])  # 四连
-    five_consecutive = sum(1 for j in range(2) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2] and nums[j + 2] + 1 == nums[j + 3] and nums[j + 3] + 1 == nums[j + 4])  # 五连
-    six_consecutive = sum(1 for j in range(1) if nums[j] + 1 == nums[j + 1] and nums[j + 1] + 1 == nums[j + 2] and nums[j + 2] + 1 == nums[j + 3] and nums[j + 3] + 1 == nums[j + 4] and nums[j + 4] + 1 == nums[j + 5])  # 六连
+    def count_consecutive(nums):
+        """统计连号，解决重复计算问题"""
+        nums.sort()  # 确保数字排序
+        n = len(nums)
+        counts = {'二连': 0, '三连': 0, '四连': 0, '五连': 0, '六连': 0}
+        i = 0
+        while i < n - 1:
+            if nums[i] + 1 == nums[i + 1]:
+                length = 2
+                while i + length < n and nums[i + length - 1] + 1 == nums[i + length]:
+                    length += 1
 
-    二连.append(two_consecutive)
-    三连.append(three_consecutive)
-    四连.append(four_consecutive)
-    五连.append(five_consecutive)
-    六连.append(six_consecutive)
+                if length == 2:
+                    counts['二连'] += 1
+                    i += 2
+                elif length == 3:
+                    counts['三连'] += 1
+                    i += 3
+                elif length == 4:
+                    counts['四连'] += 1
+                    i += 4
+                elif length == 5:
+                    counts['五连'] += 1
+                    i += 5
+                elif length == 6:
+                    counts['六连'] += 1
+                    i += 6
+            else:
+                i += 1
+        return counts
+
+    consecutive_counts = count_consecutive(nums)
+
+    二连.append(consecutive_counts['二连'])
+    三连.append(consecutive_counts['三连'])
+    四连.append(consecutive_counts['四连'])
+    五连.append(consecutive_counts['五连'])
+    六连.append(consecutive_counts['六连'])
 
     # 8. 计算跳号
-    two_jump = sum(1 for j in range(5) if nums[j] + 2 == nums[j + 1])  # 二跳
-    three_jump = sum(1 for j in range(4) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2])  # 三跳
-    four_jump = sum(1 for j in range(3) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2] and nums[j + 2] + 2 == nums[j + 3])  # 四跳
-    five_jump = sum(1 for j in range(2) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2] and nums[j + 2] + 2 == nums[j + 3])  # 五跳
-    six_jump = sum(1 for j in range(1) if nums[j] + 2 == nums[j + 1] and nums[j + 1] + 2 == nums[j + 2] and nums[j + 2] + 2 == nums[j + 3])  # 六跳
+    def count_jumps(nums):
+        """统计跳号，解决重复计算问题"""
+        nums.sort()  # 确保数字排序
+        n = len(nums)
+        counts = {'二跳': 0, '三跳': 0, '四跳': 0, '五跳': 0, '六跳': 0}
+        i = 0
+        while i < n - 1:
+            diff = nums[i + 1] - nums[i]
+            if diff >= 2:
+                length = 1
+                while i + length < n - 1 and nums[i + length + 1] - nums[i + length] == diff:
+                    length += 1
 
-    二跳.append(two_jump)
-    三跳.append(three_jump)
-    四跳.append(four_jump)
-    五跳.append(five_jump)
-    六跳.append(six_jump)
+                if diff == 2:
+                    if length == 1:
+                        counts['二跳'] += 1
+                        i += 2
+                    elif length == 2:
+                        counts['三跳'] += 1
+                        i += 3
+                    elif length == 3:
+                        counts['四跳'] += 1
+                        i += 4
+                    elif length == 4:
+                        counts['五跳'] += 1
+                        i += 5
+                    elif length == 5:
+                        counts['六跳'] += 1
+                        i += 6
+                    else:
+                        i += 1
+                elif diff == 3:
+                    if length == 2:
+                        counts['三跳'] += 1
+                        i += 3
+                    elif length == 3:
+                        counts['四跳'] += 1
+                        i += 4
+                    elif length == 4:
+                        counts['五跳'] += 1
+                        i += 5
+                    elif length == 5:
+                        counts['六跳'] += 1
+                        i += 6
+                    else:
+                        i += 1
+                elif diff == 4:
+                    if length == 3:
+                        counts['四跳'] += 1
+                        i += 4
+                    elif length == 4:
+                        counts['五跳'] += 1
+                        i += 5
+                    elif length == 5:
+                        counts['六跳'] += 1
+                        i += 6
+                    else:
+                        i += 1
+                elif diff == 5:
+                    if length == 4:
+                        counts['五跳'] += 1
+                        i += 5
+                    elif length == 5:
+                        counts['六跳'] += 1
+                        i += 6
+                    else:
+                        i += 1
+                elif diff == 6:
+                    if length == 5:
+                        counts['六跳'] += 1
+                        i += 6
+                    else:
+                        i += 1
+
+                else:
+                    i += 1
+            else:
+                i += 1
+
+        return counts
+
+    jump_counts = count_jumps(nums)
+
+    二跳.append(jump_counts['二跳'])
+    三跳.append(jump_counts['三跳'])
+    四跳.append(jump_counts['四跳'])
+    五跳.append(jump_counts['五跳'])
+    六跳.append(jump_counts['六跳'])
 
     # 9. 计算和值
     sum_value = sum(nums)
