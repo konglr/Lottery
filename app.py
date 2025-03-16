@@ -585,43 +585,117 @@ with tab1:
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("连号分析")
-        # Analyze consecutive numbers
-        consecutive_counts = []
+
+        # 假设 filtered_data 是一个包含连号统计列的 DataFrame
+        # 创建连号统计字典
+        consecutive_counts = {
+            '二连': 0,
+            '三连': 0,
+            '四连': 0,
+            '五连': 0,
+            '六连': 0
+        }
+
+        # 统计每个连号出现的次数
         for _, row in filtered_data.iterrows():
-            red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
-            red_balls = [b for b in red_balls if b > 0]  # Filter out zeros or missing values
+            consecutive_counts['二连'] += row['二连']
+            consecutive_counts['三连'] += row['三连']
+            consecutive_counts['四连'] += row['四连']
+            consecutive_counts['五连'] += row['五连']
+            consecutive_counts['六连'] += row['六连']
 
-            if len(red_balls) < 2:
-                continue
+        # 将计数结果转换为 DataFrame
+        consecutive_df = pd.DataFrame(list(consecutive_counts.items()), columns=["连号", "出现次数"])
 
-            red_balls.sort()
-            max_consecutive = 1
-            current_consecutive = 1
+        # 计算百分比
+        total_count = consecutive_df["出现次数"].sum()
+        consecutive_df["百分比"] = (consecutive_df["出现次数"] / total_count)
 
-            for i in range(1, len(red_balls)):
-                if red_balls[i] == red_balls[i - 1] + 1:
-                    current_consecutive += 1
-                else:
-                    max_consecutive = max(max_consecutive, current_consecutive)
-                    current_consecutive = 1
+        # 固定顺序，确保 X 轴按连号顺序排列
+        order = ['二连', '三连', '四连', '五连', '六连']
+        consecutive_df['连号'] = pd.Categorical(consecutive_df['连号'], categories=order, ordered=True)
 
-            max_consecutive = max(max_consecutive, current_consecutive)
-            consecutive_counts.append(max_consecutive)
+        # 使用 Altair 绘制柱状图
+        chart = alt.Chart(consecutive_df).mark_bar().encode(
+            x=alt.X('连号:O', title='连号', axis=alt.Axis(labelAngle=0), sort=order),
+            y=alt.Y('出现次数:Q', title='出现次数'),
+            color=alt.Color('出现次数:Q', legend=None),
+            tooltip=['连号', '出现次数', alt.Tooltip('百分比:Q', format='.1%', title='百分比')]
+        ).properties(
+            title='连号出现次数统计',
+            width=800,
+            height=300
+        )
 
-        if consecutive_counts:
-            consecutive_df = pd.DataFrame({'最大连号数': consecutive_counts})
-            consecutive_count = consecutive_df['最大连号数'].value_counts().sort_index()
+        # 添加百分比文本标签
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5
+        ).encode(
+            text=alt.Text('百分比:Q', format='.1%')
+        )
 
-            fig, ax = plt.subplots(figsize=(8, 4))
-            ax.bar(consecutive_count.index.astype(str), consecutive_count.values)
-            ax.set_title('最大连号数分布')
-            ax.set_xlabel('连号数')
-            ax.set_ylabel('出现次数')
-            st.pyplot(fig)
-        else:
-            st.warning("连号分析数据不足")
+        # 组合图表并显示
+        st.altair_chart(chart + text, use_container_width=True)
 
     with col2:
+        st.subheader("跳号分析")
+
+        # 假设 filtered_data 是一个包含跳号统计列的 DataFrame
+        # 创建跳号统计字典
+        jump_counts = {
+            '二跳': 0,
+            '三跳': 0,
+            '四跳': 0,
+            '五跳': 0,
+            '六跳': 0
+        }
+
+        # 统计每个跳号出现的次数
+        for _, row in filtered_data.iterrows():
+            jump_counts['二跳'] += row['二跳']
+            jump_counts['三跳'] += row['三跳']
+            jump_counts['四跳'] += row['四跳']
+            jump_counts['五跳'] += row['五跳']
+            jump_counts['六跳'] += row['六跳']
+
+        # 将计数结果转换为 DataFrame
+        jump_df = pd.DataFrame(list(jump_counts.items()), columns=["跳号", "出现次数"])
+
+        # 计算百分比
+        total_count = jump_df["出现次数"].sum()
+        jump_df["百分比"] = (jump_df["出现次数"] / total_count)
+
+        # 固定顺序，确保 X 轴按跳号顺序排列
+        order = ['二跳', '三跳', '四跳', '五跳', '六跳']
+        jump_df['跳号'] = pd.Categorical(jump_df['跳号'], categories=order, ordered=True)
+
+        # 使用 Altair 绘制柱状图
+        chart = alt.Chart(jump_df).mark_bar().encode(
+            x=alt.X('跳号:O', title='跳号', axis=alt.Axis(labelAngle=0), sort=order),
+            y=alt.Y('出现次数:Q', title='出现次数'),
+            color=alt.Color('出现次数:Q', legend=None),
+            tooltip=['跳号', '出现次数', alt.Tooltip('百分比:Q', format='.1%', title='百分比')]
+        ).properties(
+            title='跳号出现次数统计',
+            width=800,
+            height=300
+        )
+
+        # 添加百分比文本标签
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5
+        ).encode(
+            text=alt.Text('百分比:Q', format='.1%')
+        )
+
+        # 组合图表并显示
+        st.altair_chart(chart + text, use_container_width=True)
+    col1,clo2 = st.columns(2)
+    with col1:
         st.subheader("同尾号分析")
         # Analyze same tail numbers
         same_tail_counts = []
