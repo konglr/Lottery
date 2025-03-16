@@ -7,6 +7,7 @@ from datetime import datetime
 import itertools
 import altair as alt
 from pandas.io.sas.sas_constants import column_data_length_length
+from collections import Counter
 
 # Page configuration
 st.set_page_config(
@@ -694,43 +695,140 @@ with tab1:
 
         # 组合图表并显示
         st.altair_chart(chart + text, use_container_width=True)
-    col1,clo2 = st.columns(2)
+
+    col1,col2 = st.columns(2)
     with col1:
         st.subheader("同尾号分析")
-        # Analyze same tail numbers
-        same_tail_counts = []
+
+        # 统计同尾号（排除重复计数）
+        tail_categories = ['二尾', '三尾', '四尾', '五尾', '六尾']
+        category_map = {2: '二尾', 3: '三尾', 4: '四尾', 5: '五尾', 6: '六尾'}
+
+        # 统计每期最大同尾数
+        max_tail_counts = []
         for _, row in filtered_data.iterrows():
             red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
-            red_balls = [b for b in red_balls if b > 0]  # Filter out zeros or missing values
+            red_balls = [b for b in red_balls if b > 0]  # 过滤无效值
 
             if len(red_balls) < 2:
                 continue
 
-            tails = [num % 10 for num in red_balls]
-            tail_counts = {}
+            # 统计尾号频率
+            tail_counter = Counter(num % 10 for num in red_balls)
+            max_count = max(tail_counter.values(), default=0)
 
-            for tail in tails:
-                if tail in tail_counts:
-                    tail_counts[tail] += 1
-                else:
-                    tail_counts[tail] = 1
+            # 只记录最大同尾数（≥2的情况）
+            if max_count >= 2:
+                max_tail_counts.append(min(max_count, 6))  # 最大限制为六尾
 
-            if tail_counts:
-                max_same_tail = max(tail_counts.values())
-                same_tail_counts.append(max_same_tail)
+        # 生成统计DataFrame
+        count_series = pd.Series(max_tail_counts).value_counts().reindex(range(2, 7), fill_value=0)
+        stats_df = pd.DataFrame({
+            '同尾类型': [category_map.get(i, f'{i}尾') for i in count_series.index],
+            '出现次数': count_series.values
+        })
 
-        if same_tail_counts:
-            same_tail_df = pd.DataFrame({'最大同尾数': same_tail_counts})
-            same_tail_count = same_tail_df['最大同尾数'].value_counts().sort_index()
+        # 计算百分比
+        total = stats_df['出现次数'].sum()
+        stats_df['百分比'] = stats_df['出现次数'] / total if total > 0 else 0
 
-            fig, ax = plt.subplots(figsize=(8, 4))
-            ax.bar(same_tail_count.index.astype(str), same_tail_count.values)
-            ax.set_title('最大同尾号数分布')
-            ax.set_xlabel('同尾号数')
-            ax.set_ylabel('出现次数')
-            st.pyplot(fig)
-        else:
-            st.warning("同尾号分析数据不足")
+        # 创建Altair图表
+        chart = alt.Chart(stats_df).mark_bar(color='#4C78A8').encode(
+            x=alt.X('同尾类型:N',
+                    title='同尾类型',
+                    sort = tail_categories,
+                    axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('出现次数:Q',
+                    title='出现次数',
+                    axis=alt.Axis(format='d'),
+                    scale=alt.Scale(domainMin=0)),
+            color=alt.Color('出现次数:Q', legend=None),  #颜色区分
+            tooltip=[
+                alt.Tooltip('同尾类型:N', title='类型'),
+                alt.Tooltip('出现次数:Q', title='次数'),
+                alt.Tooltip('百分比:Q', format='.1%', title='占比')
+            ]
+        ).properties(
+            title='红球同尾号分布统计',
+            width=600,
+            height=300
+        )
+
+        # 添加百分比标签
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,
+            color='white'
+        ).encode(
+            text=alt.Text('百分比:Q', format='.1%')
+        )
+
+        st.altair_chart(chart + text, use_container_width=True)
+
+    with col2:
+        st.subheader("同尾号趋势分析")
+
+        # 生成趋势分析数据
+        trend_data = []
+        for _, row in filtered_data.iterrows():
+            issue_no = row['期号']
+            red_balls = [row.get(f'红球{i}', 0) for i in range(1, 7)]
+            red_balls = [b for b in red_balls if b > 0]
+
+            if len(red_balls) < 2:
+                continue
+
+            # 统计尾号并获取最大同尾数
+            tail_counter = Counter(num % 10 for num in red_balls)
+            max_count = max(tail_counter.values(), default=0)
+
+            if max_count >= 2:
+                trend_data.append({
+                    '期号': int(issue_no),  # 保持为整数类型
+                    '最大同尾数': min(max_count, 6),
+                    '同尾类型': category_map.get(min(max_count, 6), f'{min(max_count, 6)}尾')
+                })
+
+        # 创建趋势分析DataFrame
+        trend_df = pd.DataFrame(trend_data)
+
+        # 创建交互式趋势图
+        base = alt.Chart(trend_df).properties(
+            width=800,
+            height=400
+        )
+
+        points = base.mark_circle(size=60).encode(
+            x=alt.X('期号:O',  # 使用序数类型
+                    title='期号',
+                    axis=alt.Axis(labelAngle=-45)),
+            y=alt.Y('最大同尾数:Q',
+                    title='最大同尾数',
+                    scale=alt.Scale(domain=[1, 4])),
+            color=alt.Color('同尾类型:N',
+                            scale=alt.Scale(
+                                domain=['二尾', '三尾', '四尾', '五尾', '六尾'],
+                                range=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+                            )),
+            tooltip=[
+                '期号:O',
+                '同尾类型:N',
+                '最大同尾数:Q'
+            ]
+        )
+
+        line = base.mark_line(color='gray', strokeWidth=1).transform_window(
+            rolling_mean='mean(最大同尾数)',
+            frame=[-10, 0]  # 10期移动平均
+        ).encode(
+            x='期号:O',
+            y='rolling_mean:Q'
+        )
+
+        st.altair_chart(
+            (points + line).properties(title='同尾类型历史趋势'),
+            use_container_width=True)
 
     col1, col2 = st.columns(2)
     with col1:
