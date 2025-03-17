@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from datetime import datetime
-import itertools
 import altair as alt
 from pandas.io.sas.sas_constants import column_data_length_length
 from collections import Counter
@@ -583,7 +582,7 @@ with tab1:
         # 显示图表
         st.altair_chart(chart, use_container_width=True)
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2) #连号
     with col1:
         st.subheader("连号分析")
 
@@ -641,6 +640,95 @@ with tab1:
         st.altair_chart(chart + text, use_container_width=True)
 
     with col2:
+        st.subheader("连号趋势分析")
+
+        # 从 filtered_data 读取连号数据
+        trend_data = []
+        for _, row in filtered_data.iterrows():
+            issue_no = row['期号']
+            two_consecutive = row['二连']
+            three_consecutive = row['三连']
+            four_consecutive = row['四连']
+            five_consecutive = row['五连']
+            six_consecutive = row['六连']
+
+            # 添加数据点（如果存在连号）
+            if two_consecutive > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '连号类型': '二连',
+                    '连号组数': two_consecutive
+                })
+            if three_consecutive > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '连号类型': '三连',
+                    '连号组数': three_consecutive
+                })
+            if four_consecutive > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '连号类型': '四连',
+                    '连号组数': four_consecutive
+                })
+            if five_consecutive > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '连号类型': '五连',
+                    '连号组数': five_consecutive
+                })
+            if six_consecutive > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '连号类型': '六连',
+                    '连号组数': six_consecutive
+                })
+
+        # 创建趋势分析DataFrame
+        trend_df = pd.DataFrame(trend_data)
+
+        # 创建交互式趋势图
+        base = alt.Chart(trend_df).properties(
+            width=800,
+            height=300
+        )
+
+        points = base.mark_circle(size=60).encode(
+            x=alt.X('期号:O',
+                    title='期号',
+                    axis=alt.Axis(labelAngle=-45)),
+            y=alt.Y('连号类型:N',
+                    title='连号类型',
+                    sort=['二连', '三连', '四连', '五连', '六连']),
+            color=alt.Color('连号类型:N',
+                            scale=alt.Scale(
+                                domain=['二连', '三连', '四连', '五连', '六连'],
+                                range=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+                            )),
+            tooltip=[
+                '期号:O',
+                '连号类型:N',
+                '连号组数:Q'
+            ]
+        )
+
+        text = base.mark_text(
+            align='center',
+            baseline='bottom',
+            dx=-5
+        ).encode(
+            x='期号:O',
+            y='连号类型:N',
+            text='连号组数:Q',
+            color=alt.value('black')
+        )
+
+        st.altair_chart(
+            (points + text).properties(title='红球连号趋势'),
+            use_container_width=True)
+
+    col1, col2 = st.columns(2) #跳号
+    with col1:
         st.subheader("跳号分析")
 
         # 假设 filtered_data 是一个包含跳号统计列的 DataFrame
@@ -695,6 +783,93 @@ with tab1:
 
         # 组合图表并显示
         st.altair_chart(chart + text, use_container_width=True)
+    with col2:
+        st.subheader("跳号趋势分析")
+
+        # 从 filtered_data 读取跳号数据
+        trend_data = []
+        for _, row in filtered_data.iterrows():
+            issue_no = row['期号']
+            two_jump = row['二跳']
+            three_jump = row['三跳']
+            four_jump = row['四跳']
+            five_jump = row['五跳']
+            six_jump = row['六跳']
+
+            # 添加数据点（如果存在跳号）
+            if two_jump > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '跳号类型': '二跳',
+                    '跳号组数': two_jump
+                })
+            if three_jump > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '跳号类型': '三跳',
+                    '跳号组数': three_jump
+                })
+            if four_jump > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '跳号类型': '四跳',
+                    '跳号组数': four_jump
+                })
+            if five_jump > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '跳号类型': '五跳',
+                    '跳号组数': five_jump
+                })
+            if six_jump > 0:
+                trend_data.append({
+                    '期号': int(issue_no),
+                    '跳号类型': '六跳',
+                    '跳号组数': six_jump
+                })
+
+        # 创建趋势分析DataFrame
+        trend_df = pd.DataFrame(trend_data)
+
+        # 创建交互式趋势图
+        base = alt.Chart(trend_df).properties(
+            width=800,
+            height=300
+        )
+
+        points = base.mark_circle(size=60).encode(
+            x=alt.X('期号:O',
+                    title='期号',
+                    axis=alt.Axis(labelAngle=-45)),
+            y=alt.Y('跳号类型:N',
+                    title='跳号类型',
+                    sort=['二跳', '三跳', '四跳', '五跳', '六跳']),
+            color=alt.Color('跳号类型:N',
+                            scale=alt.Scale(
+                                domain=['二跳', '三跳', '四跳', '五跳', '六跳'],
+                                range=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+                            )),
+            tooltip=[
+                '期号:O',
+                '跳号类型:N',
+                '跳号组数:Q'
+            ]
+        )
+
+        text = base.mark_text(
+            align='center',
+            baseline='middle',
+            dx=15
+        ).encode(
+            x='期号:O',
+            y='跳号类型:N',
+            text='跳号组数:Q',
+            color=alt.value('black')
+        )
+
+        st.altair_chart(
+            (points + text).properties(title='红球跳号趋势'),
+            use_container_width=True)
 
     col1,col2 = st.columns(2)
     with col1:
@@ -899,7 +1074,7 @@ with tab1:
         st.altair_chart(chart + text, use_container_width=True)
 
     with col2:
-        st.subheader("大号和小号变化趋势")
+        st.subheader("大小变化趋势")
         # 进行数据转换
         # 将 '大号' 和 '小号' 两列折叠为两列：类别 ('大号' 或 '小号') 和 数量
         chart_data = filtered_data.melt(id_vars=["期号"], value_vars=["大号", "小号"], var_name="类别",
