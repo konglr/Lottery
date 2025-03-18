@@ -4,27 +4,32 @@ import logging
 import re
 import json
 
-def requests_data(index, issue_count,ID):
+
+
+def requests_data(index, issue_count, ID):
     headers = {
         'Connection': 'keep-alive',
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
         'Accept': '*/*',
         'Sec-Fetch-Site': 'same-site',
         'Sec-Fetch-Mode': 'no-cors',
-        'Referer': 'https://www.zhcw.com/kjxx/kl8/',
+        'Referer': 'https://www.zhcw.com/kjxx/',
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'zh-CN,zh;q=0.9',
     }
 
     timestamp = int(time.time() * 1000)
     callback = f'jQuery1122035713028555611515_{timestamp}'
+    #
+    #jQuery1122005060994199479629_1742210224307
+
+    #jQuery1122033842495237336434_1742210005440
     tt = '0.123456789' # 需要分析网页请求得到正确的 tt 值
     _ = timestamp + 10 # 需要分析网页请求得到正确的 _ 值
-
     params = (
         ('callback', callback),
         ('transactionType', '10001001'),
-        ('lotteryId', ID),
+        ('lotteryId', ID),  # 快乐8的ID为6; 7乐彩 ID为3；福彩3D， ID为2，双色球 ID为1，
         ('issueCount', issue_count),
         ('startIssue', ''),
         ('endIssue', ''),
@@ -36,6 +41,7 @@ def requests_data(index, issue_count,ID):
         ('tt', tt),
         ('_', _),
     )
+
     try:
         response = requests.get('https://jc.zhcw.com/port/client_json.php', headers=headers, params=params).content.decode('utf-8')
         return response

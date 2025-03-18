@@ -10,7 +10,7 @@ import time
 from tqdm import tqdm
 from funcs.requestsdata import requests_data, get_latest_issue_from_system
 
-Lottry_ID = 1  # 快乐8的ID为6; 7乐彩 ID为3；双色球 ID为1，
+Lottry_ID = 1  # 快乐8的ID为6; 7乐彩 ID为3；福彩3D， ID为2，双色球 ID为1，
 # 配置日志记录
 logging.basicConfig(filename='my_log_file.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

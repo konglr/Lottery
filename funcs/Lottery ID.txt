@@ -1,0 +1,68 @@
+ ssq: {
+            id: "1",
+            jc: "双色球"
+        },
+        d3: {
+            id: "2",
+            jc: "福彩3D"
+        },
+        qlc: {
+            id: "3",
+            jc: "七乐彩"
+        },
+        kl8: {
+            id: "6",
+            jc: "快乐8"
+        },
+        dlt: {
+            id: "281",
+            jc: "超级大乐透" #正确
+        },
+        pl3: {
+            id: "283",
+            jc: "排列三"  #正确
+        },
+        pl5: {
+            id: "284",
+            jc: "排列五"  #正确
+        },
+        xqxc: {
+            id: "287",
+            jc: "七星彩"  #正确
+        },
+        sfc: {
+            id: "282",
+            jc: "胜负彩"
+        },
+        jqc: {
+            id: "282",
+            jc: "进球彩"
+        },
+        bqc: {
+            id: "282",
+            jc: "半全场"
+
+        (czxx.czname=='sfc'){
+            zcfl.init(324);
+        (czxx.czname=='jqc'){
+            zcfl.init(325);
+        (czxx.czname=='bqc'){
+            zcfl.init(326);
+
+
+        #需要确认
+        transactionType:'10001003
+        lb_fun:function (id) {
+        zc.zc_fun({transactionType:'10001003',lotteryId:id,count:'20'},function (data) {
+            if(data.resCode="000000"){
+                zcfl.qhlb=data.issue;
+                if(!!zcfl.qhlb){
+                }
+            }
+        });
+    },
+    fun_data:function (id,issue) {
+
+        zc.zc_fun({transactionType:'10001002',lotteryId:id,issue:issue},function (data) {
+            if(data.resCode="000000"){
+                zcfl.res=data;

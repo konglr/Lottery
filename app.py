@@ -108,10 +108,10 @@ with st.sidebar:
     # Analysis period selection
     analysis_period = st.slider(
         "分析期数",
-        min_value=10,
-        max_value=500,
-        value=20,
-        step=10
+        min_value=5,
+        max_value=100,
+        value=5,
+        step=5
     )
 
     st.divider()
