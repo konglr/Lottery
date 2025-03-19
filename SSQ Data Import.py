@@ -12,7 +12,8 @@ from funcs.requestsdata import requests_data, get_latest_issue_from_system
 
 Lottry_ID = 1  # 快乐8的ID为6; 7乐彩 ID为3；福彩3D， ID为2，双色球 ID为1，
 # 配置日志记录
-logging.basicConfig(filename='my_log_file.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='my_log_file.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 try:
     df_existing = pd.read_excel('双色球开奖情况.xlsx')
@@ -97,8 +98,7 @@ df = pd.read_excel('双色球开奖情况.xlsx', header=0) #替换xls为xlsx
 # 检查最早的数据是否为 2003001
 earliest_issue = df['期号'].min()
 if earliest_issue != 2003001:
-    print(f"警告：最早的数据不是2003001，而是{earliest_issue}")
-else:
+    print(f"警告：
     print(f"1.最早的数据是2003001，符合预期。")
 
 # 检查最新一期的数据是否与系统里的相同
