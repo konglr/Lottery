@@ -1763,7 +1763,6 @@ with tab2:
     st.text_area("投注结果", value=st.session_state.all_bets_text, height=300)
 
 
-
     def filter_bets():
         """根据筛选条件过滤投注方案"""
         if 'analysis_results' not in st.session_state:
@@ -1772,18 +1771,23 @@ with tab2:
 
         filtered_results = []
         for result in st.session_state.analysis_results:
+            # 解析分析结果部分
             analysis_str = result.split("(")[1].strip(")")
             analysis_dict = {}
             for item in analysis_str.split(", "):
                 parts = item.split(": ")
                 if len(parts) == 2:
                     analysis_dict[parts[0]] = parts[1]
-                # 如果parts长度不为2，则跳过
-                # else:
-                #     print(f"解析错误：{item}") #添加调试信息，方便排查错误
 
-            red_balls_str = result.split("+")[0]
-            red_balls = [int(ball) for ball in red_balls_str.split(",")]
+            # 解析红球和篮球部分
+            if "+" in result:
+                red_balls_str, blue_balls_str = result.split("+")
+                red_balls = [int(ball) for ball in red_balls_str.split(",")]
+                blue_balls = [int(blue_balls_str.split(" ")[0])]  # 提取篮球部分，并去除多余空格
+            else:
+                red_balls_str = result.split("(")[0].strip()  # 获取红球部分，去除多余空格。
+                red_balls = [int(ball) for ball in red_balls_str.split(",")]
+                blue_balls = []  # 如果没有篮球，则设置为空列表
 
             # 筛选条件检查
             hot_cold_match = True
@@ -1807,11 +1811,17 @@ with tab2:
                 cold_count = sum(1 for ball in red_balls if ball in cold_red)  # 假设 cold_red 已定义
                 hot_cold_match = hot_cold_match and (cold_nums[0] <= cold_count <= cold_nums[1])
 
-            # 奇偶筛选
-            if odd_even_filter:
-                odd_count_range = odd_count  # 将滑块的值存储在 odd_count_range 中
-                odd_count_actual = sum(1 for ball in red_balls if ball % 2 != 0)  # 计算实际奇数个数
-                odd_even_match = odd_count_actual >= odd_count_range[0] and odd_count_actual <= odd_count_range[1]
+                # 奇偶筛选
+                if odd_even_filter:
+                    odd_count_range = odd_count  # 将滑块的值存储在 odd_count_range 中
+                    odd_count_actual = sum(1 for ball in red_balls if ball % 2 != 0)  # 计算实际奇数个数
+                    if isinstance(odd_count_range, tuple) and len(odd_count_range) == 2:  # 添加判断
+                        odd_even_match = odd_count_actual >= odd_count_range[0] and odd_count_actual <= odd_count_range[
+                            1]
+                    else:
+                        odd_even_match = False  # 如果不是元组，则设置匹配为 False
+                else:
+                    odd_even_match = True  # 如果没有被选中，则跳过奇偶判断
 
             # 大小筛选
             if small_big_filter:
@@ -1888,7 +1898,6 @@ with tab2:
             st.session_state.all_bets_text = all_bets_text
 
     st.button("选号方案筛选", on_click=filter_bets)
-
 
 
 
