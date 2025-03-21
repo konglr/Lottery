@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import random
 from datetime import datetime
 import altair as alt
@@ -24,9 +23,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-# 设置 matplotlib 使用 SimHei 字体
-plt.rcParams['font.sans-serif'] = ['Hei']
-plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
 
 # CSS styling
 st.markdown("""
@@ -123,55 +119,77 @@ with st.sidebar:
         value=5,
         step=5
     )
+    # 确保在使用 session_state 前进行初始化
+    if 'hot_nums_filter' not in st.session_state:
+        st.session_state.hot_nums_filter = False
+    if 'cold_nums_filter' not in st.session_state:
+        st.session_state.cold_nums_filter = False
+    if 'odd_even_filter' not in st.session_state:
+        st.session_state.odd_even_filter = False
+    if 'small_big_filter' not in st.session_state:
+        st.session_state.small_big_filter = False
+    if 'same_nums_filter' not in st.session_state:
+        st.session_state.same_nums_filter = False
+    if 'neigh_nums_filter' not in st.session_state:
+        st.session_state.neigh_nums_filter = False
+    if 'sep_nums_filter' not in st.session_state:
+        st.session_state.sep_nums_filter = False
+    if 'consecutive_filter' not in st.session_state:
+        st.session_state.consecutive_filter = False
+    if 'same_tail_filter' not in st.session_state:
+        st.session_state.same_tail_filter = False
+    if 'sum_filter' not in st.session_state:
+        st.session_state.sum_filter = False
+    if 'span_filter' not in st.session_state:
+        st.session_state.span_filter = False
 
+    # 显示筛选器并将选中的值保存在 session_state 中
     st.divider()
+    st.subheader("红球筛选条件设置")
 
-    # Filter settings (These filters are currently only UI elements and not yet applied to data analysis or number selection logic)
-    st.subheader("红球筛选条件设置") # Added clarification that filters are not yet functional
+    st.session_state.hot_nums_filter = st.checkbox("热号筛选", value=st.session_state.hot_nums_filter)
+    if st.session_state.hot_nums_filter:
+        st.session_state.hot_nums = st.slider("红球热号个数", 0, 6, (1, 2))
 
-    hot_nums_filter = st.checkbox("热号筛选")
-    if hot_nums_filter:
-        hot_nums = st.slider("红球热号个数", 0, 6, (1, 2))
+    st.session_state.cold_nums_filter = st.checkbox("冷号筛选", value=st.session_state.cold_nums_filter)
+    if st.session_state.cold_nums_filter:
+        st.session_state.cold_nums = st.slider("红球冷号个数", 0, 6, (1, 2))
 
-    cold_nums_filter = st.checkbox("冷号筛选")
-    if cold_nums_filter:
-        cold_nums = st.slider("红球冷号个数", 0, 6, (1, 2))
+    st.session_state.odd_even_filter = st.checkbox("奇偶筛选", value=st.session_state.odd_even_filter)
+    if st.session_state.odd_even_filter:
+        st.session_state.odd_count = st.slider("红球奇数个数", 0, 6, (2, 4))
 
-    odd_even_filter = st.checkbox("奇偶筛选")
-    if odd_even_filter:
-        odd_count = st.slider("红球奇数个数", 0, 6, (2, 4))
+    st.session_state.small_big_filter = st.checkbox("大小筛选", value=st.session_state.small_big_filter)
+    if st.session_state.small_big_filter:
+        st.session_state.small_big = st.slider("红球小号个数", 0, 6, (2, 4))
 
-    small_big_filter = st.checkbox("大小筛选")
-    if small_big_filter:
-        small_big = st.slider("红球小号个数", 0, 6, (2, 4))
+    st.session_state.same_nums_filter = st.checkbox("重号筛选", value=st.session_state.same_nums_filter)
+    if st.session_state.same_nums_filter:
+        st.session_state.same_nums = st.slider("红球重号个数（与上期）", 0, 6, (0, 2))
 
-    same_nums_filter = st.checkbox("重号筛选")
-    if same_nums_filter:
-        same_nums = st.slider("红球重号个数（与上期）", 0, 6, (0, 2))
+    st.session_state.neigh_nums_filter = st.checkbox("邻号筛选", value=st.session_state.neigh_nums_filter)
+    if st.session_state.neigh_nums_filter:
+        st.session_state.neigh_nums = st.slider("红球邻号个数（与上期）", 0, 6, (0, 2))
 
-    neigh_nums_filter = st.checkbox("邻号筛选")
-    if neigh_nums_filter:
-        neigh_nums = st.slider("红球邻号个数（与上期）", 0, 6, (0, 2))
+    st.session_state.sep_nums_filter = st.checkbox("孤号筛选", value=st.session_state.sep_nums_filter)
+    if st.session_state.sep_nums_filter:
+        st.session_state.sep_nums = st.slider("红球孤号个数（与上期）", 0, 6, (0, 2))
 
-    sep_nums_filter = st.checkbox("孤号筛选")
-    if sep_nums_filter:
-        sep_nums = st.slider("红球孤号个数（与上期）", 0, 6, (0, 2))
+    st.session_state.consecutive_filter = st.checkbox("连号筛选", value=st.session_state.consecutive_filter)
+    if st.session_state.consecutive_filter:
+        st.session_state.consecutive_count = st.slider("最多连号数量", 0, 6, 2)
 
-    consecutive_filter = st.checkbox("连号筛选")
-    if consecutive_filter:
-        consecutive_count = st.slider("最多连号数量", 0, 6, 2)
+    st.session_state.same_tail_filter = st.checkbox("同尾号筛选", value=st.session_state.same_tail_filter)
+    if st.session_state.same_tail_filter:
+        st.session_state.max_same_tail = st.slider("最多同尾号数量", 0, 6, 2)
 
-    same_tail_filter = st.checkbox("同尾号筛选")
-    if same_tail_filter:
-        max_same_tail = st.slider("最多同尾号数量", 0, 6, 2)
+    st.session_state.sum_filter = st.checkbox("和值筛选", value=st.session_state.sum_filter)
+    if st.session_state.sum_filter:
+        st.session_state.sum_range = st.slider("红球和值范围", 20, 200, (70, 130))
 
-    sum_filter = st.checkbox("和值筛选")
-    if sum_filter:
-        sum_range = st.slider("红球和值范围", 20, 200, (70, 130))
-
-    span_filter = st.checkbox("跨度筛选")
-    if span_filter:
-        span_range = st.slider("红球跨度范围", 10, 33, (15, 25))
+    st.session_state.span_filter = st.checkbox("跨度筛选", value=st.session_state.span_filter)
+    if st.session_state.span_filter:
+        st.session_state.span_range = st.slider("红球跨度范围", 10, 33, (15, 25))
 
 
 @st.cache_data
@@ -226,44 +244,6 @@ def load_historical_data(analysis_period):
             "二连", "三连", "四连", "五连", "六连",  # 新增的字段
             "二跳", "三跳", "四跳", "五跳", "六跳"  # 新增的字段
         ])
-
-# 加载历史数据，并根据分析期数筛选
-filtered_data = load_historical_data(analysis_period)
-# Calculate frequency for red balls
-red_frequency = {}
-
-for i in range(1, 34):  # Corrected range to 1-33 in previous version, now 1-34 to align with UI
-    count = 0
-    for j in range(1, 7):
-        if f'红球{j}' in filtered_data.columns:
-            count += (filtered_data[f'红球{j}'] == i).sum()
-    red_frequency[i] = count
-
-red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
-red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
-# 获取出现频率最高的前 5 个号码
-top_5_freq = red_freq_df['出现次数'].iloc[4]
-hot_red_df = red_freq_df[red_freq_df['出现次数'] >= top_5_freq]
-hot_red = hot_red_df['号码'].tolist()
-
-# 获取出现频率最低的后 5 个号码
-bottom_5_freq = red_freq_df['出现次数'].iloc[-5]
-cold_red_df = red_freq_df[red_freq_df['出现次数'] <= bottom_5_freq]
-cold_red = cold_red_df['号码'].tolist()
-
-def calculate_same_number_counts(data):
-    """计算每期红球同号数量"""
-    same_number_counts = []
-    if len(data) > 1:
-        for i in range(1, len(data)):
-            previous_row = data.iloc[i - 1]
-            current_row = data.iloc[i]
-            same_count = 0
-            for col in ['红球1', '红球2', '红球3', '红球4', '红球5', '红球6']:
-                if current_row[col] in previous_row.values:
-                    same_count += 1
-            same_number_counts.append(same_count)
-    return same_number_counts
 
 def analyze_red_balls(red_balls):
     """
@@ -334,9 +314,32 @@ def analyze_red_balls(red_balls):
 
     return results
 
+# 加载历史数据，并根据分析期数筛选
+filtered_data = load_historical_data(analysis_period)
+# Calculate frequency for red balls
+red_frequency = {}
+
+for i in range(1, 34):  # Corrected range to 1-33 in previous version, now 1-34 to align with UI
+    count = 0
+    for j in range(1, 7):
+        if f'红球{j}' in filtered_data.columns:
+            count += (filtered_data[f'红球{j}'] == i).sum()
+    red_frequency[i] = count
+
+red_freq_df = pd.DataFrame({'号码': red_frequency.keys(), '出现次数': red_frequency.values()})
+red_freq_df = red_freq_df.sort_values('出现次数', ascending=False)
+# 获取出现频率最高的前 5 个号码
+top_5_freq = red_freq_df['出现次数'].iloc[4]
+hot_red_df = red_freq_df[red_freq_df['出现次数'] >= top_5_freq]
+hot_red = hot_red_df['号码'].tolist()
+
+# 获取出现频率最低的后 5 个号码
+bottom_5_freq = red_freq_df['出现次数'].iloc[-5]
+cold_red_df = red_freq_df[red_freq_df['出现次数'] <= bottom_5_freq]
+cold_red = cold_red_df['号码'].tolist()
+
 # Main content area
 st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html=True)
-
 
 # Display tabs for different analyses
 tab1, tab2, tab3,tab4= st.tabs(["号码分析", "选号工具","全量筛选","历史数据"])
@@ -1567,7 +1570,203 @@ with tab1:
         # **显示折线图**
         st.altair_chart(chart + text, use_container_width=True)
 
-with tab2:
+
+with (tab2):
+    from funcs.ball_filter import (convert_to_single_bets, parse_bet)
+
+
+    def filter_bets():
+        """根据筛选条件过滤投注方案"""
+        if 'analysis_results' not in st.session_state:
+            st.warning("请先分析投注方案")
+            return
+
+        filtered_results = []
+        filter_info = []  # 用于存储筛选条件的列表
+        filter_results = {}  # 用于存储每个筛选条件的结果
+
+        for result in st.session_state.analysis_results:
+            # 去除分析结果部分
+            if "(" in result:
+                bet_str = result.split("(")[0].strip()
+            else:
+                bet_str = result.strip()
+
+            # 解析红球和篮球部分
+            if "+" in bet_str:
+                red_balls_str, blue_balls_str = bet_str.split("+")
+                red_balls = [int(ball) for ball in red_balls_str.split(",")]
+                blue_balls = [int(blue_balls_str.strip())]  # 提取篮球部分，并去除多余空格
+            else:
+                red_balls = [int(ball) for ball in bet_str.split(",")]
+                blue_balls = []  # 如果没有篮球，则设置为空列表
+
+            # 筛选条件检查
+            hot_cold_match = True
+            odd_even_match = True
+            size_match = True
+            same_nums_match = True
+            neigh_nums_match = True
+            sep_nums_match = True
+            consecutive_match = True
+            same_tail_match = True
+            sum_match = True
+            span_match = True
+
+            # 热号筛选
+            if st.session_state.hot_nums_filter:
+                hot_count = sum(1 for ball in red_balls if ball in hot_red)  # 假设 hot_red 已定义
+                hot_cold_match = st.session_state.hot_nums[0] <= hot_count <= st.session_state.hot_nums[1]
+                if "hot_nums" not in filter_results:
+                    filter_results["hot_nums"] = hot_cold_match
+
+            # 冷号筛选
+            if st.session_state.cold_nums_filter:
+                cold_count = sum(1 for ball in red_balls if ball in cold_red)  # 假设 cold_red 已定义
+                hot_cold_match = hot_cold_match and (
+                            st.session_state.cold_nums[0] <= cold_count <= st.session_state.cold_nums[1])
+                if "cold_nums" not in filter_results:
+                    filter_results["cold_nums"] = hot_cold_match
+
+            # 奇偶筛选
+            if st.session_state.odd_even_filter:
+                odd_count_range = st.session_state.odd_count  # 将滑块的值存储在 odd_count_range 中
+                odd_count_actual = sum(1 for ball in red_balls if ball % 2 != 0)  # 计算实际奇数个数
+                odd_even_match = odd_count_actual >= odd_count_range[0] and odd_count_actual <= odd_count_range[1]
+                if "odd_count" not in filter_results:
+                    filter_results["odd_count"] = odd_even_match
+
+            # 大小筛选
+            if st.session_state.small_big_filter:
+                small_count = sum(1 for ball in red_balls if 1 <= ball <= 16)
+                small_big_match = small_count >= st.session_state.small_big[0] and small_count <= \
+                                  st.session_state.small_big[1]
+                if "small_big" not in filter_results:
+                    filter_results["small_big"] = small_big_match
+
+            # 重号筛选
+            if st.session_state.same_nums_filter:
+                last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)]  # 假设 latest_draw 已定义
+                same_count = sum(1 for ball in red_balls if ball in last_draw_reds)
+                same_nums_match = same_count >= st.session_state.same_nums[0] and same_count <= \
+                                  st.session_state.same_nums[1]
+                if "same_nums" not in filter_results:
+                    filter_results["same_nums"] = same_nums_match
+
+            # 邻号筛选
+            if st.session_state.neigh_nums_filter:
+                last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)]  # 假设 latest_draw 已定义
+                neigh_count = sum(1 for ball in red_balls if ball + 1 in last_draw_reds or ball - 1 in last_draw_reds)
+                neigh_nums_match = neigh_count >= st.session_state.neigh_nums[0] and neigh_nums_match <= \
+                                   st.session_state.neigh_nums[1]
+                if "neigh_nums" not in filter_results:
+                    filter_results["neigh_nums"] = neigh_nums_match
+
+            # 孤号筛选
+            if st.session_state.sep_nums_filter:
+                last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)]  # 假设 latest_draw 已定义
+                sep_count = sum(
+                    1 for ball in red_balls if ball + 1 not in last_draw_reds and ball - 1 not in last_draw_reds)
+                sep_nums_match = sep_count >= st.session_state.sep_nums[0] and sep_nums_match <= \
+                                 st.session_state.sep_nums[1]
+                if "sep_nums" not in filter_results:
+                    filter_results["sep_nums"] = sep_nums_match
+
+            # 连号筛选
+            if st.session_state.consecutive_filter:
+                red_balls.sort()
+                consecutive_counts = {}
+                count = 1
+                for i in range(1, len(red_balls)):
+                    if red_balls[i] == red_balls[i - 1] + 1:
+                        count += 1
+                    else:
+                        if count > 1:
+                            consecutive_counts[count] = consecutive_counts.get(count, 0) + 1
+                        count = 1
+                if count > 1:
+                    consecutive_counts[count] = consecutive_counts.get(count, 0) + 1
+                max_consecutive = max(consecutive_counts.keys()) if consecutive_counts else 0
+                consecutive_match = max_consecutive <= st.session_state.consecutive_count
+                if "consecutive_count" not in filter_results:
+                    filter_results["consecutive_count"] = consecutive_match
+
+            # 同尾号筛选
+            if st.session_state.same_tail_filter:
+                tails = [ball % 10 for ball in red_balls]
+                tail_counts = {}
+                for tail in tails:
+                    tail_counts[tail] = tail_counts.get(tail, 0) + 1
+                max_same_tail_count = max(tail_counts.values()) if tail_counts else 0
+                same_tail_match = max_same_tail_count <= st.session_state.max_same_tail
+                if "max_same_tail" not in filter_results:
+                    filter_results["max_same_tail"] = same_tail_match
+
+            # 和值筛选
+            if st.session_state.sum_filter:
+                red_sum = sum(red_balls)
+                sum_match = st.session_state.sum_range[0] <= red_sum <= st.session_state.sum_range[1]
+                if "sum_range" not in filter_results:
+                    filter_results["sum_range"] = sum_match
+
+            # 跨度筛选
+            if st.session_state.span_filter:
+                red_span = max(red_balls) - min(red_balls)
+                span_match = st.session_state.span_range[0] <= red_span <= st.session_state.span_range[1]
+                if "span_range" not in filter_results:
+                    filter_results["span_range"] = span_match
+
+            if (hot_cold_match and odd_even_match and size_match and
+                    neigh_nums_match and sep_nums_match and consecutive_match and same_tail_match and
+                    sum_match and span_match):
+                filtered_results.append(result)
+
+            st.session_state.filtered_results = filtered_results
+            if 'filtered_results' in st.session_state:
+                all_bets_text = (
+                        f"总投注数: {len(st.session_state.analysis_results)}\n"
+                        f"筛选条件：{', '.join([f'{k}{st.session_state[k]}- 完成' if v else f'{k}{st.session_state[k]}- 失败' for k, v in filter_results.items()])}\n"
+                        f"筛选后注数: {len(st.session_state.filtered_results)}\n\n"
+                        + "\n".join(st.session_state.filtered_results)
+                )
+                st.session_state.all_bets_text = all_bets_text
+
+    def analyze_bets():
+        """分析投注方案"""
+        bets_text = st.session_state.bets_text
+        bets = []
+        analysis_results = []
+        total_bets = 0
+        unique_bets = set()  # 添加一个集合，用于存储唯一的投注组合
+
+        for line in bets_text.splitlines():
+            if line.strip():
+                red_balls, blue_balls, dantuo = parse_bet(line.strip())
+                single_bets = convert_to_single_bets(red_balls, blue_balls)
+                total_bets += len(single_bets)
+                bets.extend(single_bets)
+
+        for red_balls, blue_balls in bets:
+            # red_analysis = analyze_red_balls(red_balls)
+            # analysis_str = ", ".join([f"{key}: {value}" for key, value in red_analysis.items()])
+            bet_tuple = tuple(sorted(red_balls)), tuple(sorted(blue_balls))  # 创建元组用于判断
+            if bet_tuple not in unique_bets:  # 检查投注组合是否已经存在
+                unique_bets.add(bet_tuple)  # 将投注组合添加到集合中
+                if blue_balls:
+                    analysis_results.append(
+                        # f"{','.join(map(str, red_balls))}+{','.join(map(str, blue_balls))} ({analysis_str})")
+                        f"{','.join(map(str, red_balls))}+{','.join(map(str, blue_balls))} ")
+                else:
+                    analysis_results.append(
+                        # f"{','.join(map(str, red_balls))} ({analysis_str})")
+                        f"{','.join(map(str, red_balls))} ")
+
+        # 创建包含所有投注结果和总投注数的字符串
+        all_bets_text = f"总投注数: {total_bets}\n" + "\n".join(analysis_results)
+
+        # 将结果存储在 session_state 中
+        st.session_state.all_bets_text = all_bets_text
+        st.session_state.analysis_results = analysis_results
     col1, col2 = st.columns(2)  # 创建两列布局
 
     with col1:
@@ -1657,103 +1856,7 @@ with tab2:
                 pass
 
 
-    def parse_bet(bet_str):
-        """解析投注方案字符串"""
-        try:
-            red_balls = []
-            blue_balls = []
-            dantuo = False
-
-            bet_str = bet_str.strip()
-            if not bet_str:
-                raise ValueError("投注字符串为空")
-
-            if "+" in bet_str:
-                parts = bet_str.split("+")
-                if len(parts) != 2 or not parts[0]:
-                    raise ValueError("投注格式错误")
-                red_str, blue_str = parts
-                red_balls = [int(r) for r in red_str.split(",") if r.strip().isdigit()]
-                blue_balls = [int(b) for b in blue_str.split(",") if b.strip().isdigit()]
-            else:
-                red_balls = [int(r) for r in bet_str.split(",") if r.strip().isdigit()]
-                blue_balls = []  # 允许没有蓝球
-
-            return red_balls, blue_balls, dantuo
-
-        except ValueError as e:
-            logging.error(f"投注解析错误: {e}, 输入: {bet_str}")
-            return [], [], False
-
-
-    def convert_to_single_bets(red_balls, blue_balls):
-        """将复式和胆拖投注转换为单注"""
-        try:
-            single_bets = []
-
-            # 复式投注
-            if len(red_balls) > 6:
-                import itertools
-                red_combinations = list(itertools.combinations(red_balls, 6))
-                for red_comb in red_combinations:
-                    if blue_balls:
-                        for blue in blue_balls:
-                            single_bets.append((list(red_comb), [blue]))
-                    else:
-                        single_bets.append((list(red_comb), []))
-            # 单注
-            else:
-                if blue_balls:
-                    for blue in blue_balls:
-                        single_bets.append((red_balls, [blue]))
-                else:
-                    single_bets.append((red_balls, []))
-
-            return single_bets
-
-        except Exception as e:
-            logging.error(f"单注转换错误: {e}, Red: {red_balls}, Blue: {blue_balls}")
-            return []
-
-
-    def analyze_bets():
-        """分析投注方案"""
-        bets_text = st.session_state.bets_text
-        bets = []
-        analysis_results = []
-        total_bets = 0
-        unique_bets = set()  # 添加一个集合，用于存储唯一的投注组合
-
-        for line in bets_text.splitlines():
-            if line.strip():
-                red_balls, blue_balls, dantuo = parse_bet(line.strip())
-                single_bets = convert_to_single_bets(red_balls, blue_balls)
-                total_bets += len(single_bets)
-                bets.extend(single_bets)
-
-        for red_balls, blue_balls in bets:
-            red_analysis = analyze_red_balls(red_balls)
-            analysis_str = ", ".join([f"{key}: {value}" for key, value in red_analysis.items()])
-            bet_tuple = tuple(sorted(red_balls)), tuple(sorted(blue_balls))  # 创建元组用于判断
-            if bet_tuple not in unique_bets:  # 检查投注组合是否已经存在
-                unique_bets.add(bet_tuple)  # 将投注组合添加到集合中
-                if blue_balls:
-                    analysis_results.append(
-                        f"{','.join(map(str, red_balls))}+{','.join(map(str, blue_balls))} ({analysis_str})")
-                else:
-                    analysis_results.append(
-                        f"{','.join(map(str, red_balls))} ({analysis_str})")
-
-        # 创建包含所有投注结果和总投注数的字符串
-        all_bets_text = f"总投注数: {total_bets}\n" + "\n".join(analysis_results)
-
-        # 将结果存储在 session_state 中
-        st.session_state.all_bets_text = all_bets_text
-        st.write(f"总投注数: {total_bets}")
-        st.session_state.analysis_results = analysis_results
-
     st.button("分析投注", on_click=analyze_bets)
-    st.subheader("投注结果")
 
     # 初始化 session_state
     if "all_bets_text" not in st.session_state:
@@ -1762,162 +1865,7 @@ with tab2:
     # 显示投注结果
     st.text_area("投注结果", value=st.session_state.all_bets_text, height=300)
 
-
-    def filter_bets():
-        """根据筛选条件过滤投注方案"""
-        if 'analysis_results' not in st.session_state:
-            st.warning("请先分析投注方案")
-            return
-
-        filtered_results = []
-        for result in st.session_state.analysis_results:
-            # 解析分析结果部分
-            analysis_str = result.split("(")[1].strip(")")
-            analysis_dict = {}
-            for item in analysis_str.split(", "):
-                parts = item.split(": ")
-                if len(parts) == 2:
-                    analysis_dict[parts[0]] = parts[1]
-
-            # 解析红球和篮球部分
-            if "+" in result:
-                red_balls_str, blue_balls_str = result.split("+")
-                red_balls = [int(ball) for ball in red_balls_str.split(",")]
-                blue_balls = [int(blue_balls_str.split(" ")[0])]  # 提取篮球部分，并去除多余空格
-            else:
-                red_balls_str = result.split("(")[0].strip()  # 获取红球部分，去除多余空格。
-                red_balls = [int(ball) for ball in red_balls_str.split(",")]
-                blue_balls = []  # 如果没有篮球，则设置为空列表
-
-            # 筛选条件检查
-            hot_cold_match = True
-            odd_even_match = True
-            size_match = True
-            same_nums_match = True
-            neigh_nums_match = True
-            sep_nums_match = True
-            consecutive_match = True
-            same_tail_match = True
-            sum_match = True
-            span_match = True
-
-            # 热号筛选
-            if hot_nums_filter:
-                hot_count = sum(1 for ball in red_balls if ball in hot_red)  # 假设 hot_red 已定义
-                hot_cold_match = hot_nums[0] <= hot_count <= hot_nums[1]
-
-            # 冷号筛选
-            if cold_nums_filter:
-                cold_count = sum(1 for ball in red_balls if ball in cold_red)  # 假设 cold_red 已定义
-                hot_cold_match = hot_cold_match and (cold_nums[0] <= cold_count <= cold_nums[1])
-
-                # 奇偶筛选
-                if odd_even_filter:
-                    odd_count_range = odd_count  # 将滑块的值存储在 odd_count_range 中
-                    odd_count_actual = sum(1 for ball in red_balls if ball % 2 != 0)  # 计算实际奇数个数
-                    if isinstance(odd_count_range, tuple) and len(odd_count_range) == 2:  # 添加判断
-                        odd_even_match = odd_count_actual >= odd_count_range[0] and odd_count_actual <= odd_count_range[
-                            1]
-                    else:
-                        odd_even_match = False  # 如果不是元组，则设置匹配为 False
-                else:
-                    odd_even_match = True  # 如果没有被选中，则跳过奇偶判断
-
-            # 大小筛选
-            if small_big_filter:
-                small_count = sum(1 for ball in red_balls if 1 <= ball <= 16)
-                small_big_match = small_count >= small_big[0] and small_count <= small_big[1]
-
-            # 重号筛选
-            if same_nums_filter:
-                last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)]  # 假设 latest_draw 已定义
-                same_count = sum(1 for ball in red_balls if ball in last_draw_reds)
-                same_nums_match = same_count >= same_nums[0] and same_count <= same_nums[1]
-
-            # 邻号筛选
-            if neigh_nums_filter:
-                last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)]  # 假设 latest_draw 已定义
-                neigh_count = sum(1 for ball in red_balls if ball + 1 in last_draw_reds or ball - 1 in last_draw_reds)
-                neigh_nums_match = neigh_count >= neigh_nums[0] and neigh_nums_match <= neigh_nums[1]
-
-            # 孤号筛选
-            if sep_nums_filter:
-                last_draw_reds = [latest_draw[f'红球{i}'] for i in range(1, 7)]  # 假设 latest_draw 已定义
-                sep_count = sum(
-                    1 for ball in red_balls if ball + 1 not in last_draw_reds and ball - 1 not in last_draw_reds)
-                sep_nums_match = sep_count >= sep_nums[0] and sep_nums_match <= sep_nums[1]
-
-            # 连号筛选
-            if consecutive_filter:
-                red_balls.sort()
-                consecutive_counts = {}
-                count = 1
-                for i in range(1, len(red_balls)):
-                    if red_balls[i] == red_balls[i - 1] + 1:
-                        count += 1
-                    else:
-                        if count > 1:
-                            consecutive_counts[count] = consecutive_counts.get(count, 0) + 1
-                        count = 1
-                if count > 1:
-                    consecutive_counts[count] = consecutive_counts.get(count, 0) + 1
-                max_consecutive = max(consecutive_counts.keys()) if consecutive_counts else 0
-                consecutive_match = max_consecutive <= consecutive_count
-
-            # 同尾号筛选
-            if same_tail_filter:
-                tails = [ball % 10 for ball in red_balls]
-                tail_counts = {}
-                for tail in tails:
-                    tail_counts[tail] = tail_counts.get(tail, 0) + 1
-                max_same_tail_count = max(tail_counts.values()) if tail_counts else 0
-                same_tail_match = max_same_tail_count <= max_same_tail
-
-            # 和值筛选
-            if sum_filter:
-                red_sum = sum(red_balls)
-                sum_match = sum_range[0] <= red_sum <= sum_range[1]
-
-            # 跨度筛选
-            if span_filter:
-                red_span = max(red_balls) - min(red_balls)
-                span_match = span_range[0] <= red_span <= span_range[1]
-
-            if (hot_cold_match and odd_even_match and size_match and same_nums_match and
-                    neigh_nums_match and sep_nums_match and consecutive_match and same_tail_match and
-                    sum_match and span_match):
-                filtered_results.append(result)
-
-        st.session_state.filtered_results = filtered_results
-        if 'filtered_results' in st.session_state:
-            all_bets_text = (
-                    f"总投注数: {len(st.session_state.analysis_results)}\n"
-                    f"筛选后注数: {len(st.session_state.filtered_results)}\n\n"
-                    + "\n".join(st.session_state.filtered_results)
-            )
-            st.session_state.all_bets_text = all_bets_text
-
     st.button("选号方案筛选", on_click=filter_bets)
-
-
-
-    # 仅红球分析
-    def analyze_red_only():
-        """仅分析红球的投注方案"""
-        bets_text = st.session_state.bets_text
-        analysis_results = []
-
-        for line in bets_text.splitlines():
-            if line.strip():
-                red_balls = [int(r) for r in line.split(',')]
-                red_analysis = analyze_red_balls(red_balls)
-                analysis_str = ", ".join([f"{key}: {value}" for key, value in red_analysis.items()])
-                analysis_results.append(f"{','.join(map(str, red_balls))} ({analysis_str})")
-
-        st.session_state.analysis_results = analysis_results
-
-
-    st.button("仅红球分析", on_click=analyze_red_only)
 
 
 with tab3:
