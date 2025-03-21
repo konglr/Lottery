@@ -740,3 +740,203 @@ INFO:root:Data synchronized: 2025024
 2025-03-19 14:57:59,340 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
 2025-03-19 14:57:59,512 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
 2025-03-19 14:57:59,647 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2025-03-19 20:07:24,102 - ERROR - ❌ 获取最新期号失败: Expecting value: line 1 column 1 (char 0)
+2025-03-19 20:07:24,103 - ERROR - ❌ 无法获取最新期号，程序终止。
+2025-03-19 20:11:27,166 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:12:33,958 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:12:33,959 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 20:13:10,288 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:13:10,289 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 20:13:54,811 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:13:54,812 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 20:14:23,014 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-19 20:14:23,154 - INFO - 📌 2 最新期号: 2025067, 总期数: 1067
+2025-03-19 20:14:23,155 - INFO - 📄 福彩3D 计算总页数: 36
+2025-03-19 20:14:30,039 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-19 20:14:30,301 - INFO - 📌 3 最新期号: 2025028, 总期数: 2028
+2025-03-19 20:14:30,301 - INFO - 📄 七乐彩 计算总页数: 68
+2025-03-19 20:14:53,554 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-19 20:14:53,712 - INFO - 📌 6 最新期号: 2025067, 总期数: 567
+2025-03-19 20:14:53,712 - INFO - 📄 快乐8 计算总页数: 19
+2025-03-19 20:14:58,390 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-19 20:14:58,652 - INFO - 📌 281 最新期号: 25028, 总期数: -1997472
+2025-03-19 20:14:58,652 - INFO - 📄 超级大乐透 计算总页数: -66582
+2025-03-19 20:14:58,653 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:14:58,800 - INFO - 📌 283 最新期号: 25067, 总期数: -1998433
+2025-03-19 20:14:58,800 - INFO - 📄 排列三 计算总页数: -66614
+2025-03-19 20:14:58,800 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:14:58,949 - INFO - 📌 284 最新期号: 25067, 总期数: -1998733
+2025-03-19 20:14:58,950 - INFO - 📄 排列五 计算总页数: -66624
+2025-03-19 20:14:58,951 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:14:59,101 - INFO - 📌 287 最新期号: 25029, 总期数: -1998671
+2025-03-19 20:14:59,102 - INFO - 📄 七星彩 计算总页数: -66622
+2025-03-19 20:14:59,102 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:35:46,553 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:35:46,555 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 20:36:15,054 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-19 20:36:15,201 - INFO - 📌 2 最新期号: 2025067, 总期数: 1067
+2025-03-19 20:36:15,201 - INFO - 📄 福彩3D 计算总页数: 36
+2025-03-19 20:36:22,051 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-19 20:36:22,312 - INFO - 📌 3 最新期号: 2025028, 总期数: 2028
+2025-03-19 20:36:22,313 - INFO - 📄 七乐彩 计算总页数: 68
+2025-03-19 20:36:45,800 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-19 20:36:45,957 - INFO - 📌 6 最新期号: 2025067, 总期数: 567
+2025-03-19 20:36:45,957 - INFO - 📄 快乐8 计算总页数: 19
+2025-03-19 20:36:50,694 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-19 20:36:50,965 - INFO - 📌 281 最新期号: 25028, 总期数: -1997472
+2025-03-19 20:36:50,965 - INFO - 📄 超级大乐透 计算总页数: -66582
+2025-03-19 20:36:50,965 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:36:51,121 - INFO - 📌 283 最新期号: 25067, 总期数: -1998433
+2025-03-19 20:36:51,122 - INFO - 📄 排列三 计算总页数: -66614
+2025-03-19 20:36:51,122 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:36:51,280 - INFO - 📌 284 最新期号: 25067, 总期数: -1998733
+2025-03-19 20:36:51,280 - INFO - 📄 排列五 计算总页数: -66624
+2025-03-19 20:36:51,281 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:36:51,434 - INFO - 📌 287 最新期号: 25029, 总期数: -1998671
+2025-03-19 20:36:51,435 - INFO - 📄 七星彩 计算总页数: -66622
+2025-03-19 20:36:51,435 - WARNING - 没有数据可以保存到 CSV 文件
+2025-03-19 20:38:59,152 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:38:59,153 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 20:39:14,598 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-19 20:39:14,734 - INFO - 📌 2 最新期号: 2025067, 总期数: 167
+2025-03-19 20:39:14,734 - INFO - 📄 福彩3D 计算总页数: 6
+2025-03-19 20:39:15,726 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-19 20:39:15,854 - INFO - 📌 3 最新期号: 2025028, 总期数: 228
+2025-03-19 20:39:15,854 - INFO - 📄 七乐彩 计算总页数: 8
+2025-03-19 20:39:18,136 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-19 20:39:18,261 - INFO - 📌 6 最新期号: 2025067, 总期数: 117
+2025-03-19 20:39:18,261 - INFO - 📄 快乐8 计算总页数: 4
+2025-03-19 20:39:19,190 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-19 20:39:19,322 - INFO - 📌 281 最新期号: 25028, 总期数: 278
+2025-03-19 20:39:19,322 - INFO - 📄 超级大乐透 计算总页数: 10
+2025-03-19 20:39:22,200 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/超级大乐透_lottery_data.csv
+2025-03-19 20:39:22,325 - INFO - 📌 283 最新期号: 25067, 总期数: 217
+2025-03-19 20:39:22,326 - INFO - 📄 排列三 计算总页数: 8
+2025-03-19 20:39:23,696 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
+2025-03-19 20:39:23,827 - INFO - 📌 284 最新期号: 25067, 总期数: 187
+2025-03-19 20:39:23,827 - INFO - 📄 排列五 计算总页数: 7
+2025-03-19 20:39:24,995 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
+2025-03-19 20:39:25,117 - INFO - 📌 287 最新期号: 25029, 总期数: 159
+2025-03-19 20:39:25,117 - INFO - 📄 七星彩 计算总页数: 6
+2025-03-19 20:39:26,118 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2025-03-19 20:49:50,162 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:49:50,163 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 20:50:19,659 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-19 20:50:19,802 - INFO - 📌 2 最新期号: 2025067, 总期数: 167
+2025-03-19 20:50:19,802 - INFO - 📄 福彩3D 计算总页数: 6
+2025-03-19 20:50:20,806 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-19 20:50:21,076 - INFO - 📌 3 最新期号: 2025028, 总期数: 228
+2025-03-19 20:50:21,076 - INFO - 📄 七乐彩 计算总页数: 8
+2025-03-19 20:50:23,420 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-19 20:50:23,573 - INFO - 📌 6 最新期号: 2025067, 总期数: 117
+2025-03-19 20:50:23,574 - INFO - 📄 快乐8 计算总页数: 4
+2025-03-19 20:50:24,503 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-19 20:50:24,761 - INFO - 📌 281 最新期号: 25028, 总期数: 278
+2025-03-19 20:50:24,761 - INFO - 📄 超级大乐透 计算总页数: 10
+2025-03-19 20:50:27,692 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/超级大乐透_lottery_data.csv
+2025-03-19 20:50:27,846 - INFO - 📌 283 最新期号: 25067, 总期数: 217
+2025-03-19 20:50:27,846 - INFO - 📄 排列三 计算总页数: 8
+2025-03-19 20:50:29,229 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
+2025-03-19 20:50:29,379 - INFO - 📌 284 最新期号: 25067, 总期数: 187
+2025-03-19 20:50:29,380 - INFO - 📄 排列五 计算总页数: 7
+2025-03-19 20:50:30,529 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
+2025-03-19 20:50:30,678 - INFO - 📌 287 最新期号: 25029, 总期数: 159
+2025-03-19 20:50:30,678 - INFO - 📄 七星彩 计算总页数: 6
+2025-03-19 20:50:31,686 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2025-03-19 20:54:14,582 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 20:54:14,583 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 20:54:30,089 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-19 20:54:30,224 - INFO - 📌 2 最新期号: 2025067, 总期数: 167
+2025-03-19 20:54:30,224 - INFO - 📄 福彩3D 计算总页数: 6
+2025-03-19 20:54:31,025 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-19 20:54:31,153 - INFO - 📌 3 最新期号: 2025028, 总期数: 228
+2025-03-19 20:54:31,153 - INFO - 📄 七乐彩 计算总页数: 8
+2025-03-19 20:54:32,282 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-19 20:54:32,409 - INFO - 📌 6 最新期号: 2025067, 总期数: 117
+2025-03-19 20:54:32,409 - INFO - 📄 快乐8 计算总页数: 4
+2025-03-19 20:54:33,216 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-19 20:54:33,344 - INFO - 📌 281 最新期号: 25028, 总期数: 278
+2025-03-19 20:54:33,344 - INFO - 📄 超级大乐透 计算总页数: 10
+2025-03-19 20:54:34,779 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/超级大乐透_lottery_data.csv
+2025-03-19 20:54:34,902 - INFO - 📌 283 最新期号: 25067, 总期数: 217
+2025-03-19 20:54:34,902 - INFO - 📄 排列三 计算总页数: 8
+2025-03-19 20:54:35,975 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
+2025-03-19 20:54:36,107 - INFO - 📌 284 最新期号: 25067, 总期数: 187
+2025-03-19 20:54:36,107 - INFO - 📄 排列五 计算总页数: 7
+2025-03-19 20:54:37,041 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
+2025-03-19 20:54:37,168 - INFO - 📌 287 最新期号: 25029, 总期数: 159
+2025-03-19 20:54:37,168 - INFO - 📄 七星彩 计算总页数: 6
+2025-03-19 20:54:37,970 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2025-03-19 21:07:41,345 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 21:07:41,346 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 21:08:09,133 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-19 21:08:09,271 - INFO - 📌 2 最新期号: 2025067, 总期数: 167
+2025-03-19 21:08:09,271 - INFO - 📄 福彩3D 计算总页数: 6
+2025-03-19 21:08:10,260 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-19 21:08:10,515 - INFO - 📌 3 最新期号: 2025028, 总期数: 228
+2025-03-19 21:08:10,515 - INFO - 📄 七乐彩 计算总页数: 8
+2025-03-19 21:08:12,769 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-19 21:08:12,917 - INFO - 📌 6 最新期号: 2025067, 总期数: 117
+2025-03-19 21:08:12,917 - INFO - 📄 快乐8 计算总页数: 4
+2025-03-19 21:08:13,847 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-19 21:08:14,096 - INFO - 📌 281 最新期号: 25028, 总期数: 278
+2025-03-19 21:08:14,096 - INFO - 📄 超级大乐透 计算总页数: 10
+2025-03-19 21:08:16,970 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/超级大乐透_lottery_data.csv
+2025-03-19 21:08:17,120 - INFO - 📌 283 最新期号: 25067, 总期数: 217
+2025-03-19 21:08:17,121 - INFO - 📄 排列三 计算总页数: 8
+2025-03-19 21:08:18,445 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
+2025-03-19 21:08:18,595 - INFO - 📌 284 最新期号: 25067, 总期数: 187
+2025-03-19 21:08:18,595 - INFO - 📄 排列五 计算总页数: 7
+2025-03-19 21:08:19,752 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
+2025-03-19 21:08:19,901 - INFO - 📌 287 最新期号: 25029, 总期数: 159
+2025-03-19 21:08:19,902 - INFO - 📄 七星彩 计算总页数: 6
+2025-03-19 21:08:20,892 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2025-03-19 21:20:14,532 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-19 21:20:14,532 - INFO - 📄 双色球 计算总页数: 110
+2025-03-19 21:20:42,140 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-19 21:20:42,273 - INFO - 📌 2 最新期号: 2025067, 总期数: 167
+2025-03-19 21:20:42,274 - INFO - 📄 福彩3D 计算总页数: 6
+2025-03-19 21:20:43,273 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-19 21:20:43,534 - INFO - 📌 3 最新期号: 2025029, 总期数: 229
+2025-03-19 21:20:43,534 - INFO - 📄 七乐彩 计算总页数: 8
+2025-03-19 21:20:45,806 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-19 21:20:45,956 - INFO - 📌 6 最新期号: 2025067, 总期数: 117
+2025-03-19 21:20:45,957 - INFO - 📄 快乐8 计算总页数: 4
+2025-03-19 21:20:46,884 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-19 21:20:47,139 - INFO - 📌 281 最新期号: 25028, 总期数: 278
+2025-03-19 21:20:47,139 - INFO - 📄 超级大乐透 计算总页数: 10
+2025-03-19 21:20:50,025 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/超级大乐透_lottery_data.csv
+2025-03-19 21:20:50,178 - INFO - 📌 283 最新期号: 25067, 总期数: 217
+2025-03-19 21:20:50,178 - INFO - 📄 排列三 计算总页数: 8
+2025-03-19 21:20:51,530 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
+2025-03-19 21:20:51,692 - INFO - 📌 284 最新期号: 25067, 总期数: 187
+2025-03-19 21:20:51,692 - INFO - 📄 排列五 计算总页数: 7
+2025-03-19 21:20:52,861 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
+2025-03-19 21:20:53,015 - INFO - 📌 287 最新期号: 25029, 总期数: 159
+2025-03-19 21:20:53,015 - INFO - 📄 七星彩 计算总页数: 6
+2025-03-19 21:20:55,105 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2025-03-20 11:14:27,143 - INFO - 📌 1 最新期号: 2025029, 总期数: 3275
+2025-03-20 11:14:27,145 - INFO - 📄 双色球 计算总页数: 110
+2025-03-20 11:14:54,795 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2025-03-20 11:14:54,928 - INFO - 📌 2 最新期号: 2025068, 总期数: 168
+2025-03-20 11:14:54,928 - INFO - 📄 福彩3D 计算总页数: 6
+2025-03-20 11:14:55,916 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2025-03-20 11:14:56,136 - INFO - 📌 3 最新期号: 2025029, 总期数: 229
+2025-03-20 11:14:56,136 - INFO - 📄 七乐彩 计算总页数: 8
+2025-03-20 11:14:58,283 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2025-03-20 11:14:58,433 - INFO - 📌 6 最新期号: 2025068, 总期数: 118
+2025-03-20 11:14:58,433 - INFO - 📄 快乐8 计算总页数: 4
+2025-03-20 11:14:59,359 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2025-03-20 11:14:59,617 - INFO - 📌 281 最新期号: 25029, 总期数: 279
+2025-03-20 11:14:59,618 - INFO - 📄 超级大乐透 计算总页数: 10
+2025-03-20 11:15:02,691 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/超级大乐透_lottery_data.csv
+2025-03-20 11:15:02,841 - INFO - 📌 283 最新期号: 25068, 总期数: 218
+2025-03-20 11:15:02,841 - INFO - 📄 排列三 计算总页数: 8
+2025-03-20 11:15:04,189 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
+2025-03-20 11:15:04,345 - INFO - 📌 284 最新期号: 25068, 总期数: 188
+2025-03-20 11:15:04,345 - INFO - 📄 排列五 计算总页数: 7
+2025-03-20 11:15:05,475 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
+2025-03-20 11:15:05,622 - INFO - 📌 287 最新期号: 25029, 总期数: 159
+2025-03-20 11:15:05,623 - INFO - 📄 七星彩 计算总页数: 6
+2025-03-20 11:15:06,624 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2025-03-21 08:03:04,049 - INFO - Data synchronized: 2025030

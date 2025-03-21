@@ -5,6 +5,8 @@ import re
 import json
 import os  # 添加 os 模块的导入
 import csv # 添加csv 模块的导入
+import math
+from tqdm import tqdm
 
 # 获取脚本根目录
 root_dir = os.getcwd()  # 或者使用 os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +18,29 @@ logging.basicConfig(
         logging.FileHandler(os.path.join(root_dir, 'my_log_file.log'))  # 修改这行
     ]
 )
+def get_total_issue_count(lottery_id, before_issues):
+    """
+    获取系统最新期号，并计算总期数
+    """
+    latest_issue_in_system = get_latest_issue_from_system(lottery_id)
+    if latest_issue_in_system is None:
+        logging.error("❌ 无法获取最新期号，程序终止。")
+        exit()
+
+    # 特殊彩票（dlt, pl3, pl5, xqxc）计算方式不同
+    special_lotteries = {"281", "283", "284", "287"}  # dlt, pl3, pl5, xqxc
+
+    if lottery_id in special_lotteries:
+        current_2025_times = latest_issue_in_system - 25000
+    else:
+        current_2025_times = latest_issue_in_system - 2025000
+
+    # 计算总期数
+    total_count = before_issues + current_2025_times
+    logging.info(f"📌 {lottery_id} 最新期号: {latest_issue_in_system}, 总期数: {total_count}")
+
+    return total_count
+
 
 def requests_data(pages, issue_count, ID, start_issue='', end_issue=''):
     headers = {
@@ -80,26 +105,75 @@ def get_latest_issue_from_system(lottry_id):
         logging.error(f"获取系统最新期号出错: {e}")
         return None
 
+
 def parse_lottery_data(json_data):
-    """解析 JSONP 响应并提取 data 字段"""
+    """解析 JSONP 响应，并提取 data 字段，转换成标准字段格式"""
     try:
-        # 使用正则匹配 JSONP 回调中的 JSON 内容
-        match = re.search(r'\((.*)\);?$', json_data)
+        # 解析 JSONP 结构
+        match = re.search(r"\((.*)\);?$", json_data)
         if not match:
-            logging.error("无法提取 JSON 内容")
+            logging.error("❌ 无法提取 JSON 内容")
             return None
+
         json_str = match.group(1)
         data = json.loads(json_str)
-        if data.get('resCode') != '000000':
-            logging.error(f"接口返回错误: {data.get('resMsg')}")
+
+        if data.get("resCode") != "000000":
+            logging.error(f"❌ 接口返回错误: {data.get('resMsg')}")
             return None
-        return data.get('data', [])
+
+        raw_records = data.get("data", [])
+        if not raw_records:
+            logging.warning("⚠️ 未提取到有效数据")
+            return None
+
+        structured_data = []
+        for record in raw_records:
+            if isinstance(record, dict):
+                # 解析红球、蓝球
+                record = extract_ball_numbers(record)
+
+                # **✅ 直接保留 `winnerDetails`，不解析**
+                structured_data.append(record)
+
+        return structured_data
+
     except json.JSONDecodeError as e:
-        logging.error(f"JSON 解析错误: {e}, 原始数据片段: {json_data[:200]}...")
+        logging.error(f"❌ JSON 解析错误: {e}, 原始数据片段: {json_data[:200]}...")
         return None
     except Exception as e:
-        logging.error(f"解析出错: {e}")
+        logging.error(f"❌ 解析出错: {e}")
         return None
+
+
+def extract_ball_numbers(record):
+    """
+    解析 frontWinningNum 和 backWinningNum，动态生成红球和蓝球列
+    :param record: 字典，包含 'frontWinningNum' 和 'backWinningNum'
+    :return: 解析后的新字典，包含 '红球1'、'红球2'... 和 '篮球'/'蓝球1', '蓝球2'...
+    """
+    new_record = record.copy()  # 复制原始数据，避免修改原数据
+
+    # 解析 frontWinningNum（红球）
+    front_numbers = record.get("frontWinningNum", "").split()
+    for i, num in enumerate(front_numbers, start=1):
+        new_record[f"红球{i}"] = int(num)  # 动态创建列
+
+    # 解析 backWinningNum（蓝球）
+    back_numbers = record.get("backWinningNum", "").split()
+    if len(back_numbers) == 1:
+        new_record["篮球"] = int(back_numbers[0])  # 只有一个时叫 "篮球"
+    else:
+        for i, num in enumerate(back_numbers, start=1):
+            new_record[f"蓝球{i}"] = int(num)  # 多个时叫 "蓝球1", "蓝球2"...
+
+    # 删除原始字段，保持最终数据干净
+    del new_record["frontWinningNum"]
+    del new_record["backWinningNum"]
+
+    return new_record
+
+
 
 def save_to_csv(data, filename):
     """将数据保存到 CSV 文件，自动创建 data 目录"""
@@ -124,30 +198,42 @@ def save_to_csv(data, filename):
     except Exception as e:
         logging.error(f"保存 CSV 文件出错: {e}")
 
-def get_lottery_data(lottery_id, lottery_name, pages=1, issue_count=10):
-    """获取并保存指定彩票的数据"""
-    filename = f'{lottery_name}_lottery_data.csv'
-    json_data = requests_data(pages, issue_count, lottery_id)
-    if json_data:
-        lottery_data = parse_lottery_data(json_data)
-        if lottery_data:
-            save_to_csv(lottery_data, filename)
-        else:
-            logging.warning(f"未能解析到 {lottery_name} 的有效数据")
-    else:
-        logging.warning(f"未能获取到 {lottery_name} 的接口数据")
 
+def get_lottery_data(lottery_id, lottery_name, before_issues):
+    """获取彩票数据，计算 `total_count` 和 `pages`"""
+    filename = f"{lottery_name}_lottery_data.csv"
+
+    # 计算总期数
+    total_count = get_total_issue_count(lottery_id, before_issues)
+
+    # 计算总页数
+    total_pages = math.ceil(total_count / 30)
+    logging.info(f"📄 {lottery_name} 计算总页数: {total_pages}")
+
+    all_data = []
+
+    for page in tqdm(range(1, total_pages + 1), desc=f"📥 下载 {lottery_name} 数据"):
+        json_data = requests_data(page, total_count, lottery_id)
+        if json_data:
+            lottery_data = parse_lottery_data(json_data)
+            if lottery_data:
+                all_data.extend(lottery_data)
+
+    # 保存数据
+    save_to_csv(all_data, filename)
+
+# =========== 主程序 =========== #
 if __name__ == "__main__":
     lotteries = {
-        "ssq": {"id": "1", "jc": "双色球"},
-        "d3": {"id": "2", "jc": "福彩3D"},
-        "qlc": {"id": "3", "jc": "七乐彩"},
-        "kl8": {"id": "6", "jc": "快乐8"},
-        "dlt": {"id": "281", "jc": "超级大乐透"},
-        "pl3": {"id": "283", "jc": "排列三"},
-        "pl5": {"id": "284", "jc": "排列五"},
-        "xqxc": {"id": "287", "jc": "七星彩"},
+        "ssq": {"id": "1", "jc": "双色球", "before_issues": 3246},
+        "d3": {"id": "2", "jc": "福彩3D", "before_issues": 100},
+        "qlc": {"id": "3", "jc": "七乐彩", "before_issues": 500},
+        "kl8": {"id": "6", "jc": "快乐8", "before_issues": 500},
+        "dlt": {"id": "281", "jc": "超级大乐透", "before_issues": 250},
+        "pl3": {"id": "283", "jc": "排列三", "before_issues": 150},
+        "pl5": {"id": "284", "jc": "排列五", "before_issues": 120},
+        "xqxc": {"id": "287", "jc": "七星彩", "before_issues": 130},
     }
 
     for key, value in lotteries.items():
-        get_lottery_data(value["id"], value["jc"])
+        get_lottery_data(value["id"], value["jc"], value["before_issues"])
