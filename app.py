@@ -4,7 +4,6 @@ import numpy as np
 import random
 from datetime import datetime
 import altair as alt
-from pandas.io.sas.sas_constants import column_data_length_length
 from collections import Counter
 import logging
 
@@ -142,6 +141,16 @@ with st.sidebar:
         st.session_state.sum_filter = False
     if 'span_filter' not in st.session_state:
         st.session_state.span_filter = False
+    if 'two_consecutive_filter' not in st.session_state:
+        st.session_state.two_consecutive_filter = False
+    if 'three_consecutive_filter' not in st.session_state:
+        st.session_state.three_consecutive_filter = False
+    if 'skip_nums_filter' not in st.session_state:
+        st.session_state.skip_nums_filter = False
+    if 'two_skip_nums_filter' not in st.session_state:
+        st.session_state.two_skip_nums_filter = False
+    if 'three_skip_nums_filter' not in st.session_state:
+        st.session_state.three_skip_nums_filter = False
 
     # 显示筛选器并将选中的值保存在 session_state 中
     st.divider()
@@ -179,6 +188,26 @@ with st.sidebar:
     if st.session_state.consecutive_filter:
         st.session_state.consecutive_count = st.slider("最多连号数量", 0, 6, 2)
 
+    st.session_state.two_consecutive_filter = st.checkbox("二连组数", value=st.session_state.two_consecutive_filter)
+    if st.session_state.two_consecutive_filter:
+        st.session_state.two_consecutive_count = st.slider("二连组数范围", 0, 3, (0, 1))
+
+    st.session_state.three_consecutive_filter = st.checkbox("三连组数", value=st.session_state.three_consecutive_filter)
+    if st.session_state.three_consecutive_filter:
+        st.session_state.three_consecutive_count = st.slider("三连组数范围", 0, 2, (0, 1))
+
+    st.session_state.skip_nums_filter = st.checkbox("跳号", value=st.session_state.skip_nums_filter)
+    if st.session_state.skip_nums_filter:
+        st.session_state.skip_nums = st.slider("跳号个数", 0, 3, (0, 1))
+
+    st.session_state.two_skip_nums_filter = st.checkbox("二跳组数", value=st.session_state.two_skip_nums_filter)
+    if st.session_state.two_skip_nums_filter:
+        st.session_state.two_skip_nums = st.slider("二跳组数范围", 0, 3, (0, 1))
+
+    st.session_state.three_skip_nums_filter = st.checkbox("三跳组数", value=st.session_state.three_skip_nums_filter)
+    if st.session_state.three_skip_nums_filter:
+        st.session_state.three_skip_nums = st.slider("三跳组数范围", 0, 6, (0, 2))
+
     st.session_state.same_tail_filter = st.checkbox("同尾号筛选", value=st.session_state.same_tail_filter)
     if st.session_state.same_tail_filter:
         st.session_state.max_same_tail = st.slider("最多同尾号数量", 0, 6, 2)
@@ -190,6 +219,8 @@ with st.sidebar:
     st.session_state.span_filter = st.checkbox("跨度筛选", value=st.session_state.span_filter)
     if st.session_state.span_filter:
         st.session_state.span_range = st.slider("红球跨度范围", 10, 33, (15, 25))
+
+
 
 
 @st.cache_data
@@ -1612,6 +1643,11 @@ with (tab2):
             same_tail_match = True
             sum_match = True
             span_match = True
+            two_consecutive_match = True
+            three_consecutive_match = True
+            skip_nums_match = True
+            two_skip_nums_match = True
+            three_skip_nums_match = True
 
             # 热号筛选
             if st.session_state.hot_nums_filter:
@@ -1716,20 +1752,95 @@ with (tab2):
                 if "span_range" not in filter_results:
                     filter_results["span_range"] = span_match
 
-            if (hot_cold_match and odd_even_match and size_match and
+            # 二连组数筛选
+            if st.session_state.two_consecutive_filter:
+                red_balls.sort()
+                two_consecutive_groups = 0
+                i = 0
+                while i < len(red_balls) - 1:
+                    if red_balls[i + 1] == red_balls[i] + 1:
+                        two_consecutive_groups += 1
+                        i += 2  # 跳过已计入二连组的两个数
+                    else:
+                        i += 1
+                two_consecutive_match = st.session_state.two_consecutive_count[0] <= two_consecutive_groups <= \
+                                        st.session_state.two_consecutive_count[1]
+                if "two_consecutive_count" not in filter_results:
+                    filter_results["two_consecutive_count"] = two_consecutive_match
+
+            # 三连组数筛选
+            if st.session_state.three_consecutive_filter:
+                red_balls.sort()
+                three_consecutive_groups = 0
+                i = 0
+                while i < len(red_balls) - 2:
+                    if red_balls[i + 2] == red_balls[i + 1] + 1 and red_balls[i + 1] == red_balls[i] + 1:
+                        three_consecutive_groups += 1
+                        i += 3  # 跳过已计入三连组的三个数
+                    else:
+                        i += 1
+                three_consecutive_match = st.session_state.three_consecutive_count[
+                                              0] <= three_consecutive_groups <= \
+                                          st.session_state.three_consecutive_count[1]
+                if "three_consecutive_count" not in filter_results:
+                    filter_results["three_consecutive_count"] = three_consecutive_match
+
+            # 跳号个数筛选
+            if st.session_state.skip_nums_filter:
+                skip_count = 0
+                for i in range(1, len(red_balls)):
+                    if abs(red_balls[i] - red_balls[i - 1]) == 2:  # 修改跳号规则
+                        skip_count += 1
+                skip_nums_match = st.session_state.skip_nums[0] <= skip_count <= st.session_state.skip_nums[1]
+                if "skip_nums" not in filter_results:
+                    filter_results["skip_nums"] = skip_nums_match
+
+            # 二跳组数筛选
+            if st.session_state.two_skip_nums_filter:
+                red_balls.sort()
+                two_skip_groups = 0
+                i = 0
+                while i < len(red_balls) - 1:
+                    if abs(red_balls[i + 1] - red_balls[i]) == 2:
+                        two_skip_groups += 1
+                        i += 2  # 跳过已计入二跳组的两个数
+                    else:
+                        i += 1
+                two_skip_nums_match = st.session_state.two_skip_nums[0] <= two_skip_groups <= \
+                                      st.session_state.two_skip_nums[1]
+                if "two_skip_nums" not in filter_results:
+                    filter_results["two_skip_nums"] = two_skip_nums_match
+
+            # 三跳组数筛选
+            if st.session_state.three_skip_nums_filter:
+                red_balls.sort()
+                three_skip_groups = 0
+                i = 0
+                while i < len(red_balls) - 1:
+                    if abs(red_balls[i + 1] - red_balls[i]) == 3:
+                        three_skip_groups += 1
+                        i += 2  # 跳过已计入三跳组的两个数
+                    else:
+                        i += 1
+                three_skip_nums_match = st.session_state.three_skip_nums[0] <= three_skip_groups <= \
+                                        st.session_state.three_skip_nums[1]
+                if "three_skip_nums" not in filter_results:
+                    filter_results["three_skip_nums"] = three_skip_nums_match
+
+            if (hot_cold_match and odd_even_match and size_match and same_nums_match and
                     neigh_nums_match and sep_nums_match and consecutive_match and same_tail_match and
-                    sum_match and span_match):
+                    sum_match and span_match and two_consecutive_match and three_consecutive_match and skip_nums_match and two_skip_nums_match and three_skip_nums_match):
                 filtered_results.append(result)
 
-            st.session_state.filtered_results = filtered_results
-            if 'filtered_results' in st.session_state:
-                all_bets_text = (
-                        f"总投注数: {len(st.session_state.analysis_results)}\n"
-                        f"筛选条件：{', '.join([f'{k}{st.session_state[k]}- 完成' if v else f'{k}{st.session_state[k]}- 失败' for k, v in filter_results.items()])}\n"
-                        f"筛选后注数: {len(st.session_state.filtered_results)}\n\n"
-                        + "\n".join(st.session_state.filtered_results)
-                )
-                st.session_state.all_bets_text = all_bets_text
+        st.session_state.filtered_results = filtered_results
+        if 'filtered_results' in st.session_state:
+            all_bets_text = (
+                    f"总投注数: {len(st.session_state.analysis_results)}\n"
+                    f"筛选条件：{', '.join([f'{k}{st.session_state[k]}- 完成' if v else f'{k}{st.session_state[k]}- 失败' for k, v in filter_results.items()])}\n"
+                    f"筛选后注数: {len(st.session_state.filtered_results)}\n\n"
+                    + "\n".join(st.session_state.filtered_results)
+            )
+            st.session_state.all_bets_text = all_bets_text
 
     def analyze_bets():
         """分析投注方案"""
@@ -1830,8 +1941,6 @@ with (tab2):
         st.text_area(label="你的方案（每行一个方案，支持单注，复式和胆拖）:",
                      value=st.session_state.bets_text, height=200,
                      key="bets_text")  # 更新 text_area
-
-   # st.session_state.active_tab = "选号工具"
 
     # 红球选择
     st.markdown("<div class='subheader'>选择红球 (1-33)</div>", unsafe_allow_html=True)

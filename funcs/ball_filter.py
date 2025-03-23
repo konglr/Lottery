@@ -1,5 +1,5 @@
 import streamlit as st
-
+import logging
 
 def calculate_same_number_counts(data):
     """计算每期红球同号数量"""
@@ -16,7 +16,7 @@ def calculate_same_number_counts(data):
     return same_number_counts
 
 def parse_bet(bet_str):
-    """解析投注方案字符串"""
+    """解析投注方案字符串，并返回排序后的红球和篮球列表"""
     try:
         red_balls = []
         blue_balls = []
@@ -36,6 +36,27 @@ def parse_bet(bet_str):
         else:
             red_balls = [int(r) for r in bet_str.split(",") if r.strip().isdigit()]
             blue_balls = []  # 允许没有蓝球
+
+        # 排序红球和篮球
+        red_balls.sort()
+        blue_balls.sort()
+
+        # 范围检查和重复号码检查
+        red_set = set()
+        for ball in red_balls:
+            if ball < 1 or ball > 33:
+                raise ValueError("红球必须在 1-33 之间")
+            if ball in red_set:
+                raise ValueError(f"红球 {ball} 重复")
+            red_set.add(ball)
+
+        blue_set = set()
+        for ball in blue_balls:
+            if ball < 1 or ball > 16:
+                raise ValueError("篮球必须在 1-16 之间")
+            if ball in blue_set:
+                raise ValueError(f"篮球 {ball} 重复")
+            blue_set.add(ball)
 
         return red_balls, blue_balls, dantuo
 
