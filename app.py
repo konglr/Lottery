@@ -1017,6 +1017,9 @@ with tab1:
         with col2:
             st.subheader("同尾号趋势分析")
 
+            # 确保 filtered_data 按照期号排序
+            filtered_data = filtered_data.sort_values(by='期号')
+
             # 生成趋势分析数据
             trend_data = []
             for _, row in filtered_data.iterrows():
@@ -1037,7 +1040,7 @@ with tab1:
                             '期号': int(issue_no),
                             '最大同尾数': min(count, 6),
                             '同尾类型': category_map.get(min(count, 6), f'{min(count, 6)}尾'),
-                            '同尾组数': same_tails.count(count)  # 添加同尾组数
+                            '同尾组数': same_tails.count(count)
                         })
 
             # 创建趋势分析DataFrame
@@ -1056,7 +1059,7 @@ with tab1:
                 y=alt.Y('最大同尾数:Q',
                         title='最大同尾数',
                         axis=alt.Axis(format='d'),
-                        scale=alt.Scale(domain=[1, 6])),  # 修改y轴domain
+                        scale=alt.Scale(domain=[1, 6])),
                 color=alt.Color('同尾类型:N',
                                 scale=alt.Scale(
                                     domain=['二尾', '三尾', '四尾', '五尾', '六尾'],
@@ -1066,7 +1069,7 @@ with tab1:
                     '期号:O',
                     '同尾类型:N',
                     '最大同尾数:Q',
-                    '同尾组数:Q'  # 添加同尾组数到tooltips
+                    '同尾组数:Q'
                 ]
             )
 
@@ -1077,14 +1080,13 @@ with tab1:
             ).encode(
                 x='期号:O',
                 y='最大同尾数:Q',
-                text='同尾组数:Q',  # 添加文本标签
-                color=alt.value('black')  # 添加文本颜色
+                text='同尾组数:Q',
+                color=alt.value('black')
             )
 
             st.altair_chart(
-                (points + text).properties(title='同尾类型历史趋势'),  # 添加文本标签
+                (points + text).properties(title='同尾类型历史趋势'),
                 use_container_width=True)
-
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("大小比例分析")
@@ -1325,17 +1327,20 @@ with tab1:
     with col2:
         st.subheader("红球重号分析")
 
+        # 假设 filtered_data 已经定义，并且包含 "期号" 和 "重号" 列
+
         # 创建 DataFrame，包含 "期号" 和 "重号"
         same_numbers_df = pd.DataFrame({
-            '期号': filtered_data['期号'],  # 期号
-            '重号数量': filtered_data['重号']  # 已计算的重号数量
+            '期号': filtered_data['期号'],
+            '重号数量': filtered_data['重号']
         })
 
-        # 创建 Altair 折线图
+        # 设置 Y 轴 domain 为 0 到 4
         chart = alt.Chart(same_numbers_df).mark_line().encode(
-            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),  # X 轴
-            y=alt.Y('重号数量:Q', title='重号数量',axis=alt.Axis(format='d')),  # Y 轴显示整数
-            #color=alt.value(''),  # 设定线条颜色
+            x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45, labelFontSize=10)),
+            y=alt.Y('重号数量:Q', title='重号数量',
+                    axis=alt.Axis(format='d'),  # 确保y轴显示整数
+                    scale=alt.Scale(domain=[0, 4], nice=False)),  # 设置 Y 轴 domain 并关闭 nice
             tooltip=['期号', '重号数量']
         ).properties(
             title='红球重号趋势图',
