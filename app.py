@@ -1627,7 +1627,7 @@ with tab1:
 
 
 with (tab2):
-    from funcs.ball_filter import (convert_to_single_bets, parse_bet)
+    from funcs.ball_filter import (convert_to_single_bets, parse_bet,convert_bets)
 
 
     def filter_bets():
@@ -1650,10 +1650,10 @@ with (tab2):
             # 解析红球和篮球部分
             if "+" in bet_str:
                 red_balls_str, blue_balls_str = bet_str.split("+")
-                red_balls = [int(ball) for ball in red_balls_str.split(",")]
+                red_balls = [int(ball) for ball in red_balls_str.split(",") if ball.strip()]  # 过滤掉空字符串
                 blue_balls = [int(blue_balls_str.strip())]  # 提取篮球部分，并去除多余空格
             else:
-                red_balls = [int(ball) for ball in bet_str.split(",")]
+                red_balls = [int(ball) for ball in bet_str.split(",") if ball.strip()]  # 过滤掉空字符串
                 blue_balls = []  # 如果没有篮球，则设置为空列表
 
             # 筛选条件检查
@@ -2048,15 +2048,44 @@ with (tab2):
 
     st.button("分析投注", on_click=analyze_bets)
 
-    # 初始化 session_state
-    if "all_bets_text" not in st.session_state:
-        st.session_state.all_bets_text = "请增加你的投注方案"
+    col1, col2 = st.columns(2)  # 创建两列布局
 
-    # 显示投注结果
-    st.text_area("投注结果", value=st.session_state.all_bets_text, height=300)
+    with col1:
+        # 初始化 session_state
+        if "all_bets_text" not in st.session_state:
+            st.session_state.all_bets_text = "请增加你的投注方案"
 
-    st.button("选号方案筛选", on_click=filter_bets)
+        # 显示投注结果
+        st.text_area("投注结果", value=st.session_state.all_bets_text, height=300)
+        st.button("选号方案筛选", on_click=filter_bets)
 
+    with col2:
+        if 'filtered_results' not in st.session_state:
+            st.session_state.filtered_results = []
+
+        if 'simplified_bets_area' not in st.session_state:
+            st.session_state.simplified_bets_area = "请转化你的投注结果"
+
+        st.text_area("投注简化", value=st.session_state.get('simplified_bets_area', ''), height=300)
+
+
+        def convert_and_display():
+            """转换投注号码并显示结果"""
+            if 'filtered_results' in st.session_state and st.session_state.filtered_results:
+                bets = st.session_state.filtered_results
+                complex_bets, dantuo_bets, single_bets = convert_bets(bets)
+
+                result_str = "复式：\n" + "\n".join(complex_bets) + "\n\n"
+                result_str += "胆拖：\n" + "\n".join(dantuo_bets) + "\n\n"
+                result_str += "单注：\n" + "\n".join(single_bets)
+
+                st.session_state.simplified_bets_area = result_str
+            else:
+                st.session_state.simplified_bets_area = "没有可转化的投注结果"
+
+
+        if st.button("投注转换", on_click=convert_and_display):
+            pass
 
 with tab3:
     st.subheader("全量筛选")

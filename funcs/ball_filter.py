@@ -1,5 +1,7 @@
 import streamlit as st
 import logging
+from collections import defaultdict
+from itertools import combinations
 
 def calculate_same_number_counts(data):
     """计算每期红球同号数量"""
@@ -93,3 +95,62 @@ def convert_to_single_bets(red_balls, blue_balls):
         logging.error(f"单注转换错误: {e}, Red: {red_balls}, Blue: {blue_balls}")
         return []
 
+
+def convert_bets(bets):
+    """返回格式：(复式列表, 胆拖列表, 单式列表)，胆拖格式为 胆码#拖码"""
+    bet_lists = [tuple(sorted(map(int, bet.split(',')))) for bet in bets]
+
+    complex_bets = []
+    dantuo_bets = []  # 格式示例：["1,5#6,9,11", ...]
+    used = set()
+
+    # ===== 胆拖处理 =====
+    dantuo_candidates = defaultdict(list)
+    for bet in bet_lists:
+        for dan_len in range(2, 5):
+            for dan in combinations(bet, dan_len):
+                tuo = sorted(set(bet) - set(dan))
+                if len(tuo) >= (6 - len(dan)):
+                    dantuo_candidates[dan].append(tuo)
+
+    # 按覆盖能力排序候选
+    sorted_dans = sorted(dantuo_candidates.keys(),
+                         key=lambda k: (-len(k), -sum(len(t) for t in dantuo_candidates[k])))
+
+    for dan in sorted_dans:
+        all_tuo = sorted({num for tuo in dantuo_candidates[dan] for num in tuo})
+        cover = [bet for bet in bet_lists
+                 if bet not in used
+                 and set(dan).issubset(bet)
+                 and all(num in all_tuo for num in bet if num not in dan)]
+
+        if len(cover) > 1:
+            # 格式化为 胆码#拖码
+            dan_str = ",".join(map(str, dan))
+            tuo_str = ",".join(map(str, all_tuo))
+            dantuo_bets.append(f"{dan_str}#{tuo_str}")
+            used.update(cover)
+
+    # ===== 复式处理 =====
+    remaining = [bet for bet in bet_lists if bet not in used]
+    num_groups = defaultdict(list)
+
+    for bet in remaining:
+        for i in range(4, 7):
+            for combo in combinations(bet, i):
+                num_groups[combo].append(bet)
+
+    for combo in sorted(num_groups, key=lambda x: (-len(num_groups[x]), len(x))):
+        covered = [b for b in num_groups[combo] if b in remaining]
+        if len(covered) < 2: continue
+
+        all_nums = sorted({n for b in covered for n in b})
+        if 6 < len(all_nums) <= 8:
+            complex_bets.append(",".join(map(str, all_nums)))
+            remaining = [b for b in remaining if b not in covered]
+            used.update(covered)
+
+    # ===== 单式处理 =====
+    single_bets = [",".join(map(str, bet)) for bet in bet_lists if bet not in used]
+
+    return complex_bets, dantuo_bets, single_bets
