@@ -137,6 +137,10 @@ with st.sidebar:
         st.session_state.consecutive_filter = False
     if 'same_tail_filter' not in st.session_state:
         st.session_state.same_tail_filter = False
+    if 'two_tail_filter' not in st.session_state:
+        st.session_state.two_tail_filter = False
+    if 'three_tail_filter' not in st.session_state:
+        st.session_state.three_tail_filter = False
     if 'sum_filter' not in st.session_state:
         st.session_state.sum_filter = False
     if 'span_filter' not in st.session_state:
@@ -151,8 +155,12 @@ with st.sidebar:
         st.session_state.two_skip_nums_filter = False
     if 'three_skip_nums_filter' not in st.session_state:
         st.session_state.three_skip_nums_filter = False
+    if 'zone_filter' not in st.session_state:
+        st.session_state.zone_filter = False
+    if 'zone_count' not in st.session_state:
+        st.session_state.zone_count = None
 
-    # 显示筛选器并将选中的值保存在 session_state 中
+            # 显示筛选器并将选中的值保存在 session_state 中
     st.divider()
     st.subheader("红球筛选条件设置")
 
@@ -163,6 +171,12 @@ with st.sidebar:
     st.session_state.cold_nums_filter = st.checkbox("冷号筛选", value=st.session_state.cold_nums_filter)
     if st.session_state.cold_nums_filter:
         st.session_state.cold_nums = st.slider("红球冷号个数", 0, 6, (1, 2))
+
+    st.session_state.zone_filter = st.checkbox("区域号码数筛选", value=st.session_state.zone_filter)
+    if st.session_state.zone_filter:
+        st.session_state.zone1_count = st.slider("一区号码数范围 (1-11)", 0, 6, (0, 6))
+        st.session_state.zone2_count = st.slider("二区号码数范围 (12-22)", 0, 6, (0, 6))
+        st.session_state.zone3_count = st.slider("三区号码数范围 (23-33)", 0, 6, (0, 6))
 
     st.session_state.odd_even_filter = st.checkbox("奇偶筛选", value=st.session_state.odd_even_filter)
     if st.session_state.odd_even_filter:
@@ -212,6 +226,14 @@ with st.sidebar:
     if st.session_state.same_tail_filter:
         st.session_state.max_same_tail = st.slider("最多同尾号数量", 0, 6, 2)
 
+    st.session_state.two_tail_filter = st.checkbox("二尾组数", value=st.session_state.two_tail_filter)
+    if st.session_state.two_tail_filter:
+        st.session_state.two_tail_count = st.slider("二尾组数范围", 0, 3, (0, 1))
+
+    st.session_state.three_tail_filter = st.checkbox("三尾组数", value=st.session_state.three_tail_filter)
+    if st.session_state.three_tail_filter:
+        st.session_state.three_tail_count = st.slider("三尾组数范围", 0, 2, (0, 1))
+
     st.session_state.sum_filter = st.checkbox("和值筛选", value=st.session_state.sum_filter)
     if st.session_state.sum_filter:
         st.session_state.sum_range = st.slider("红球和值范围", 20, 200, (70, 130))
@@ -219,6 +241,8 @@ with st.sidebar:
     st.session_state.span_filter = st.checkbox("跨度筛选", value=st.session_state.span_filter)
     if st.session_state.span_filter:
         st.session_state.span_range = st.slider("红球跨度范围", 10, 33, (15, 25))
+
+
 
 
 
@@ -1648,6 +1672,9 @@ with (tab2):
             skip_nums_match = True
             two_skip_nums_match = True
             three_skip_nums_match = True
+            two_tail_match = True
+            three_tail_match = True
+            zone_match = True
 
             # 热号筛选
             if st.session_state.hot_nums_filter:
@@ -1816,10 +1843,11 @@ with (tab2):
                 red_balls.sort()
                 three_skip_groups = 0
                 i = 0
-                while i < len(red_balls) - 1:
-                    if abs(red_balls[i + 1] - red_balls[i]) == 3:
+                while i < len(red_balls) - 2:  # 修改循环条件
+                    if red_balls[i + 2] - red_balls[i + 1] == 2 and red_balls[i + 1] - red_balls[
+                        i] == 2:  # 修改三跳号规则
                         three_skip_groups += 1
-                        i += 2  # 跳过已计入三跳组的两个数
+                        i += 3  # 跳过已计入三跳组的三个数
                     else:
                         i += 1
                 three_skip_nums_match = st.session_state.three_skip_nums[0] <= three_skip_groups <= \
@@ -1827,16 +1855,68 @@ with (tab2):
                 if "three_skip_nums" not in filter_results:
                     filter_results["three_skip_nums"] = three_skip_nums_match
 
+            # 二尾组数筛选
+            if st.session_state.two_tail_filter:
+                two_tail_groups = 0
+                tail_counts = {}
+                for ball in red_balls:
+                    tail = ball % 10
+                    tail_counts[tail] = tail_counts.get(tail, 0) + 1
+                for count in tail_counts.values():
+                    if count >= 2:
+                        two_tail_groups += 1
+                two_tail_match = st.session_state.two_tail_count[0] <= two_tail_groups <= \
+                                 st.session_state.two_tail_count[1]
+                if "two_tail_count" not in filter_results:
+                    filter_results["two_tail_count"] = two_tail_match
+
+            # 三尾组数筛选
+            if st.session_state.three_tail_filter:
+                three_tail_groups = 0
+                tail_counts = {}
+                for ball in red_balls:
+                    tail = ball % 10
+                    tail_counts[tail] = tail_counts.get(tail, 0) + 1
+                for count in tail_counts.values():
+                    if count >= 3:
+                        three_tail_groups += 1
+                three_tail_match = st.session_state.three_tail_count[0] <= three_tail_groups <= \
+                                   st.session_state.three_tail_count[1]
+                if "three_tail_count" not in filter_results:
+                    filter_results["three_tail_count"] = three_tail_match
+            # 区域号码数筛选
+            if st.session_state.zone_filter:
+                zone1_count = 0
+                zone2_count = 0
+                zone3_count = 0
+                for ball in red_balls:
+                    if 1 <= ball <= 11:
+                        zone1_count += 1
+                    elif 12 <= ball <= 22:
+                        zone2_count += 1
+                    elif 23 <= ball <= 33:
+                        zone3_count += 1
+                zone_match = (
+                        st.session_state.zone1_count[0] <= zone1_count <= st.session_state.zone1_count[1] and
+                        st.session_state.zone2_count[0] <= zone2_count <= st.session_state.zone2_count[1] and
+                        st.session_state.zone3_count[0] <= zone3_count <= st.session_state.zone3_count[1]
+                )
+                # 确保初始化 filter_results["zone_count"]
+                if "zone_count" not in filter_results:
+                    filter_results["zone_count"] = zone_match
+                # 确保初始化 st.session_state.zone_count
+                st.session_state.zone_count = zone_match
+
             if (hot_cold_match and odd_even_match and size_match and same_nums_match and
                     neigh_nums_match and sep_nums_match and consecutive_match and same_tail_match and
-                    sum_match and span_match and two_consecutive_match and three_consecutive_match and skip_nums_match and two_skip_nums_match and three_skip_nums_match):
+                    sum_match and span_match and two_consecutive_match and three_consecutive_match and skip_nums_match and two_skip_nums_match and three_skip_nums_match and two_tail_match and three_tail_match and zone_match):
                 filtered_results.append(result)
 
         st.session_state.filtered_results = filtered_results
         if 'filtered_results' in st.session_state:
             all_bets_text = (
                     f"总投注数: {len(st.session_state.analysis_results)}\n"
-                    f"筛选条件：{', '.join([f'{k}{st.session_state[k]}- 完成' if v else f'{k}{st.session_state[k]}- 失败' for k, v in filter_results.items()])}\n"
+                    f"筛选条件：{', '.join([f'{k}:{st.session_state[k]}' for k in filter_results.keys()])}\n"
                     f"筛选后注数: {len(st.session_state.filtered_results)}\n\n"
                     + "\n".join(st.session_state.filtered_results)
             )
@@ -1878,6 +1958,7 @@ with (tab2):
         # 将结果存储在 session_state 中
         st.session_state.all_bets_text = all_bets_text
         st.session_state.analysis_results = analysis_results
+
     col1, col2 = st.columns(2)  # 创建两列布局
 
     with col1:
