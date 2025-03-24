@@ -1,14 +1,10 @@
 import json
 import math
-import requests
 import openpyxl
-import re
 import logging
 import pandas as pd
-import os
-import time
 from tqdm import tqdm
-from funcs.requestsdata import requests_data, get_latest_issue_from_system
+from requestsdata import requests_data, get_latest_issue_from_system
 
 Lottry_ID = 1  # 快乐8的ID为6; 7乐彩 ID为3；福彩3D， ID为2，双色球 ID为1，
 # 配置日志记录
