@@ -46,7 +46,7 @@ def check_lottery_data(lottery_name):
     if earliest_issue != expected_earliest_issue:
         print(f"1.警告：最早的数据不是 {expected_earliest_issue}，而是 {earliest_issue}。")
     else:
-        print("1.最早的数据符合预期。")
+        print(f"1.最早的数据符合预期, 最早期数是：{earliest_issue}，数据行数：{len(df)}")  # 输出数据行数
 
     # 2. 检查最新一期的数据是否与系统里的相同
     logging.basicConfig(filename='funcs/my_log_file.log', level=logging.INFO)
@@ -90,4 +90,4 @@ def check_lottery_data(lottery_name):
         print("警告：数据中不包含开奖日期列。")
 
 # 示例用法
-check_lottery_data("d3")
+check_lottery_data("ssq")

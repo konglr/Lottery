@@ -75,7 +75,7 @@ def requests_data(pages, issue_count, ID, start_issue='', end_issue=''):
         'endDate': '',
         'type': '0',
         'pageNum': pages,
-        'pageSize': '30',
+        'pageSize': '100',
         'tt': tt,
         '_': _,
     }
@@ -216,7 +216,7 @@ def get_lottery_data(lottery_id, lottery_name, before_issues):
     total_count = get_total_issue_count(lottery_id, before_issues)
 
     # 计算总页数
-    total_pages = math.ceil(total_count / 30)
+    total_pages = math.ceil(total_count / 100)
     logging.info(f"📄 {lottery_name} 计算总页数: {total_pages}")
 
     all_data = []
@@ -234,14 +234,14 @@ def get_lottery_data(lottery_id, lottery_name, before_issues):
 # =========== 主程序 =========== #
 if __name__ == "__main__":
     lotteries = {
-        #"ssq": {"id": "1", "jc": "双色球", "before_issues": 3246},
-        "d3": {"id": "2", "jc": "福彩3D", "before_issues": 8000},
+        "ssq": {"id": "1", "jc": "双色球", "before_issues": 3246},
+        #"d3": {"id": "2", "jc": "福彩3D", "before_issues": 7157},# 最早一期是2004001
         #"qlc": {"id": "3", "jc": "七乐彩", "before_issues": 2500},
         #"kl8": {"id": "6", "jc": "快乐8", "before_issues": 1470},
-        #"dlt": {"id": "281", "jc": "超级大乐透", "before_issues": 2424}, # 组早一期是08149
-        "pl3": {"id": "283", "jc": "排列三", "before_issues": 8000}, #找到第一期
-        "pl5": {"id": "284", "jc": "排列五", "before_issues": 8000},#找到第一期
-        "xqxc": {"id": "287", "jc": "七星彩", "before_issues": 5000},#20100为第一期
+        #"dlt": {"id": "281", "jc": "超级大乐透", "before_issues": 3800}, # 组早一期是08149
+        "pl3": {"id": "283", "jc": "排列三", "before_issues": 6000}, #找到第一期 08355
+        #"pl5": {"id": "284", "jc": "排列五", "before_issues": 5657},#找到第一期 08355
+        #"xqxc": {"id": "287", "jc": "七星彩", "before_issues": 1828},#20100为第一期
     }
 
     for key, value in lotteries.items():

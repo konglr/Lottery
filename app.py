@@ -244,9 +244,6 @@ with st.sidebar:
 
 
 
-
-
-
 @st.cache_data
 def load_historical_data(analysis_period):
     try:
