@@ -954,3 +954,7 @@ INFO:root:Data synchronized: 2025024
 2025-03-24 13:35:35,077 - ERROR - 投注解析错误: 红球 28 重复, 输入: 1,5,6,8,23,28,11,18,28,7,9,12,16,15,25,30
 2025-03-25 13:45:53,118 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
 2025-03-25 13:45:55,307 - INFO - Data synchronized: 2025031
+2025-03-25 16:52:51,816 - ERROR - 单注转换错误: name 'itertools' is not defined, Red: [1, 2, 3, 4, 5, 6, 7, 8, 9], Blue: []
+2025-03-25 16:52:58,800 - ERROR - 单注转换错误: name 'itertools' is not defined, Red: [1, 2, 3, 4, 5, 6, 7, 8, 9], Blue: []
+2025-03-25 18:04:21,332 - ERROR - ❌ 单注转换错误: 'list' object has no attribute 'split', Red: [1, 2, 3, 4, 5, 6, 7, 8, 9], Blue: []
+2025-03-25 18:04:26,743 - ERROR - ❌ 单注转换错误: 'list' object has no attribute 'split', Red: [1, 2, 3, 4, 5, 6, 7, 8, 9], Blue: []

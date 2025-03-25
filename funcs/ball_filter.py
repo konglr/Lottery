@@ -2,6 +2,7 @@ import streamlit as st
 import logging
 from collections import defaultdict
 from itertools import combinations
+import itertools
 
 def calculate_same_number_counts(data):
     """计算每期红球同号数量"""
@@ -18,32 +19,47 @@ def calculate_same_number_counts(data):
     return same_number_counts
 
 def parse_bet(bet_str):
-    """解析投注方案字符串，并返回排序后的红球和篮球列表"""
+    """解析双色球投注方案字符串，并返回红球胆码、红球拖码、篮球胆码、篮球拖码"""
     try:
-        red_balls = []
-        blue_balls = []
-        dantuo = False
+        red_dan = []
+        red_tuo = []
+        blue_dan = []
+        blue_tuo = []
 
         bet_str = bet_str.strip()
         if not bet_str:
             raise ValueError("投注字符串为空")
 
-        if "+" in bet_str:
-            parts = bet_str.split("+")
-            if len(parts) != 2 or not parts[0]:
-                raise ValueError("投注格式错误")
-            red_str, blue_str = parts
-            red_balls = [int(r) for r in red_str.split(",") if r.strip().isdigit()]
-            blue_balls = [int(b) for b in blue_str.split(",") if b.strip().isdigit()]
+        parts = bet_str.split("+")
+        if len(parts) > 2:
+            raise ValueError("投注格式错误：多个篮球部分")
+
+        red_str = parts[0]
+        blue_str = parts[1] if len(parts) == 2 else ""
+
+        if "#" in red_str:
+            dan_str, tuo_str = red_str.split("#")
+            red_dan = [int(r) for r in dan_str.split(",") if r.strip().isdigit()]
+            red_tuo = [int(r) for r in tuo_str.split(",") if r.strip().isdigit()]
         else:
-            red_balls = [int(r) for r in bet_str.split(",") if r.strip().isdigit()]
-            blue_balls = []  # 允许没有蓝球
+            red_tuo = [int(r) for r in red_str.split(",") if r.strip().isdigit()]
+
+        if blue_str:
+            if "#" in blue_str:
+                dan_str, tuo_str = blue_str.split("#")
+                blue_dan = [int(b) for b in dan_str.split(",") if b.strip().isdigit()]
+                blue_tuo = [int(b) for b in tuo_str.split(",") if b.strip().isdigit()]
+            else:
+                blue_tuo = [int(b) for b in blue_str.split(",") if b.strip().isdigit()]
 
         # 排序红球和篮球
-        red_balls.sort()
-        blue_balls.sort()
+        red_dan.sort()
+        red_tuo.sort()
+        blue_dan.sort()
+        blue_tuo.sort()
 
         # 范围检查和重复号码检查
+        red_balls = red_dan + red_tuo
         red_set = set()
         for ball in red_balls:
             if ball < 1 or ball > 33:
@@ -52,6 +68,7 @@ def parse_bet(bet_str):
                 raise ValueError(f"红球 {ball} 重复")
             red_set.add(ball)
 
+        blue_balls = blue_dan + blue_tuo
         blue_set = set()
         for ball in blue_balls:
             if ball < 1 or ball > 16:
@@ -60,42 +77,66 @@ def parse_bet(bet_str):
                 raise ValueError(f"篮球 {ball} 重复")
             blue_set.add(ball)
 
-        return red_balls, blue_balls, dantuo
+        return red_dan, red_tuo, blue_dan, blue_tuo
 
     except ValueError as e:
         logging.error(f"投注解析错误: {e}, 输入: {bet_str}")
-        return [], [], False
+        return [], [], [], []
 
-def convert_to_single_bets(red_balls, blue_balls):
-    """将复式和胆拖投注转换为单注"""
+def convert_to_single_bets(red_dan, red_tuo, blue_dan, blue_tuo):
+    """将红球和篮球的胆码和拖码转换为单注"""
     try:
         single_bets = []
 
-        # 复式投注
-        if len(red_balls) > 6:
-            import itertools
-            red_combinations = list(itertools.combinations(red_balls, 6))
-            for red_comb in red_combinations:
-                if blue_balls:
-                    for blue in blue_balls:
+        # 处理红球
+        if red_dan:  # 胆拖
+            if not (1 <= len(red_dan) <= 5) or len(red_dan) + len(red_tuo) < 6:
+                raise ValueError("红球胆拖格式错误: 胆码数量必须为 1-5，且胆码+拖码不少于 6 个")
+
+            for tuo_comb in itertools.combinations(red_tuo, 6 - len(red_dan)):
+                red_comb = sorted(red_dan + list(tuo_comb))
+
+                # 处理篮球
+                if blue_dan:
+                    for blue_comb in itertools.product(blue_dan, blue_tuo or [None]):
+                        blue_final = [b for b in blue_comb if b is not None]
+                        single_bets.append((red_comb, blue_final))
+                elif blue_tuo:
+                    for blue in blue_tuo:
+                        single_bets.append((red_comb, [blue]))
+                else:
+                    single_bets.append((red_comb, []))
+
+        elif len(red_tuo) > 6:  # 复式
+            for red_comb in itertools.combinations(red_tuo, 6):
+                if blue_dan:
+                    for blue_comb in itertools.product(blue_dan, blue_tuo or [None]):
+                        blue_final = [b for b in blue_comb if b is not None]
+                        single_bets.append((list(red_comb), blue_final))
+                elif blue_tuo:
+                    for blue in blue_tuo:
                         single_bets.append((list(red_comb), [blue]))
                 else:
                     single_bets.append((list(red_comb), []))
-        # 单注
-        else:
-            if blue_balls:
-                for blue in blue_balls:
-                    single_bets.append((red_balls, [blue]))
+        else:  # 单注
+            if blue_dan:
+                for blue_comb in itertools.product(blue_dan, blue_tuo or [None]):
+                    blue_final = [b for b in blue_comb if b is not None]
+                    single_bets.append((red_tuo, blue_final))
+            elif blue_tuo:
+                for blue in blue_tuo:
+                    single_bets.append((red_tuo, [blue]))
             else:
-                single_bets.append((red_balls, []))
+                single_bets.append((red_tuo, []))
 
         return single_bets
 
     except Exception as e:
-        logging.error(f"单注转换错误: {e}, Red: {red_balls}, Blue: {blue_balls}")
+        logging.error(f"❌ 单注转换错误: {e}, Red Dan: {red_dan}, Red Tuo: {red_tuo}, Blue Dan: {blue_dan}, Blue Tuo: {blue_tuo}")
         return []
 
 
+#简化函数暂时不用
 def convert_bets(bets):
     """返回格式：(复式列表, 胆拖列表, 单式列表)，胆拖格式为 胆码#拖码"""
     bet_lists = [tuple(sorted(map(int, bet.split(',')))) for bet in bets]
@@ -153,4 +194,121 @@ def convert_bets(bets):
     # ===== 单式处理 =====
     single_bets = [",".join(map(str, bet)) for bet in bet_lists if bet not in used]
 
-    return complex_bets, dantuo_bets, single_bets
+    return complex_bets, dantuo_bets, single_bets #sh #
+
+def convert_and_display():
+    """转换投注号码并显示结果"""
+    if 'filtered_results' in st.session_state and st.session_state.filtered_results:
+        bets = st.session_state.filtered_results
+        complex_bets, dantuo_bets, single_bets = convert_bets(bets)
+
+        result_str = "复式：\n" + "\n".join(complex_bets) + "\n\n"
+        result_str += "胆拖：\n" + "\n".join(dantuo_bets) + "\n\n"
+        result_str += "单注：\n" + "\n".join(single_bets)
+
+        st.session_state.simplified_bets_area = result_str
+    else:
+        st.session_state.simplified_bets_area = "没有可转化的投注结果"
+
+def check_winning(bet_str, winning_red_balls, winning_blue_ball):
+    """计算单注的中奖情况"""
+    try:
+        parts = bet_str.split("+")
+        red_balls = sorted(map(int, parts[0].split(",")))
+        blue_balls = [int(parts[1])] if len(parts) > 1 else []
+
+        red_match = len(set(red_balls) & set(winning_red_balls))
+        blue_match = 1 if blue_balls and blue_balls[0] == winning_blue_ball else 0
+
+        if red_match == 6 and blue_match == 1:
+            return "一等奖", 0  # 奖金稍后计算
+        elif red_match == 6:
+            return "二等奖", 0  # 奖金稍后计算
+        elif red_match == 5 and blue_match == 1:
+            return "三等奖", 3000
+        elif red_match == 5 or (red_match == 4 and blue_match == 1):
+            return "四等奖", 200
+        elif red_match == 4 or (red_match == 3 and blue_match == 1):
+            return "五等奖", 10
+        elif blue_match == 1:
+            return "六等奖", 5
+        else:
+            return "未中奖", 0
+    except Exception as e:
+        st.error(f"投注格式错误：{e}, 投注：{bet_str}")
+        return "格式错误", 0
+
+def analyze_winning():
+    """分析七星彩中奖情况"""
+    bets_text = st.session_state.bets_text
+    analysis_results = []
+    total_bets = 0
+    winning_counts = {
+        "一等奖": 0,
+        "二等奖": 0,
+        "三等奖": 0,
+        "四等奖": 0,
+        "五等奖": 0,
+        "六等奖": 0,
+        "七等奖": 0,
+        "未中奖": 0,
+        "格式错误": 0,
+    }
+    winning_amounts = {
+        "一等奖": 0,
+        "二等奖": 0,
+        "三等奖": 0,
+        "四等奖": 0,
+        "五等奖": 0,
+        "六等奖": 0,
+        "七等奖": 0,
+        "未中奖": 0,
+        "格式错误": 0
+    }
+
+    try:
+        # 创建下拉菜单，显示最近 10 期开奖记录
+        issue_numbers = st.session_state.lottery_results['期号'].astype(str).tolist()
+        selected_issue = st.selectbox("选择开奖期号:", issue_numbers, index=len(issue_numbers) - 1)
+
+        # 根据选择的期号，获取开奖结果
+        selected_result = st.session_state.lottery_results[st.session_state.lottery_results['期号'].astype(str) == selected_issue].iloc[0]
+
+        # 从 DataFrame 中提取开奖号码
+        winning_numbers = [
+            selected_result['红球1'], selected_result['红球2'], selected_result['红球3'],
+            selected_result['红球4'], selected_result['红球5'], selected_result['红球6'],
+            selected_result['蓝球']
+        ]
+
+        for line in bets_text.splitlines():
+            if line.strip():
+                winning_level, winning_amount = check_winning(line.strip(), winning_numbers)
+                winning_counts[winning_level] += 1
+                winning_amounts[winning_level] += winning_amount
+                total_bets += 1
+
+                analysis_results.append(f"{line.strip()} ({winning_level})")
+
+        # 创建表格数据
+        table_data = []
+        total_winning_amount = 0
+        for level in winning_counts:
+            count = winning_counts[level]
+            amount = winning_amounts[level]
+            table_data.append({"奖项": level, "中奖数量": count, "中奖金额": amount, "奖金合记": count * amount})
+            total_winning_amount += count * amount
+
+        # 显示表格
+        st.table(table_data)
+        st.write(f"总投注数: {total_bets}")
+        st.write(f"总奖金：{total_winning_amount}")
+
+        # 将结果存储在 session_state 中
+        st.session_state.all_bets_text = f"总投注数: {total_bets}\n" + "\n".join(analysis_results)
+        st.session_state.analysis_results = analysis_results
+
+    except KeyError as e:
+        st.error(f"键名错误：{e}。请检查开奖记录数据。")
+    except TypeError as e:
+        st.error(f"数据类型错误：{e}。请检查开奖记录数据格式。")

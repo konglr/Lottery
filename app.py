@@ -4,8 +4,10 @@ import numpy as np
 import random
 from datetime import datetime
 import altair as alt
+from itertools import combinations
 from collections import Counter
 import logging
+from funcs.functions import analyze_top_companion_pairs,analyze_top_triples
 
 logging.basicConfig(
     level=logging.INFO,
@@ -368,6 +370,7 @@ def analyze_red_balls(red_balls):
 
 # 加载历史数据，并根据分析期数筛选
 filtered_data = load_historical_data(analysis_period)
+st.session_state.lottery_results=load_historical_data(10)
 # Calculate frequency for red balls
 red_frequency = {}
 
@@ -1627,10 +1630,62 @@ with tab1:
         # **显示折线图**
         st.altair_chart(chart + text, use_container_width=True)
 
+    with col2:
+        st.subheader("🔥 热门号码对（前 5 名）")
+
+        # **获取热门号码对**
+        freq_df = analyze_top_companion_pairs(filtered_data, top_n=5)
+
+        # **绘制柱状图**
+        bars = alt.Chart(freq_df).mark_bar().encode(
+            x=alt.X('号码对:O', title='热门号码对', sort='-y',
+                    axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
+            y=alt.Y('出现次数:Q', title='出现次数',axis=alt.Axis(format='d')),
+            #color=alt.Color('出现次数:Q', scale=alt.Scale(scheme='blues'), legend=None),
+            tooltip=['号码对', '出现次数', alt.Tooltip('百分比:Q', format=".1%")]
+        )
+
+        # **添加百分比文本**
+        text = bars.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-10
+        ).encode(
+            text=alt.Text('百分比:Q', format=".1%")
+        )
+
+        # **显示图表**
+        st.altair_chart(bars + text, use_container_width=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("🔥 热门号码三元组（前 5 名）")
+
+        # **获取热门号码三元组**
+        freq_df = analyze_top_triples(filtered_data, top_n=5)
+
+        # **绘制柱状图**
+        bars = alt.Chart(freq_df).mark_bar(color='red').encode(
+            x=alt.X('号码三元组:O', title='热门号码三元组', sort='-y',
+                    axis=alt.Axis(labelAngle=-45, labelOverlap=False, labelFontSize=10)),
+            y=alt.Y('出现次数:Q', title='出现次数', axis=alt.Axis(format='d')),
+            tooltip=['号码三元组', '出现次数', alt.Tooltip('百分比:Q', format=".1%")]
+        )
+
+        # **添加百分比文本**
+        text = bars.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-10
+        ).encode(
+            text=alt.Text('百分比:Q', format=".1%")
+        )
+
+        # **显示图表**
+        st.altair_chart(bars + text, use_container_width=True)
 
 with (tab2):
-    from funcs.ball_filter import (convert_to_single_bets, parse_bet,convert_bets)
-
+    from funcs.ball_filter import convert_to_single_bets, parse_bet,convert_bets,check_winning,analyze_winning
 
     def filter_bets():
         """根据筛选条件过滤投注方案"""
@@ -1924,6 +1979,7 @@ with (tab2):
             )
             st.session_state.all_bets_text = all_bets_text
 
+
     def analyze_bets():
         """分析投注方案"""
         bets_text = st.session_state.bets_text
@@ -1934,25 +1990,23 @@ with (tab2):
 
         for line in bets_text.splitlines():
             if line.strip():
-                red_balls, blue_balls, dantuo = parse_bet(line.strip())
-                single_bets = convert_to_single_bets(red_balls, blue_balls)
+                red_dan, red_tuo, blue_dan, blue_tuo = parse_bet(line.strip())
+                single_bets = convert_to_single_bets(red_dan, red_tuo, blue_dan, blue_tuo)
                 total_bets += len(single_bets)
                 bets.extend(single_bets)
 
-        for red_balls, blue_balls in bets:
-            # red_analysis = analyze_red_balls(red_balls)
-            # analysis_str = ", ".join([f"{key}: {value}" for key, value in red_analysis.items()])
+        for red_balls, blue_balls in bets:  # 从 single_bets 中提取红球和篮球
             bet_tuple = tuple(sorted(red_balls)), tuple(sorted(blue_balls))  # 创建元组用于判断
             if bet_tuple not in unique_bets:  # 检查投注组合是否已经存在
                 unique_bets.add(bet_tuple)  # 将投注组合添加到集合中
                 if blue_balls:
                     analysis_results.append(
-                        # f"{','.join(map(str, red_balls))}+{','.join(map(str, blue_balls))} ({analysis_str})")
-                        f"{','.join(map(str, red_balls))}+{','.join(map(str, blue_balls))} ")
+                        f"{','.join(map(str, red_balls))}+{','.join(map(str, blue_balls))} "
+                    )
                 else:
                     analysis_results.append(
-                        # f"{','.join(map(str, red_balls))} ({analysis_str})")
-                        f"{','.join(map(str, red_balls))} ")
+                        f"{','.join(map(str, red_balls))} "
+                    )
 
         # 创建包含所有投注结果和总投注数的字符串
         all_bets_text = f"总投注数: {total_bets}\n" + "\n".join(analysis_results)
@@ -2068,26 +2122,9 @@ with (tab2):
         if 'simplified_bets_area' not in st.session_state:
             st.session_state.simplified_bets_area = "请转化你的投注结果"
 
-        st.text_area("投注简化", value=st.session_state.get('simplified_bets_area', ''), height=300)
 
+        st.button("投注对奖", on_click=analyze_winning)
 
-        def convert_and_display():
-            """转换投注号码并显示结果"""
-            if 'filtered_results' in st.session_state and st.session_state.filtered_results:
-                bets = st.session_state.filtered_results
-                complex_bets, dantuo_bets, single_bets = convert_bets(bets)
-
-                result_str = "复式：\n" + "\n".join(complex_bets) + "\n\n"
-                result_str += "胆拖：\n" + "\n".join(dantuo_bets) + "\n\n"
-                result_str += "单注：\n" + "\n".join(single_bets)
-
-                st.session_state.simplified_bets_area = result_str
-            else:
-                st.session_state.simplified_bets_area = "没有可转化的投注结果"
-
-
-        if st.button("投注转换", on_click=convert_and_display):
-            pass
 
 with tab3:
     st.subheader("全量筛选")
