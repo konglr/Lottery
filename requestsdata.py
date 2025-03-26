@@ -216,12 +216,12 @@ def get_lottery_data(lottery_id, lottery_name, before_issues):
     total_count = get_total_issue_count(lottery_id, before_issues)
 
     # 计算总页数
-    total_pages = math.ceil(total_count / 100)
+    total_pages = math.floor(total_count / 100 + 1) if total_count % 100 == 0 else math.floor(total_count / 100 + 2)
     logging.info(f"📄 {lottery_name} 计算总页数: {total_pages}")
 
     all_data = []
 
-    for page in tqdm(range(1, total_pages + 1), desc=f"📥 下载 {lottery_name} 数据"):
+    for page in tqdm(range(1, total_pages), desc=f"📥 下载 {lottery_name} 数据"):
         json_data = requests_data(page, total_count, lottery_id)
         if json_data:
             lottery_data = parse_lottery_data(json_data)
@@ -239,7 +239,7 @@ if __name__ == "__main__":
         #"qlc": {"id": "3", "jc": "七乐彩", "before_issues": 2500},
         #"kl8": {"id": "6", "jc": "快乐8", "before_issues": 1470},
         #"dlt": {"id": "281", "jc": "超级大乐透", "before_issues": 3800}, # 组早一期是08149
-        "pl3": {"id": "283", "jc": "排列三", "before_issues": 6000}, #找到第一期 08355
+        #"pl3": {"id": "283", "jc": "排列三", "before_issues": 5700}, #找到第一期 08355
         #"pl5": {"id": "284", "jc": "排列五", "before_issues": 5657},#找到第一期 08355
         #"xqxc": {"id": "287", "jc": "七星彩", "before_issues": 1828},#20100为第一期
     }

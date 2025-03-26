@@ -90,4 +90,4 @@ def check_lottery_data(lottery_name):
         print("警告：数据中不包含开奖日期列。")
 
 # 示例用法
-check_lottery_data("ssq")
+check_lottery_data("pl3")

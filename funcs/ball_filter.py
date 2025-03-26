@@ -210,7 +210,7 @@ def convert_and_display():
     else:
         st.session_state.simplified_bets_area = "没有可转化的投注结果"
 
-def check_winning(bet_str, winning_red_balls, winning_blue_ball):
+def check_winning(bet_str, winning_red_balls, winning_blue_ball, winning_amounts):
     """计算双色球单注的中奖情况"""
     try:
         parts = bet_str.split("+")
@@ -221,17 +221,17 @@ def check_winning(bet_str, winning_red_balls, winning_blue_ball):
         blue_match = 1 if blue_balls and blue_balls[0] == winning_blue_ball else 0
 
         if red_match == 6 and blue_match == 1:
-            return "一等奖", 0  # 奖金稍后计算
+            return "一等奖", winning_amounts["一等奖奖金"]
         elif red_match == 6:
-            return "二等奖", 0  # 奖金稍后计算
+            return "二等奖", winning_amounts["二等奖奖金"]
         elif red_match == 5 and blue_match == 1:
-            return "三等奖", 3000
+            return "三等奖", winning_amounts["三等奖奖金"]
         elif red_match == 5 or (red_match == 4 and blue_match == 1):
-            return "四等奖", 200
+            return "四等奖", winning_amounts["四等奖奖金"]
         elif red_match == 4 or (red_match == 3 and blue_match == 1):
-            return "五等奖", 10
+            return "五等奖", winning_amounts["五等奖奖金"]
         elif blue_match == 1:
-            return "六等奖", 5
+            return "六等奖", winning_amounts["六等奖奖金"]
         else:
             return "未中奖", 0
     except Exception as e:
@@ -240,8 +240,8 @@ def check_winning(bet_str, winning_red_balls, winning_blue_ball):
 
 def analyze_winning():
     """分析双色球中奖情况"""
-    bets_text = st.session_state.bets_text
-    analysis_results = []
+    analysis_bets = st.session_state.analysis_results
+    winning_results = []
     total_bets = 0
     winning_counts = {
         "一等奖": 0,
@@ -265,28 +265,34 @@ def analyze_winning():
     }
 
     try:
-        # 创建下拉菜单，显示最近 10 期开奖记录
-        issue_numbers = st.session_state.lottery_results['期号'].astype(str).tolist()
-        selected_issue = st.selectbox("选择开奖期号:", issue_numbers, index=len(issue_numbers) - 1)
+        # 使用 DataFrame 的 iloc[] 访问第一行
+        selected_result = st.session_state.lottery_results.iloc[0]
 
-        # 根据选择的期号，获取开奖结果
-        selected_result = st.session_state.lottery_results[st.session_state.lottery_results['期号'].astype(str) == selected_issue].iloc[0]
-
-        # 从 DataFrame 中提取开奖号码
+        # 从 DataFrame 中提取开奖号码和奖金
         winning_red_balls = sorted([
             selected_result['红球1'], selected_result['红球2'], selected_result['红球3'],
             selected_result['红球4'], selected_result['红球5'], selected_result['红球6']
         ])
         winning_blue_ball = selected_result['蓝球']
 
-        for line in bets_text.splitlines():
-            if line.strip():
-                winning_level, winning_amount = check_winning(line.strip(), winning_red_balls, winning_blue_ball)
+        # 创建一个奖金字典
+        win_amounts = {
+            "一等奖奖金": selected_result["一等奖奖金"],
+            "二等奖奖金": selected_result["二等奖奖金"],
+            "三等奖奖金": 3000,
+            "四等奖奖金": 200,
+            "五等奖奖金": 10,
+            "六等奖奖金": 5,
+        }
+
+        for line in analysis_bets:
+            if isinstance(line,str) and line.strip():
+                winning_level, winning_amount = check_winning(line.strip(), winning_red_balls, winning_blue_ball, win_amounts)
                 winning_counts[winning_level] += 1
-                winning_amounts[winning_level] += winning_amount
+                winning_amounts[winning_level] = winning_amount
                 total_bets += 1
 
-                analysis_results.append(f"{line.strip()} ({winning_level})")
+                winning_results.append(f"{line.strip()} ({winning_level})")
 
         # 创建表格数据
         table_data = []
@@ -302,11 +308,11 @@ def analyze_winning():
         st.session_state.winning_total_bets = total_bets
         st.session_state.winning_total_amount = total_winning_amount
 
-        # 将结果存储在 session_state 中
-        st.session_state.all_bets_text = f"总投注数: {total_bets}\n" + "\n".join(analysis_results)
-        st.session_state.analysis_results = analysis_results
+        # 将结果存储在 session_state 中，不改变 all_bets_text 和 filtered_results
+        # st.session_state.all_bets_text = f"总投注数: {total_bets}\n" + "\n".join(winning_results)
+        # st.session_state.analysis_results = winning_results
 
     except KeyError as e:
-        st.error(f"键名错误：{e}。请检查开奖记录数据。")
+        st.error(f"键名错误：{e}。请检查开奖记录数据。{e}")
     except TypeError as e:
-        st.error(f"数据类型错误：{e}。请检查开奖记录数据格式。")
+        st.error(f"数据类型错误：{e}。请检查开奖记录数据格式。{e}")

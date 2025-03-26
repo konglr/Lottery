@@ -257,7 +257,7 @@ def load_historical_data(analysis_period):
                 "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
                 "重号", "邻号", "孤号", "和值", "AC", "跨度",
                 "二连", "三连", "四连", "五连", "六连",
-                "二跳", "三跳", "四跳", "五跳", "六跳"
+                "二跳", "三跳", "四跳", "五跳", "六跳","一等奖奖金","二等奖奖金"
             ]
         )
 
@@ -1631,10 +1631,10 @@ with tab1:
         st.altair_chart(chart + text, use_container_width=True)
 
     with col2:
-        st.subheader("🔥 热门号码对（前 5 名）")
+        st.subheader("🔥 热门号码对")
 
         # **获取热门号码对**
-        freq_df = analyze_top_companion_pairs(filtered_data, top_n=5)
+        freq_df = analyze_top_companion_pairs(filtered_data, top_n=10)
 
         # **绘制柱状图**
         bars = alt.Chart(freq_df).mark_bar().encode(
@@ -1659,10 +1659,10 @@ with tab1:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("🔥 热门号码三元组（前 5 名）")
+        st.subheader("🔥热门号码三元组")
 
         # **获取热门号码三元组**
-        freq_df = analyze_top_triples(filtered_data, top_n=5)
+        freq_df = analyze_top_triples(filtered_data, top_n=10)
 
         # **绘制柱状图**
         bars = alt.Chart(freq_df).mark_bar(color='red').encode(
@@ -2124,10 +2124,11 @@ with (tab2):
 
         # 如果 session_state 中存在表格数据，则显示表格
         if 'winning_table_data' in st.session_state:
+
             st.table(st.session_state.winning_table_data)
             st.write(f"总投注数: {st.session_state.winning_total_bets}")
             st.write(f"总奖金：{st.session_state.winning_total_amount}")
-
+       # st.selectbox("选择开奖期号:", issue_numbers, index=5)
         st.button("投注对奖", on_click=analyze_winning)
 
 with tab3:
