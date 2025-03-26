@@ -211,7 +211,7 @@ def convert_and_display():
         st.session_state.simplified_bets_area = "没有可转化的投注结果"
 
 def check_winning(bet_str, winning_red_balls, winning_blue_ball):
-    """计算单注的中奖情况"""
+    """计算双色球单注的中奖情况"""
     try:
         parts = bet_str.split("+")
         red_balls = sorted(map(int, parts[0].split(",")))
@@ -239,7 +239,7 @@ def check_winning(bet_str, winning_red_balls, winning_blue_ball):
         return "格式错误", 0
 
 def analyze_winning():
-    """分析七星彩中奖情况"""
+    """分析双色球中奖情况"""
     bets_text = st.session_state.bets_text
     analysis_results = []
     total_bets = 0
@@ -250,7 +250,6 @@ def analyze_winning():
         "四等奖": 0,
         "五等奖": 0,
         "六等奖": 0,
-        "七等奖": 0,
         "未中奖": 0,
         "格式错误": 0,
     }
@@ -261,7 +260,6 @@ def analyze_winning():
         "四等奖": 0,
         "五等奖": 0,
         "六等奖": 0,
-        "七等奖": 0,
         "未中奖": 0,
         "格式错误": 0
     }
@@ -275,15 +273,15 @@ def analyze_winning():
         selected_result = st.session_state.lottery_results[st.session_state.lottery_results['期号'].astype(str) == selected_issue].iloc[0]
 
         # 从 DataFrame 中提取开奖号码
-        winning_numbers = [
+        winning_red_balls = sorted([
             selected_result['红球1'], selected_result['红球2'], selected_result['红球3'],
-            selected_result['红球4'], selected_result['红球5'], selected_result['红球6'],
-            selected_result['蓝球']
-        ]
+            selected_result['红球4'], selected_result['红球5'], selected_result['红球6']
+        ])
+        winning_blue_ball = selected_result['蓝球']
 
         for line in bets_text.splitlines():
             if line.strip():
-                winning_level, winning_amount = check_winning(line.strip(), winning_numbers)
+                winning_level, winning_amount = check_winning(line.strip(), winning_red_balls, winning_blue_ball)
                 winning_counts[winning_level] += 1
                 winning_amounts[winning_level] += winning_amount
                 total_bets += 1
@@ -299,10 +297,10 @@ def analyze_winning():
             table_data.append({"奖项": level, "中奖数量": count, "中奖金额": amount, "奖金合记": count * amount})
             total_winning_amount += count * amount
 
-        # 显示表格
-        st.table(table_data)
-        st.write(f"总投注数: {total_bets}")
-        st.write(f"总奖金：{total_winning_amount}")
+        # 使用 session_state 将表格数据传递给 col2
+        st.session_state.winning_table_data = table_data
+        st.session_state.winning_total_bets = total_bets
+        st.session_state.winning_total_amount = total_winning_amount
 
         # 将结果存储在 session_state 中
         st.session_state.all_bets_text = f"总投注数: {total_bets}\n" + "\n".join(analysis_results)

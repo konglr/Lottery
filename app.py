@@ -2122,9 +2122,13 @@ with (tab2):
         if 'simplified_bets_area' not in st.session_state:
             st.session_state.simplified_bets_area = "请转化你的投注结果"
 
+        # 如果 session_state 中存在表格数据，则显示表格
+        if 'winning_table_data' in st.session_state:
+            st.table(st.session_state.winning_table_data)
+            st.write(f"总投注数: {st.session_state.winning_total_bets}")
+            st.write(f"总奖金：{st.session_state.winning_total_amount}")
 
         st.button("投注对奖", on_click=analyze_winning)
-
 
 with tab3:
     st.subheader("全量筛选")
