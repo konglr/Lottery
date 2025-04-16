@@ -190,12 +190,12 @@ def save_to_csv(data, filename):
             logging.warning("没有数据可以保存到 CSV 文件")
             return
         # 获取脚本根目录
-       # root_dir = os.getcwd()  # 或者使用 os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.getcwd()  # 或者使用 os.path.dirname(os.path.abspath(__file__))
 
         # 构建完整的文件路径
         filepath= os.path.join(root_dir, "data", filename)
         # 确保 data 目录存在
-       # os.makedirs(os.path.join(root_dir, "data"), exist_ok=True)
+        # os.makedirs(os.path.join(root_dir, "data"), exist_ok=True)
 
         with open(filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
             writer = csv.writer(csvfile)
@@ -235,13 +235,13 @@ def get_lottery_data(lottery_id, lottery_name, before_issues):
 if __name__ == "__main__":
     lotteries = {
         "ssq": {"id": "1", "jc": "双色球", "before_issues": 3246},
-        #"d3": {"id": "2", "jc": "福彩3D", "before_issues": 7157},# 最早一期是2004001
-        #"qlc": {"id": "3", "jc": "七乐彩", "before_issues": 2500},
-        #"kl8": {"id": "6", "jc": "快乐8", "before_issues": 1470},
-        #"dlt": {"id": "281", "jc": "超级大乐透", "before_issues": 3800}, # 组早一期是08149
-        #"pl3": {"id": "283", "jc": "排列三", "before_issues": 5700}, #找到第一期 08355
-        #"pl5": {"id": "284", "jc": "排列五", "before_issues": 5657},#找到第一期 08355
-        #"xqxc": {"id": "287", "jc": "七星彩", "before_issues": 1828},#20100为第一期
+        "d3": {"id": "2", "jc": "福彩3D", "before_issues": 7157},# 最早一期是2004001
+        "qlc": {"id": "3", "jc": "七乐彩", "before_issues": 2500},
+        "kl8": {"id": "6", "jc": "快乐8", "before_issues": 1470},
+        "dlt": {"id": "281", "jc": "超级大乐透", "before_issues": 3800}, # 组早一期是08149
+        "pl3": {"id": "283", "jc": "排列三", "before_issues": 5700}, #找到第一期 08355
+        "pl5": {"id": "284", "jc": "排列五", "before_issues": 5657},#找到第一期 08355
+        "xqxc": {"id": "287", "jc": "七星彩", "before_issues": 1828},#20100为第一期
     }
 
     for key, value in lotteries.items():

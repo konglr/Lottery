@@ -1,0 +1,28 @@
+2025-04-14 11:01:01,555 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/my_log_file.log
+2025-04-14 11:01:01,697 - INFO - 📌 1 最新期号: 2025040, 总期数: 3286
+2025-04-14 11:01:01,697 - INFO - 📄 双色球 计算总页数: 34
+2025-04-14 11:01:07,108 - ERROR - 保存 CSV 文件出错: [Errno 2] No such file or directory: '/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/data/双色球_lottery_data.csv'
+2025-04-14 11:01:07,446 - INFO - 📌 2 最新期号: 2025093, 总期数: 7250
+2025-04-14 11:01:07,446 - INFO - 📄 福彩3D 计算总页数: 74
+2025-04-14 11:01:45,352 - ERROR - 保存 CSV 文件出错: [Errno 2] No such file or directory: '/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/data/福彩3D_lottery_data.csv'
+2025-04-14 11:01:45,622 - INFO - 📌 3 最新期号: 2025039, 总期数: 2539
+2025-04-14 11:01:45,623 - INFO - 📄 七乐彩 计算总页数: 27
+2025-04-14 11:01:55,302 - ERROR - 保存 CSV 文件出错: [Errno 2] No such file or directory: '/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/data/七乐彩_lottery_data.csv'
+2025-04-14 11:01:55,464 - INFO - 📌 6 最新期号: 2025093, 总期数: 1563
+2025-04-14 11:01:55,464 - INFO - 📄 快乐8 计算总页数: 17
+2025-04-14 11:02:01,969 - ERROR - 保存 CSV 文件出错: [Errno 2] No such file or directory: '/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/data/快乐8_lottery_data.csv'
+2025-04-14 11:02:03,251 - INFO - 📌 281 最新期号: 25039, 总期数: 3839
+2025-04-14 11:02:03,251 - INFO - 📄 超级大乐透 计算总页数: 40
+2025-04-14 11:02:13,405 - ERROR - ❌ 接口返回错误: None
+2025-04-14 11:12:58,813 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/my_log_file.log
+2025-04-14 11:12:58,995 - INFO - 📌 1 最新期号: 2025040, 总期数: 3286
+2025-04-14 11:12:58,995 - INFO - 📄 双色球 计算总页数: 34
+2025-04-14 11:13:08,628 - ERROR - 保存 CSV 文件出错: [Errno 2] No such file or directory: '/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/data/双色球_lottery_data.csv'
+2025-04-14 11:13:08,956 - INFO - 📌 2 最新期号: 2025093, 总期数: 7250
+2025-04-14 11:13:08,957 - INFO - 📄 福彩3D 计算总页数: 74
+2025-04-16 11:37:03,676 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/my_log_file.log
+2025-04-16 11:37:03,861 - INFO - 📌 1 最新期号: 2025041, 总期数: 3287
+2025-04-16 11:37:03,861 - INFO - 📄 双色球 计算总页数: 34
+2025-04-16 11:37:13,454 - ERROR - 保存 CSV 文件出错: [Errno 2] No such file or directory: '/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/funcs/data/双色球_lottery_data.csv'
+2025-04-16 11:37:13,610 - INFO - 📌 2 最新期号: 2025095, 总期数: 7252
+2025-04-16 11:37:13,611 - INFO - 📄 福彩3D 计算总页数: 74
