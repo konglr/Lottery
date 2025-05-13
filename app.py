@@ -1941,6 +1941,7 @@ with (tab2):
                                    st.session_state.three_tail_count[1]
                 if "three_tail_count" not in filter_results:
                     filter_results["three_tail_count"] = three_tail_match
+
             # 区域号码数筛选
             if st.session_state.zone_filter:
                 zone1_count = 0
