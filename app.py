@@ -1,10 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import random
-from datetime import datetime
 import altair as alt
-from itertools import combinations
 from collections import Counter
 import logging
 from funcs.functions import analyze_top_companion_pairs,analyze_top_triples
@@ -1519,6 +1516,16 @@ with tab1:
             title='红球孤号趋势图',  # **图表标题**
             width=800,  # **宽度**
             height=300  # **高度**
+        )
+        # **添加数据标签**
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,  # **调整标签位置**
+            fontSize=10,  # **设置字体大小**
+            #color='black'  # **标签颜色**
+        ).encode(
+            text=alt.Text('孤号数量:Q', format='.0f')  # **数值格式化为整数**
         )
 
         # **显示折线图**
