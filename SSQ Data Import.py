@@ -25,8 +25,8 @@ if latest_issue_in_system is None:
     print("无法获取最新期号，程序终止。")
     exit()
 
-current_2025_times = latest_issue_in_system - 2025000
-total_issueCount = 3246 + current_2025_times
+current_2026_times = latest_issue_in_system - 2026000
+total_issueCount = 3246 + 151 + current_2026_times
 
 # 如果本地文件最后一期与系统最新期号相同，则跳过下载
 if last_issue_in_excel == latest_issue_in_system:

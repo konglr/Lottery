@@ -53,9 +53,15 @@ st.markdown("""
     }
     .latest-draw {
         padding: 10px;
-        background-color: #f8f9fa;
+        background-color: var(--secondary-background-color); 
         border-radius: 5px;
         margin-bottom: 15px;
+       
+        /* 修改点：文字颜色也设为自动跟随 */
+        color: var(--text-color);
+   
+        /* 可选：添加一个细微的边框增加质感 */
+        border: 1px solid var(--border-color);
     }
     .header {
         font-size: 24px;
