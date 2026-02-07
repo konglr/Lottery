@@ -1009,3 +1009,19 @@ INFO:root:Data synchronized: 2025024
 2026-01-27 10:28:08,297 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
 2026-01-27 10:28:19,660 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
 2026-01-27 10:28:30,712 - INFO - Data synchronized: 2026011
+2026-02-06 22:30:52,735 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-02-06 22:33:10,860 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-02-06 22:34:55,023 - INFO - Data synchronized: 2026016
+2026-02-06 23:04:13,755 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-02-06 23:04:14,079 - WARNING - Data mismatch: CSV: 25074, System: 26037
+2026-02-06 23:05:31,078 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-02-06 23:05:31,302 - WARNING - Data mismatch: CSV: 25074, System: 26037
+2026-02-06 23:11:38,761 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-02-06 23:11:39,098 - WARNING - Data mismatch: CSV: 2025072, System: 2026037
+2026-02-06 23:49:26,096 - WARNING - Matplotlib is building the font cache; this may take a moment.
+2026-02-06 23:49:44,391 - INFO - Failed to extract font properties from /System/Library/Fonts/Apple Color Emoji.ttc: Could not set the fontsize (invalid pixel size; error code 0x17)
+2026-02-06 23:49:44,406 - INFO - Failed to extract font properties from /System/Library/Fonts/Supplemental/NISC18030.ttf: Could not set the fontsize (invalid pixel size; error code 0x17)
+2026-02-06 23:49:44,472 - INFO - Failed to extract font properties from /System/Library/PrivateFrameworks/FontServices.framework/Resources/Reserved/PingFangUI.ttc: Can not load face (locations (loca) table missing; error code 0x90)
+2026-02-06 23:49:44,630 - INFO - Failed to extract font properties from /System/Library/Fonts/LastResort.otf: tuple indices must be integers or slices, not str
+2026-02-06 23:49:44,653 - INFO - Failed to extract font properties from /System/Library/Fonts/SFIndia.ttc: Can not load face (SFNT font table missing; error code 0x8e)
+2026-02-06 23:49:44,902 - INFO - generated new fontManager

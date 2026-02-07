@@ -4,6 +4,7 @@ import numpy as np
 import altair as alt
 from collections import Counter
 import logging
+import google.generativeai as genai
 from funcs.functions import analyze_top_companion_pairs,analyze_top_triples
 
 logging.basicConfig(
@@ -400,7 +401,7 @@ cold_red = cold_red_df['号码'].tolist()
 st.markdown("<div class='header'>双色球分析工具</div>", unsafe_allow_html=True)
 
 # Display tabs for different analyses
-tab1, tab2, tab3,tab4= st.tabs(["号码分析", "选号工具","全量筛选","历史数据"])
+tab1, tab2, tab3,tab4= st.tabs(["号码分析", "选号工具","AI号码预测","历史数据"])
 
 with tab1:
 
@@ -2146,7 +2147,62 @@ with (tab2):
         st.button("投注对奖", on_click=analyze_winning)
 
 with tab3:
-    st.subheader("全量筛选")
+    st.subheader("AI号码预测")
+    
+    # Gemini API Configuration
+    st.info("💡 使用 Gemini AI 根据最近10期数据分析规律并预测下一期号码。")
+    
+    gemini_api_key = st.text_input("请输入您的 Gemini API Key:", type="password", help="从 Google AI Studio 获取 API Key")
+    
+    if st.button("开始 AI 预测"):
+        if not gemini_api_key:
+            st.error("请输入 Gemini API Key 以继续。")
+        else:
+            try:
+                # Configure Gemini
+                genai.configure(api_key=gemini_api_key)
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                
+                # Get last 10 records
+                recent_data = load_historical_data(10)
+                
+                # Format data for prompt
+                records_str = ""
+                for index, row in recent_data.iterrows():
+                    reds = [int(row[f'红球{i}']) for i in range(1, 7)]
+                    blue = int(row['蓝球'])
+                    records_str += f"期号: {row['期号']}, 红球: {reds}, 蓝球: {blue}\n"
+                
+                # Construct prompt
+                prompt = f"""
+你是一个专业的双色球（中国福利彩票）数据分析专家。
+以下是最近10期的开奖结果（按时间倒序排列）：
+{records_str}
+
+请基于以上数据进行深度分析：
+1. 分析红球的走势（冷热号、和值趋势、奇偶比、大小比等）。
+2. 分析蓝球的走势。
+3. 给出一组预测的号码（6个红球 + 1个蓝球）。红球范围1-33，不能重复；蓝球范围1-16。
+
+请严格按以下格式输出结果：
+### 📊 数据分析理由
+[在此详细说明你的分析依据，包括趋势、概率、遗漏值等]
+
+### 🔮 专家预测号码
+- **红球**: [6个号码，用逗号分隔]
+- **蓝球**: [1个号码]
+
+### 💡 友情提示
+彩票具有随机性，以上分析仅供娱乐参考。
+"""
+                
+                with st.spinner("AI 正在深度分析中，请稍候..."):
+                    response = model.generate_content(prompt)
+                    st.markdown("---")
+                    st.markdown(response.text)
+                    
+            except Exception as e:
+                st.error(f"发生错误: {str(e)}")
 
 
 with tab4:

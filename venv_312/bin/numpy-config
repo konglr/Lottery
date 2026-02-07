@@ -1,0 +1,8 @@
+#!/bin/sh
+'''exec' "/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/venv_312/bin/python3.12" "$0" "$@"
+' '''
+import sys
+from numpy._configtool import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())

@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import logging
 from datetime import datetime
+from requestsdata import get_latest_issue_from_system
 
 # 彩票信息字典
 lotteries = {
@@ -90,4 +91,4 @@ def check_lottery_data(lottery_name):
         print("警告：数据中不包含开奖日期列。")
 
 # 示例用法
-check_lottery_data("pl3")
+check_lottery_data("kl8")
