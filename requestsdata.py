@@ -6,6 +6,7 @@ import json
 import os  # 添加 os 模块的导入
 import csv # 添加csv 模块的导入
 import math
+import pandas as pd
 from tqdm import tqdm
 
 
@@ -26,28 +27,36 @@ logging.basicConfig(
 
 logging.info(f"日志文件保存在：{os.path.join(root_dir, 'my_log_file.log')}")
 
-def get_total_issue_count(lottery_id, before_issues):
+def get_total_issue_count(lottery_id):
     """
-    获取系统最新期号，并计算总期数
+    通过接口自动获取该彩种在系统中的总记录数，无需每年手动维护。
+    使用一个较大（假设大于历史总期数）的 issueCount 来触发 API 返回真实的 'total'。
     """
-    latest_issue_in_system = get_latest_issue_from_system(lottery_id)
-    if latest_issue_in_system is None:
-        logging.error("❌ 无法获取最新期号，程序终止。")
-        exit()
+    try:
+        # 请求较大的期数，pageSize=1 即可，目的是获取返回 JSON 中的 'total' 字段
+        # 100000 已经远超目前所有彩种的总期数（如双色球约 3400 期）
+        response = requests_data(1, 100000, lottery_id)
+        if response is None:
+            return 0
 
-    # 特殊彩票（dlt, pl3, pl5, xqxc）计算方式不同
-    special_lotteries = {"281", "283", "284", "287"}  # dlt, pl3, pl5, xqxc
+        match = re.search(r"\((.*)\)", response)
+        if match:
+            response = match.group(1)
 
-    if lottery_id in special_lotteries:
-        current_2025_times = latest_issue_in_system - 25000
-    else:
-        current_2025_times = latest_issue_in_system - 2025000
-
-    # 计算总期数
-    total_count = before_issues + current_2025_times
-    logging.info(f"📌 {lottery_id} 最新期号: {latest_issue_in_system}, 总期数: {total_count}")
-
-    return total_count
+        content = json.loads(response)
+        total_count = int(content.get('total', 0))
+        
+        if total_count > 0:
+            logging.info(f"📌 彩种 ID {lottery_id} 自动检测到系统总期数: {total_count}")
+            return total_count
+        else:
+            # 如果获取失败，尝试通过获取一期数据来通过 latest_issue 估算（保留原逻辑作为 backup？）
+            # 但经过测试，total 字段是非常可靠的，这里直接返回 0 并在调用处处理
+            logging.warning(f"⚠️ 彩种 ID {lottery_id} 接口返回的总期数为 0 或无效")
+            return 0
+    except Exception as e:
+        logging.error(f"❌ 自动获取系统总期数出错: {e}")
+        return 0
 
 
 def requests_data(pages, issue_count, ID, start_issue='', end_issue=''):
@@ -91,6 +100,7 @@ def requests_data(pages, issue_count, ID, start_issue='', end_issue=''):
         return None
 
 def get_latest_issue_from_system(lottry_id):
+    """获取系统中最新的期号"""
     try:
         response = requests_data(1, 1, lottry_id)
         if response is None:
@@ -101,18 +111,11 @@ def get_latest_issue_from_system(lottry_id):
             response = match.group(1)
 
         content = json.loads(response)
-        latest_issue = int(content['data'][0]['issue'])
+        latest_issue = content['data'][0]['issue']
         return latest_issue
-    except json.JSONDecodeError as e:
-        logging.error(f"JSON解析错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")
-        return None
-    except (KeyError, IndexError) as e:
-        logging.error(f"JSON数据访问错误: {e}, 数据: {response if 'response' in locals() else 'N/A'}")
-        return None
     except Exception as e:
         logging.error(f"获取系统最新期号出错: {e}")
         return None
-
 
 def parse_lottery_data(json_data):
     """解析 JSONP 响应，并提取 data 字段，转换成标准字段格式"""
@@ -208,12 +211,16 @@ def save_to_csv(data, filename):
         logging.error(f"保存 CSV 文件出错: {e}")
 
 
-def get_lottery_data(lottery_id, lottery_name, before_issues):
-    """获取彩票数据，计算 `total_count` 和 `pages`"""
+def get_lottery_data(lottery_id, lottery_name):
+    """获取彩票数据，动态计算 `total_count` 并自动分页下载"""
     filename = f"{lottery_name}_lottery_data.csv"
 
-    # 计算总期数
-    total_count = get_total_issue_count(lottery_id, before_issues)
+    # 自动获取当前系统中该彩种的总期数
+    total_count = get_total_issue_count(lottery_id)
+    
+    if total_count == 0:
+        logging.error(f"❌ 无法确定 {lottery_name} 的总期数，跳过下载。")
+        return
 
     # 计算总页数
     total_pages = math.floor(total_count / 100 + 1) if total_count % 100 == 0 else math.floor(total_count / 100 + 2)
@@ -231,18 +238,144 @@ def get_lottery_data(lottery_id, lottery_name, before_issues):
     # 保存数据
     save_to_csv(all_data, filename)
 
+def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="data/双色球开奖情况.csv"):
+    """
+    自给自足的数据处理函数：
+    1. 从原始 CSV 读取下载好的数据
+    2. 解析中奖等级和奖金
+    3. 计算奇偶、大小、三区、连号、跳号等指标
+    4. 结果保存为 app.py 使用的格式
+    """
+    if not os.path.exists(input_csv):
+        logging.error(f"找不到输入文件: {input_csv}")
+        return
+
+    logging.info(f"开始后期处理 {input_csv} ...")
+    df = pd.read_csv(input_csv)
+
+    # 字段重命名映射
+    mapping = {
+        'issue': '期号',
+        'openTime': '开奖日期',
+        'week': 'WeekDay',
+        'saleMoney': '总销售额(元)',
+        'prizePoolMoney': '奖池金额(元)',
+        '篮球': '蓝球'
+    }
+    df = df.rename(columns=mapping)
+
+    # 解析中奖细节
+    awards = ['一等奖', '二等奖', '三等奖', '四等奖', '五等奖', '六等奖']
+    for award in awards:
+        df[f'{award}注数'] = 0
+        df[f'{award}奖金'] = 0
+
+    def parse_awards(row):
+        details_str = row['winnerDetails']
+        if pd.isna(details_str) or not details_str:
+            return row
+        try:
+            # 处理单引号字符串，eval 在已知数据源下是快捷方式
+            details = eval(details_str)
+            for item in details:
+                award_etc = item.get('awardEtc')
+                base = item.get('baseBetWinner', {})
+                try:
+                    level = int(award_etc)
+                    if 1 <= level <= 6:
+                        row[f'{awards[level-1]}注数'] = base.get('awardNum', 0)
+                        row[f'{awards[level-1]}奖金'] = base.get('awardNum', 0)
+                except: continue
+        except: pass
+        return row
+
+    df = df.apply(parse_awards, axis=1)
+
+    # 数字类型转换
+    red_ball_columns = ['红球1', '红球2', '红球3', '红球4', '红球5', '红球6']
+    for col in red_ball_columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+    def count_consecutive(nums):
+        nums.sort()
+        n, counts = len(nums), {'二连': 0, '三连': 0, '四连': 0, '五连': 0, '六连': 0}
+        i = 0
+        while i < n - 1:
+            if nums[i] + 1 == nums[i + 1]:
+                length = 2
+                while i + length < n and nums[i + length - 1] + 1 == nums[i + length]: length += 1
+                key = f"{['', '', '二', '三', '四', '五', '六'][length]}连"
+                if 2 <= length <= 6: counts[key] += 1
+                i += length
+            else: i += 1
+        return counts
+
+    def count_jumps(nums):
+        nums.sort()
+        n, counts = len(nums), {'二跳': 0, '三跳': 0, '四跳': 0, '五跳': 0, '六跳': 0}
+        i = 0
+        while i < n - 1:
+            diff = nums[i + 1] - nums[i]
+            if diff >= 2:
+                length = 1
+                while i + length < n - 1 and nums[i + length + 1] - nums[i + length] == diff: length += 1
+                jump_key = None
+                if diff == 2: jump_key = {1: '二跳', 2: '三跳', 3: '四跳', 4: '五跳', 5: '六跳'}.get(length)
+                elif diff in [3,4,5,6] and (length == diff-1 or length == diff):
+                    jump_key = {2: '三跳', 3: '四跳', 4: '五跳', 5: '六跳'}.get(length)
+                if jump_key:
+                    counts[jump_key] += 1
+                    i += (length + 1)
+                else: i += 1
+            else: i += 1
+        return counts
+
+    df = df.sort_values('期号', ascending=False).reset_index(drop=True)
+    stats = []
+    for i in range(len(df)):
+        nums = sorted(df.loc[i, red_ball_columns].tolist())
+        odd = sum(1 for n in nums if n % 2 == 1)
+        small = sum(1 for n in nums if n <= 16)
+        z1 = sum(1 for n in nums if 1 <= n <= 11)
+        z2 = sum(1 for n in nums if 12 <= n <= 22)
+        z3 = sum(1 for n in nums if 23 <= n <= 33)
+        rep, adj = 0, 0
+        if i < len(df) - 1:
+            prev = set(df.loc[i+1, red_ball_columns].tolist())
+            rep = len(set(nums) & prev)
+            adj = sum(1 for n in nums if (n-1 in prev or n+1 in prev))
+        
+        sum_val = sum(nums)
+        ac = len(set(abs(a-b) for a in nums for b in nums if a > b)) - 5
+        
+        res = {
+            '奇数': odd, '偶数': 6 - odd, '小号': small, '大号': 6 - small,
+            '一区': z1, '二区': z2, '三区': z3, '重号': rep, '邻号': adj, '孤号': 6-rep-adj,
+            '和值': sum_val, 'AC': ac, '跨度': max(nums) - min(nums)
+        }
+        res.update(count_consecutive(nums))
+        res.update(count_jumps(nums))
+        stats.append(res)
+
+    final_df = pd.concat([df, pd.DataFrame(stats)], axis=1)
+    final_df.to_csv(output_csv, index=False, encoding='utf-8-sig')
+    logging.info(f"✅ 后期处理完成: {output_csv}")
+
 # =========== 主程序 =========== #
 if __name__ == "__main__":
     lotteries = {
-        "ssq": {"id": "1", "jc": "双色球", "before_issues": 3246},
-        "d3": {"id": "2", "jc": "福彩3D", "before_issues": 7157},# 最早一期是2004001
-        "qlc": {"id": "3", "jc": "七乐彩", "before_issues": 2500},
-        "kl8": {"id": "6", "jc": "快乐8", "before_issues": 1470},
-        "dlt": {"id": "281", "jc": "超级大乐透", "before_issues": 3800}, # 组早一期是08149
-        "pl3": {"id": "283", "jc": "排列三", "before_issues": 5700}, #找到第一期 08355
-        "pl5": {"id": "284", "jc": "排列五", "before_issues": 5657},#找到第一期 08355
-        "xqxc": {"id": "287", "jc": "七星彩", "before_issues": 1828},#20100为第一期
+        "ssq": {"id": "1", "jc": "双色球"},
+        "d3": {"id": "2", "jc": "福彩3D"},
+        "qlc": {"id": "3", "jc": "七乐彩"},
+        "kl8": {"id": "6", "jc": "快乐8"},
+        "dlt": {"id": "281", "jc": "超级大乐透"},
+        "pl3": {"id": "283", "jc": "排列三"},
+        "pl5": {"id": "284", "jc": "排列五"},
+        "xqxc": {"id": "287", "jc": "七星彩"},
     }
 
     for key, value in lotteries.items():
-        get_lottery_data(value["id"], value["jc"], value["before_issues"])
+        get_lottery_data(value["id"], value["jc"])
+
+    # 下载完成后，自动触发双色球数据的后期加工处理
+    process_ssq_data()

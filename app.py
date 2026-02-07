@@ -253,9 +253,9 @@ with st.sidebar:
 @st.cache_data
 def load_historical_data(analysis_period):
     try:
-        # 读取 Excel 并加载所有需要的列，包括新增的分析字段
-        df = pd.read_excel(
-            "双色球开奖情况.xlsx",
+        # 读取 CSV 并加载所有需要的列，包括计算出的分析字段
+        df = pd.read_csv(
+            "data/双色球开奖情况.csv",
             usecols=[
                 "期号", "开奖日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球",
                 "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
@@ -266,6 +266,7 @@ def load_historical_data(analysis_period):
         )
 
         # 只保留最近 `analysis_period` 期的数据
+        # 注意：如果 CSV 是按期数降序排列的，head(period) 是正确的
         if analysis_period > 0:
             df = df.head(analysis_period)
 
@@ -285,23 +286,11 @@ def load_historical_data(analysis_period):
         return df
 
     except FileNotFoundError:
-        st.error("找不到 Excel 文件 '双色球开奖情况.xlsx'，请确保文件在当前目录，并检查文件名是否正确。")
-        return pd.DataFrame(columns=[
-            "期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球",
-            "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
-            "重号", "邻号", "孤号", "和值", "AC", "跨度",
-            "二连", "三连", "四连", "五连", "六连",  # 新增的字段
-            "二跳", "三跳", "四跳", "五跳", "六跳"  # 新增的字段
-        ])
+        st.error("找不到 CSV 文件 'data/双色球开奖情况.csv'，请运行数据导入脚本。")
+        return pd.DataFrame()
     except Exception as e:
         st.error(f"加载或处理数据时出错: {e}")
-        return pd.DataFrame(columns=[
-            "期号", "日期", "红球1", "红球2", "红球3", "红球4", "红球5", "红球6", "蓝球",
-            "奇数", "偶数", "小号", "大号", "一区", "二区", "三区",
-            "重号", "邻号", "孤号", "和值", "AC", "跨度",
-            "二连", "三连", "四连", "五连", "六连",  # 新增的字段
-            "二跳", "三跳", "四跳", "五跳", "六跳"  # 新增的字段
-        ])
+        return pd.DataFrame()
 
 def analyze_red_balls(red_balls):
     """
