@@ -1,1 +1,0 @@
-import{j as e,T as s,g as c,P as I,f as T}from"./index.Drusyo5m.js";function d({content:a,label:l,ariaLabel:i,placement:n=I.TOP_RIGHT,isLatex:t,markdownProps:o,onMouseEnterDelay:r,containerWidth:p}){return e(T,{children:e(s,{content:a,placement:n,isLatex:t,markdownProps:o,onMouseEnterDelay:r,containerWidth:p,ariaLabel:i??c(l)})})}export{d as W};

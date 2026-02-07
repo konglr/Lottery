@@ -1,1 +1,0 @@
-import{h as l,k as h,j as s,d as n}from"./index.Drusyo5m.js";const o=t=>{const a=e=>{const{width:i,elementRef:c}=h();return s(n,{ref:c,children:s(t,{...e,width:i})})};return a.displayName=`withCalculatedWidth(${t.displayName||t.name})`,l(a,t)};export{o as w};

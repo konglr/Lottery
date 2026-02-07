@@ -1,0 +1,9 @@
+venv/
+venv_312/
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+.idea/
+*.xlsx
+my_log_file.log
