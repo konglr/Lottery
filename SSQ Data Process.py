@@ -6,12 +6,12 @@ import logging
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="data/双色球开奖情况.csv"):
+def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="data/双色球_processed_data.csv"):
     """
     1. 从双色球_lottery_data.csv读取数据
     2. 解析中奖细节 (winnerDetails)
     3. 计算各种特征 (奇偶, 大小, 三区, 重邻孤, 连号, 跳号, 和值, AC, 跨度)
-    4. 生成并保存结果到数据/双色球开奖情况.csv
+    4. 生成并保存结果到数据/双色球_processed_data.csv
     """
     if not os.path.exists(input_csv):
         logging.error(f"找不到输入文件: {input_csv}")
@@ -47,7 +47,7 @@ def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="da
             return row
         try:
             # CSV 中可能是字符串化的 Python 列表 (使用了 repr 或 str)
-            # 或者是标准 JSON。requestsdata.py 存的是 repr(list)
+            # 或者是标准 JSON。request_data_all.py 存的是 repr(list)
             # pd.read_csv 读进来如果是单引号，可能需要 ast.literal_eval 或者先处理成 json
             details = eval(details_str) # 安全起见通常用 ast.literal_eval
             for item in details:

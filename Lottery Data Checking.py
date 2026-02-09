@@ -2,7 +2,11 @@ import os
 import pandas as pd
 import logging
 from datetime import datetime
-from requestsdata import get_latest_issue_from_system
+from request_data_all import get_latest_issue_from_system
+
+# ANSI 颜色转义码
+GREEN = "\033[32m"
+RESET = "\033[0m"
 
 # 彩票信息字典
 lotteries = {
@@ -43,7 +47,9 @@ def check_lottery_data(lottery_name):
         return
 
     # 1. 检查数据行数及最早记录
-    print(f"1. 数据总行数：{len(df)}")
+    total_rows = len(df)
+    unique_issues = df['issue'].nunique()
+    print(f"1. 数据总行数：{total_rows}， 总期数：{GREEN}{unique_issues}{RESET}")
     if not df.empty:
         # 找到期号最小的那一行（可能不是日期最小，如果是跨年份期号重置的情况）
         # 但通常我们关心的是历史上的第一期
@@ -53,7 +59,7 @@ def check_lottery_data(lottery_name):
         # 如果 openTime 是 datetime 对象，转换回字符串显示
         if isinstance(earliest_date, pd.Timestamp):
             earliest_date = earliest_date.strftime('%Y-%m-%d')
-        print(f"   📅 最早一期：期号 [{earliest_issue}]，开奖日期 [{earliest_date}]")
+        print(f"   📅 最早一期：期号 [{GREEN}{earliest_issue}{RESET}]，开奖日期 [{earliest_date}]")
 
     # 2. 检查最新一期的数据是否与系统里的相同
     # 配置日志
@@ -72,12 +78,12 @@ def check_lottery_data(lottery_name):
     else:
         latest_issue_in_system = str(latest_issue_in_system)
         if last_issue_in_csv == latest_issue_in_system:
-            print(f"2. ✅ CSV与系统数据同步。最新期号为: {last_issue_in_csv}")
-            logging.info(f"{lottery_name} synchronized: {last_issue_in_csv}")
+            print(f"2. ✅ CSV与系统数据同步。最新期号为: {GREEN}{last_issue_in_csv}{RESET}")
+            logging.info(f"   {lottery_name} synchronized: {last_issue_in_csv}")
         else:
             print(f"2. ⚠️ 警告: CSV和系统数据不同步!")
-            print(f"   CSV 最新: {last_issue_in_csv}, 系统最新: {latest_issue_in_system}")
-            logging.warning(f"{lottery_name} mismatch: CSV: {last_issue_in_csv}, System: {latest_issue_in_system}")
+            print(f"   CSV 最新: {GREEN}{last_issue_in_csv}{RESET}, 系统最新: {GREEN}{latest_issue_in_system}{RESET}")
+            logging.warning(f"   {lottery_name} mismatch: CSV: {last_issue_in_csv}, System: {latest_issue_in_system}")
 
     # 3. 检查是否有重复数据 (基于 'issue' 期号)
     duplicate_mask = df.duplicated(['issue'], keep=False)

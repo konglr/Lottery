@@ -2,7 +2,7 @@ import json
 import math as math
 import pandas as pd
 import openpyxl  # 替换 xlwt
-from requestsdata import requests_data, get_latest_issue_from_system
+from request_data_all import requests_data, get_latest_issue_from_system
 
 Lottry_ID = 6  # 快乐8的ID为6; 7乐彩 ID为3；双色球 ID为1，
 

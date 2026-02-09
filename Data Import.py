@@ -1,3 +1,5 @@
+// 这个文件是原始的双色球数据导入脚本，目前已经不再使用，从网上下载而来。
+
 import pandas as pd
 import csv
 import linecache
