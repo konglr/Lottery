@@ -114,7 +114,7 @@ def main():
         update_lottery_incremental(value["id"], value["jc"])
 
     # 专门为双色球触发后期处理
-    process_ssq_data()
+    #process_ssq_data()
 
 if __name__ == "__main__":
     main()

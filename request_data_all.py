@@ -178,10 +178,6 @@ def extract_ball_numbers(record):
         for i, num in enumerate(back_numbers, start=1):
             new_record[f"蓝球{i}"] = int(num)  # 多个时叫 "蓝球1", "蓝球2"...
 
-    # 删除原始字段，保持最终数据干净
-    del new_record["frontWinningNum"]
-    del new_record["backWinningNum"]
-
     return new_record
 
 
@@ -231,7 +227,7 @@ def get_lottery_data(lottery_id, lottery_name):
     for page in tqdm(range(1, total_pages), desc=f"📥 下载 {lottery_name} 数据"):
         json_data = requests_data(page, total_count, lottery_id)
         if json_data:
-            lottery_data = parse_lottery_data(json_data)
+            lottery_data = parse_lottery_data(json_data) # 分解红球和蓝球数据到单独列
             if lottery_data:
                 all_data.extend(lottery_data)
 
@@ -264,7 +260,7 @@ def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="da
     }
     df = df.rename(columns=mapping)
 
-    # 解析中奖细节
+    # 解析中奖信息
     awards = ['一等奖', '二等奖', '三等奖', '四等奖', '五等奖', '六等奖']
     for award in awards:
         df[f'{award}注数'] = 0
@@ -284,7 +280,7 @@ def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="da
                     level = int(award_etc)
                     if 1 <= level <= 6:
                         row[f'{awards[level-1]}注数'] = base.get('awardNum', 0)
-                        row[f'{awards[level-1]}奖金'] = base.get('awardNum', 0)
+                        row[f'{awards[level-1]}奖金'] = base.get('awardMoney', 0)
                 except: continue
         except: pass
         return row

@@ -1145,3 +1145,30 @@ INFO:root:Data synchronized: 2025024
 2026-02-09 23:14:50,285 - INFO -    pl3 synchronized: 26040
 2026-02-09 23:14:50,483 - INFO -    pl5 synchronized: 26040
 2026-02-09 23:14:50,663 - INFO -    xqxc synchronized: 26017
+2026-02-13 19:32:29,798 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-02-13 19:32:31,254 - INFO - 📌 彩种 ID 1 自动检测到系统总期数: 3416
+2026-02-13 19:32:31,255 - INFO - 📄 双色球 计算总页数: 36
+2026-02-13 19:32:43,523 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/双色球_lottery_data.csv
+2026-02-13 19:32:43,761 - INFO - 📌 彩种 ID 2 自动检测到系统总期数: 7551
+2026-02-13 19:32:43,762 - INFO - 📄 福彩3D 计算总页数: 77
+2026-02-13 19:33:03,438 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/福彩3D_lottery_data.csv
+2026-02-13 19:33:03,696 - INFO - 📌 彩种 ID 3 自动检测到系统总期数: 2898
+2026-02-13 19:33:03,696 - INFO - 📄 七乐彩 计算总页数: 30
+2026-02-13 19:33:11,930 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七乐彩_lottery_data.csv
+2026-02-13 19:33:12,342 - INFO - 📌 彩种 ID 6 自动检测到系统总期数: 1864
+2026-02-13 19:33:12,342 - INFO - 📄 快乐8 计算总页数: 20
+2026-02-13 19:33:20,393 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/快乐8_lottery_data.csv
+2026-02-13 19:33:20,719 - INFO - 📌 彩种 ID 281 自动检测到系统总期数: 2839
+2026-02-13 19:33:20,720 - INFO - 📄 超级大乐透 计算总页数: 30
+2026-02-13 19:33:30,165 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/超级大乐透_lottery_data.csv
+2026-02-13 19:33:30,439 - INFO - 📌 彩种 ID 283 自动检测到系统总期数: 7519
+2026-02-13 19:33:30,439 - INFO - 📄 排列三 计算总页数: 77
+2026-02-13 19:33:52,747 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列三_lottery_data.csv
+2026-02-13 19:33:53,009 - INFO - 📌 彩种 ID 284 自动检测到系统总期数: 7520
+2026-02-13 19:33:53,009 - INFO - 📄 排列五 计算总页数: 77
+2026-02-13 19:34:15,025 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/排列五_lottery_data.csv
+2026-02-13 19:34:15,259 - INFO - 📌 彩种 ID 287 自动检测到系统总期数: 806
+2026-02-13 19:34:15,259 - INFO - 📄 七星彩 计算总页数: 10
+2026-02-13 19:34:17,489 - INFO - 数据已成功保存到 /Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/data/七星彩_lottery_data.csv
+2026-02-13 19:34:17,490 - INFO - 开始后期处理 data/双色球_lottery_data.csv ...
+2026-02-13 19:34:20,169 - INFO - ✅ 后期处理完成: data/双色球_processed_data.csv
