@@ -36,7 +36,7 @@ def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="da
 
     # 解析 winnerDetails
     # 示例结构: [{'awardEtc': '1', 'baseBetWinner': {'remark': '一等奖', 'awardNum': '8', 'awardMoney': '5687274', 'totalMoney': ''}, ...}]
-    awards = ['一等奖', '二等奖', '三等奖', '四等奖', '五等奖', '六等奖']
+    awards = ['一等奖', '二等奖', '三等奖', '四等奖', '五等奖', '六等奖', '福运奖']
     for award in awards:
         df[f'{award}注数'] = 0
         df[f'{award}奖金'] = 0
@@ -51,15 +51,25 @@ def process_ssq_data(input_csv="data/双色球_lottery_data.csv", output_csv="da
             # pd.read_csv 读进来如果是单引号，可能需要 ast.literal_eval 或者先处理成 json
             details = eval(details_str) # 安全起见通常用 ast.literal_eval
             for item in details:
-                award_etc = item.get('awardEtc')
+                award_etc = str(item.get('awardEtc', ''))
                 base = item.get('baseBetWinner', {})
+                remark = base.get('remark', '')
+                
+                # Try numeric lookup first
                 try:
                     level = int(award_etc)
                     if 1 <= level <= 6:
-                        row[f'{awards[level-1]}注数'] = base.get('awardNum', 0)
-                        row[f'{awards[level-1]}奖金'] = base.get('awardMoney', 0)
+                        award_name = awards[level-1]
+                        row[f'{award_name}注数'] = base.get('awardNum', 0)
+                        row[f'{award_name}奖金'] = base.get('awardMoney', 0)
+                        continue
                 except:
-                    continue
+                    pass
+                
+                # Check for "福运奖" in remark
+                if remark == "福运奖":
+                    row['福运奖注数'] = base.get('awardNum', 0)
+                    row['福运奖奖金'] = base.get('awardMoney', 0)
         except Exception as e:
             pass
         return row

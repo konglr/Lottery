@@ -352,7 +352,7 @@ def render_chart_odd_even_trend(df, config):
 def _get_consecutive_cols(df, red_count):
     CN_KEYS = ["", "", "二", "三", "四", "五", "六", "七", "八", "九", "十", 
                "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"]
-    # Generate list based on red_count and check existence in df (limited to 20 per process_prizes.py)
+    # Generate list based on red_count and check existence in df (limited to 20 per all_process_data.py)
     potential_cols = [f"{CN_KEYS[k]}连" for k in range(2, min(int(red_count) + 1, 21))]
     return [c for c in potential_cols if c in df.columns]
 
@@ -364,23 +364,34 @@ def render_chart_consecutive_dist(df, config):
         return
         
     counts = {c: df[c].sum() for c in cols}
-    df_plot = pd.DataFrame(list(counts.items()), columns=["连号", "出现次数"])
-    total = df_plot["出现次数"].sum()
-    if total == 0:
+    
+    # 找到有数据出现的最大连号类型索引
+    max_idx = -1
+    for i, c in enumerate(cols):
+        if counts[c] > 0:
+            max_idx = i
+            
+    if max_idx == -1:
         st.info("本期所选数据范围内未发现连号组合")
         return
         
+    # 截断列表，只保留到最大有数据的字段为止
+    active_cols = cols[:max_idx + 1]
+    
+    df_plot = pd.DataFrame([{"连号": c, "出现次数": counts[c]} for c in active_cols])
+    total = df_plot["出现次数"].sum()
+    
     df_plot["百分比"] = df_plot["出现次数"] / total if total > 0 else 0
-    df_plot['连号'] = pd.Categorical(df_plot['连号'], categories=cols, ordered=True)
+    df_plot['连号'] = pd.Categorical(df_plot['连号'], categories=active_cols, ordered=True)
     
     chart = alt.Chart(df_plot).mark_bar().encode(
-        x=alt.X('连号:O', title='连号类型', axis=alt.Axis(labelAngle=0), sort=cols),
+        x=alt.X('连号:O', title='连号类型', axis=alt.Axis(labelAngle=0), sort=active_cols),
         y=alt.Y('出现次数:Q', title='出现总次数'),
         color=alt.Color('出现次数:Q', scale=alt.Scale(scheme='blues'), legend=None),
         tooltip=['连号', '出现次数', alt.Tooltip('百分比:Q', format='.1%', title='百分比')]
     ).properties(title='连号出现次数分布（历史统计）', width=800, height=300)
     
-    text = chart.mark_text(align='center', baseline='bottom', dy=-5).encode(text=alt.Text('百分比:Q', format='.1%'))
+    text = chart.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text=alt.Text('百分比:Q', format='.1%'))
     st.altair_chart(chart + text, use_container_width=True)
 
 def render_chart_consecutive_trend(df, config):
@@ -399,7 +410,7 @@ def render_chart_consecutive_trend(df, config):
                 trend_data.append({'期号': str(row['期号']), '连号类型': c, '连号组数': int(val)})
                 
     if not trend_data:
-        st.info("近期（50期内）未发现连号组合")
+        st.info("近期未发现连号组合")
         return
         
     df_trend = pd.DataFrame(trend_data)
@@ -407,7 +418,7 @@ def render_chart_consecutive_trend(df, config):
     base = alt.Chart(df_trend).properties(width=800, height=300)
     
     points = base.mark_circle(size=60).encode(
-        x=alt.X('期号:O', title='期号（最近50期）', axis=alt.Axis(labelAngle=-45)),
+        x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45)),
         y=alt.Y('连号类型:N', title='连号类型', sort=cols),
         color=alt.Color('连号类型:N', title='连号类型', scale=alt.Scale(domain=cols), legend=None),
         tooltip=['期号', '连号类型', '连号组数']
@@ -441,23 +452,34 @@ def render_chart_jump_dist(df, config):
         return
         
     counts = {c: df[c].sum() for c in cols}
-    df_plot = pd.DataFrame(list(counts.items()), columns=["跳号", "出现次数"])
-    total = df_plot["出现次数"].sum()
-    if total == 0:
+    
+    # 找到有数据出现的最大跳号类型索引
+    max_idx = -1
+    for i, c in enumerate(cols):
+        if counts[c] > 0:
+            max_idx = i
+            
+    if max_idx == -1:
         st.info("所选数据范围内未发现跳号组合")
         return
-        
+    
+    # 截断列表，只保留到最大有数据的字段为止
+    active_cols = cols[:max_idx + 1]
+    
+    df_plot = pd.DataFrame([{"跳号": c, "出现次数": counts[c]} for c in active_cols])
+    total = df_plot["出现次数"].sum()
+    
     df_plot["百分比"] = df_plot["出现次数"] / total if total > 0 else 0
-    df_plot['跳号'] = pd.Categorical(df_plot['跳号'], categories=cols, ordered=True)
+    df_plot['跳号'] = pd.Categorical(df_plot['跳号'], categories=active_cols, ordered=True)
     
     chart = alt.Chart(df_plot).mark_bar().encode(
-        x=alt.X('跳号:O', title='跳号类型', axis=alt.Axis(labelAngle=0), sort=cols),
+        x=alt.X('跳号:O', title='跳号类型', axis=alt.Axis(labelAngle=0), sort=active_cols),
         y=alt.Y('出现次数:Q', title='出现总次数'),
         color=alt.Color('出现次数:Q', scale=alt.Scale(scheme='oranges'), legend=None),
         tooltip=['跳号', '出现次数', alt.Tooltip('百分比:Q', format='.1%', title='百分比')]
     ).properties(title='跳号出现次数分布（历史统计）', width=800, height=300)
     
-    text = chart.mark_text(align='center', baseline='bottom', dy=-5).encode(text=alt.Text('百分比:Q', format='.1%'))
+    text = chart.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text=alt.Text('百分比:Q', format='.1%'))
     st.altair_chart(chart + text, use_container_width=True)
 
 def render_chart_jump_trend(df, config):
@@ -476,7 +498,7 @@ def render_chart_jump_trend(df, config):
                 trend_data.append({'期号': str(row['期号']), '跳号类型': c, '跳号组数': int(val)})
                 
     if not trend_data:
-        st.info("近期（50期内）未发现跳号组合")
+        st.info("近期未发现跳号组合")
         return
         
     df_trend = pd.DataFrame(trend_data)
@@ -487,7 +509,7 @@ def render_chart_jump_trend(df, config):
     base = alt.Chart(df_trend).properties(width=800, height=300)
     
     points = base.mark_circle(size=60).encode(
-        x=alt.X('期号:O', title='期号（最近50期）', axis=alt.Axis(labelAngle=-45)),
+        x=alt.X('期号:O', title='期号', axis=alt.Axis(labelAngle=-45)),
         y=alt.Y('跳号类型:N', title='跳号类型', sort=present_cols),
         color=alt.Color('跳号类型:N', title='跳号类型', scale=alt.Scale(domain=present_cols), legend=None),
         tooltip=['期号', '跳号类型', '跳号组数']
@@ -523,7 +545,7 @@ def render_chart_tail_dist(df, config):
     total = df_p['出现次数'].sum()
     df_p['百分比'] = df_p['出现次数'] / total if total > 0 else 0
     chart = alt.Chart(df_p).mark_bar(color='#4C78A8').encode(
-        x=alt.X('同尾类型:N', sort=list(tail_map.values())),
+        x=alt.X('同尾类型:N', sort=list(tail_map.values()), axis=alt.Axis(labelAngle=0)),
         y=alt.Y('出现次数:Q'),
         color=alt.Color('出现次数:Q', legend=None),
         tooltip=['同尾类型', '出现次数', alt.Tooltip('百分比:Q', format='.1%')]
@@ -601,7 +623,7 @@ def render_chart_zone_dist(df, config):
     df_p["百分比"] = df_p["出现次数"] / total if total > 0 else 0
     df_p['区间'] = pd.Categorical(df_p['区间'], categories=zones, ordered=True)
     chart = alt.Chart(df_p).mark_bar().encode(
-        x=alt.X('区间:O', sort=zones),
+        x=alt.X('区间:O', sort=zones, axis=alt.Axis(labelAngle=0)),
         y=alt.Y('出现次数:Q'),
         color=alt.Color('区间:N', legend=None),
         tooltip=['区间', '出现次数', alt.Tooltip('百分比:Q', format='.1%')]
@@ -630,7 +652,7 @@ def render_chart_repeat_dist(df, config):
     total = s["出现次数"].sum()
     s["百分比"] = s["出现次数"] / total if total > 0 else 0
     chart = alt.Chart(s).mark_bar().encode(
-        x=alt.X('同号数量:N'),
+        x=alt.X('同号数量:N', axis=alt.Axis(labelAngle=0)),
         y=alt.Y('出现次数:Q'),
         tooltip=['同号数量', '出现次数', alt.Tooltip('百分比:Q', format='.1%')]
     ).properties(title='红球同号数量统计(与上一期相同的号码)', width=800, height=300)
@@ -645,7 +667,8 @@ def render_chart_repeat_trend(df, config):
         y=alt.Y('重号:Q', scale=alt.Scale(domain=[0, config['red_count']])),
         tooltip=['期号', '重号']
     ).properties(title='红球重号趋势图', width=800, height=300)
-    st.altair_chart(chart, use_container_width=True)
+    text = chart.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text=alt.Text('重号:Q', format='.0f'))
+    st.altair_chart(chart + text, use_container_width=True)
 
 def render_chart_neighbor_dist(df, config):
     st.subheader("红球邻号统计")
@@ -655,7 +678,7 @@ def render_chart_neighbor_dist(df, config):
     total = s["出现次数"].sum()
     s["百分比"] = s["出现次数"] / total if total > 0 else 0
     chart = alt.Chart(s).mark_bar().encode(
-        x=alt.X('邻号数量:N'),
+        x=alt.X('邻号数量:N', axis=alt.Axis(labelAngle=0)),
         y=alt.Y('出现次数:Q'),
         tooltip=['邻号数量', '出现次数', alt.Tooltip('百分比:Q', format='.1%')]
     ).properties(title='红球邻号数量统计', width=800, height=300)
@@ -671,7 +694,8 @@ def render_chart_neighbor_trend(df, config):
         color=alt.value('#1E90FF'),
         tooltip=['期号', '邻号']
     ).properties(title='红球邻号趋势图', width=800, height=300)
-    st.altair_chart(chart, use_container_width=True)
+    text = chart.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text=alt.Text('邻号:Q', format='.0f'))
+    st.altair_chart(chart + text, use_container_width=True)
 
 def render_chart_isolated_dist(df, config):
     st.subheader("红球孤号统计")
@@ -681,11 +705,11 @@ def render_chart_isolated_dist(df, config):
     total = s["出现次数"].sum()
     s["百分比"] = s["出现次数"] / total if total > 0 else 0
     chart = alt.Chart(s).mark_bar().encode(
-        x=alt.X('孤号数量:N'),
+        x=alt.X('孤号数量:N', axis=alt.Axis(labelAngle=0)),
         y=alt.Y('出现次数:Q'),
         tooltip=['孤号数量', '出现次数', alt.Tooltip('百分比:Q', format='.1%')]
     ).properties(title='红球孤号数量统计', width=800, height=300)
-    text = chart.mark_text(align='center', baseline='bottom', dy=-5).encode(text=alt.condition(alt.datum.出现次数 > 0, alt.Text('百分比:Q', format='.1%'), alt.value('')))
+    text = chart.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text=alt.condition(alt.datum.出现次数 > 0, alt.Text('百分比:Q', format='.1%'), alt.value('')))
     st.altair_chart(chart + text, use_container_width=True)
 
 def render_chart_isolated_trend(df, config):
@@ -694,9 +718,10 @@ def render_chart_isolated_trend(df, config):
     chart = alt.Chart(df).mark_line().encode(
         x=alt.X('期号:O', axis=alt.Axis(labelAngle=-45)),
         y=alt.Y('孤号:Q'),
+        color=alt.value('#1E90FF'),
         tooltip=['期号', '孤号']
     ).properties(title='红球孤号趋势图', width=800, height=300)
-    text = chart.mark_text(align='center', baseline='bottom', dy=-5).encode(text=alt.Text('孤号:Q', format='.0f'))
+    text = chart.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text=alt.Text('孤号:Q', format='.0f'))
     st.altair_chart(chart + text, use_container_width=True)
 
 def render_chart_sum_trend(df, config):
@@ -746,6 +771,7 @@ def render_chart_ac_trend(df, config):
     chart = alt.Chart(df).mark_line().encode(
         x=alt.X('期号:O', axis=alt.Axis(labelAngle=-45)),
         y=alt.Y('AC:Q', scale=alt.Scale(domain=[y_min, y_max])),
+        color=alt.value('#1E90FF'),
         tooltip=['期号', 'AC']
     ).properties(title='红球 AC 值趋势图', width=800, height=300)
     text = chart.mark_text(align='center', baseline='bottom', dy=-5, color='black').encode(text=alt.Text('AC:Q', format='.0f'))
@@ -863,7 +889,7 @@ def render_metrics(df, config):
             # Sort prizes (Standard first, then others)
             # Define standard prize orders for different lotteries
             std_prize_map = {
-                'ssq': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖"],
+                'ssq': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "福运奖"],
                 'dlt': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖"],
                 'd3': ["单选", "组三", "组六"],
                 'pl3': ["直选", "组选三", "组选六"],
@@ -936,12 +962,18 @@ def render_metrics(df, config):
 def render_ai(df, config):
     st.subheader("🤖 AI 预测助手 (Gemini)")
     key = st.text_input("Gemini API Key:", type="password")
-    if st.button("开始预测"):
-        if not key: st.error("Missing Key"); return
+    
+    if st.button("开始分析并预测"):
+        if not key: 
+            st.error("请输入有效的 Gemini API Key")
+            return
+            
         try:
             genai.configure(api_key=key)
             model = genai.GenerativeModel('gemini-2.0-flash')
-            recent = df.head(20)
+            
+            # 使用最近10期数据
+            recent = df.head(10)
             data_str = ""
             for _, r in recent.iterrows():
                 reds = [int(r[f"{config['red_col_prefix']}{i}"]) for i in range(1, config['red_count']+1) if f"{config['red_col_prefix']}{i}" in r]
@@ -954,12 +986,37 @@ def render_ai(df, config):
                     else:
                         base = config['blue_col_name']
                         for i in range(1, config['blue_count'] + 1):
-                            if f"{base}{i}" in r: blues.append(int(r[f"{base}{i}"]))
-                            elif f"篮球{i}" in r: blues.append(int(r[f"篮球{i}"]))
-                data_str += f"Issue: {r['期号']}, Reds: {reds}, Blues: {blues}\n"
-            resp = model.generate_content(f"Predict next {config['name']} numbers based on:\n{data_str}")
+                            if f"{base}{i}" in r: 
+                                blues.append(int(r[f"{base}{i}"]))
+                            elif f"篮球{i}" in r: 
+                                blues.append(int(r[f"篮球{i}"]))
+                data_str += f"期号: {r['期号']}, 红球: {reds}" + (f", 蓝球: {blues}" if blues else "") + "\n"
+            
+            # 构造详细的 Prompt
+            prompt = f"""你是一位专业的彩票数据分析专家。请根据以下最新的 10 期 {config['name']} 开奖数据进行深度分析：
+
+{data_str}
+
+**要求：**
+1. 简要分析近期号码的冷热趋势、奇偶比例以及是否有明显的连号或跳号规律。
+2. 结合分析结果，为下一期给出 10 组推荐的投注号码。
+3. 详细给出你选择这些号码的理由（如：考虑了遗漏值、和值范围、或是特定组合的重复性）。
+
+**输出格式：** 请使用清晰的 Markdown 格式输出，语言为中文。"""
+
+            # 在页面上显示发送给 AI 的 Prompt
+            with st.expander("查看发送给 AI 的原始指令 (Prompt)"):
+                st.code(prompt, language="text")
+            
+            with st.status("AI 正在深度分析中...", expanded=True) as status:
+                resp = model.generate_content(prompt)
+                status.update(label="分析完成！", state="complete", expanded=False)
+                
+            st.markdown("### 📊 AI 预测建议")
             st.markdown(resp.text)
-        except Exception as e: st.error(f"Error: {e}")
+            
+        except Exception as e: 
+            st.error(f"分析过程中出现错误: {e}")
 
 def main():
     st.set_page_config(page_title="彩票分析工具", layout="wide")
