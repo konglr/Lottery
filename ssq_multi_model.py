@@ -2,7 +2,11 @@ import pandas as pd
 import numpy as np
 import logging
 import argparse
+import sys
+import csv
+import json
 import os
+from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 import torch
@@ -53,17 +57,23 @@ MODEL_CONFIG = {
         'n_jobs': -1
     },
     'C': {
-        'n_estimators': 100,
-        'max_depth': 6,
-        'learning_rate': 0.1,
+        'n_estimators': 500,
+        'max_depth': 8,
+        'learning_rate': 0.02,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+        'gamma': 0.1,
+        'scale_pos_weight': 5,
         'random_state': 42,
         'n_jobs': -1,
         'eval_metric': 'logloss'
     },
     'D': {
-        'hidden_dim': 64,
-        'lr': 0.01,
-        'epochs': 30
+        'hidden_dim': 128,
+        'num_layers': 2,
+        'dropout': 0.2,
+        'lr': 0.005,
+        'epochs': 100
     }
 }
 
@@ -369,6 +379,10 @@ def train_predict_xgb(X, y, final_feature):
                 n_estimators=conf['n_estimators'],
                 max_depth=conf['max_depth'],
                 learning_rate=conf['learning_rate'],
+                subsample=conf.get('subsample', 1.0),
+                colsample_bytree=conf.get('colsample_bytree', 1.0),
+                gamma=conf.get('gamma', 0),
+                scale_pos_weight=conf.get('scale_pos_weight', 1),
                 random_state=conf['random_state'],
                 n_jobs=conf['n_jobs'],
                 eval_metric=conf['eval_metric']
@@ -385,15 +399,21 @@ def train_predict_xgb(X, y, final_feature):
 # --- Method D: LSTM (PyTorch) ---
 
 class SSQLSTM(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
         super(SSQLSTM, self).__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_dim, batch_first=True)
-        self.fc = nn.Linear(hidden_dim, output_dim)
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout if num_layers > 1 else 0)
+        self.fc = nn.Linear(hidden_size, output_size)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        _, (h_n, _) = self.lstm(x)
-        out = self.fc(h_n[-1])
+        # Initialize hidden and cell states
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        
+        out, _ = self.lstm(x, (h0, c0))
+        out = self.fc(out[:, -1, :])
         return self.sigmoid(out)
 
 def train_predict_lstm(df):
@@ -433,7 +453,14 @@ def train_predict_lstm(df):
         
         # Hyperparameters from CONFIG
         conf = MODEL_CONFIG['D']
-        model = SSQLSTM(TOTAL_NUMBERS, conf['hidden_dim'], TOTAL_NUMBERS)
+        conf = MODEL_CONFIG['D']
+        model = SSQLSTM(
+            TOTAL_NUMBERS, 
+            conf['hidden_dim'], 
+            TOTAL_NUMBERS, 
+            num_layers=conf.get('num_layers', 1), 
+            dropout=conf.get('dropout', 0)
+        )
         criterion = nn.BCELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=conf['lr'])
         
@@ -493,12 +520,52 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
     hit_counts_6 = {m: 0 for m in active_methods}
     hit_history = {m: [] for m in active_methods}
     
+    ensemble_hits_10 = 0
+    ensemble_hits_6 = 0
+    ensemble_history = []
+    
+    union_hits = 0
+    union_size_sum = 0
+    union_history = []
+    
+    voting_hits_6 = 0
+    voting_history = []
+    
+    
+    # Check if backtest.csv exists to write header
+    csv_file = 'backtest.csv'
+    file_exists = os.path.isfile(csv_file)
+    
+    # Prepare CSV Header
+    header = ['Run_Time', 'Target_Period']
+    for m in ['A', 'B', 'C', 'D']:
+        header.append(f'Params_{m}')
+        for n in range(1, TOTAL_NUMBERS + 1):
+            header.append(f'Prob_{m}_{n:02d}')
+            
+    with open(csv_file, mode='a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists or os.path.getsize(csv_file) == 0:
+            writer.writerow(header)
+
     # Overall backtest progress bar
+    current_run_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for i in tqdm(range(len(df) - test_size, len(df)), desc="历史回测进度"):
         train_df = df.iloc[:i].reset_index(drop=True)
         train_full_df = full_df.iloc[:i].reset_index(drop=True)
+        
+        # Get target info
+        target_period = df.iloc[i]['期号']
         actual_draw = set(df.iloc[i][RED_COLS].values.astype(int))
         _, current_omission = get_omission_matrix(train_df)
+        
+        # Prepare Log Row
+        row_data = {
+            'Run_Time': current_run_time,
+            'Target_Period': target_period
+        }
+        
+        current_probs = {} # Store probs for logging
         
         for m in active_methods:
             res = run_prediction(train_df, m, train_full_df, current_omission)
@@ -517,6 +584,103 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             
             hit_history[m].append((hits_6 / 6.0, hits_10 / 6.0))
             
+            # Save probs for logging
+            current_probs[m] = probs
+            
+        # Log to CSV
+        log_row = [row_data['Run_Time'], row_data['Target_Period']]
+        
+        # Add Params and Probs for A, B, C, D (fill with 0 if not active)
+        for m in ['A', 'B', 'C', 'D']:
+            # Params
+            if m in active_methods:
+                log_row.append(json.dumps(MODEL_CONFIG[m], ensure_ascii=False))
+            else:
+                log_row.append("{}")
+            
+            # Probs
+            if m in current_probs:
+                p = current_probs[m]
+                log_row.extend([f"{val:.4f}" for val in p])
+            else:
+                log_row.extend(['0.0000'] * TOTAL_NUMBERS)
+                
+        with open(csv_file, mode='a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(log_row)
+        
+        # --- Ensemble Calculation for this Period ---
+        # 1. Normalize probabilities for each method
+        # 2. Filter methods that have a "rolling" good hit rate? 
+        #    For complexity, we will just use all active methods and weight by their *current* period performance? No.
+        #    We will use a simplified ensemble: Average of Min-Max scaled probs of ALL active methods.
+        
+        ens_scores = np.zeros(TOTAL_NUMBERS)
+        valid_methods = 0
+        
+        for m in active_methods:
+            p = res[0] if isinstance(res, tuple) else res
+            p_min, p_max = p.min(), p.max()
+            if p_max > p_min:
+                # Standardize
+                std_p = (p - p_min) / (p_max - p_min)
+                ens_scores += std_p
+                valid_methods += 1
+        
+        if valid_methods > 0:
+            ens_scores /= valid_methods
+            
+            # Check hits
+            ens_sorted_idx = ens_scores.argsort()[::-1]
+            ens_top_10 = ens_sorted_idx[:10]
+            ens_hits_10 = len(actual_draw & set([int(idx+1) for idx in ens_top_10]))
+            ensemble_hits_10 += ens_hits_10
+            
+            ens_top_6 = ens_sorted_idx[:6]
+            ens_hits_6 = len(actual_draw & set([int(idx+1) for idx in ens_top_6]))
+            ensemble_hits_6 += ens_hits_6
+            
+            ensemble_history.append((ens_hits_6 / 6.0, ens_hits_10 / 6.0))
+            
+            # --- Union Ensemble (Top 10 of All Qualified) ---
+            # Union of all active methods' Top 10
+            union_set = set()
+            voting_dict = {} # Number -> (Count, Sum_Std_Prob)
+            
+            for m in active_methods:
+                p = current_probs[m]
+                p_min, p_max = p.min(), p.max()
+                std_p = (p - p_min) / (p_max - p_min) if p_max > p_min else p
+                
+                m_top_10 = p.argsort()[-10:][::-1]
+                for idx in m_top_10:
+                    num = int(idx + 1)
+                    union_set.add(num)
+                    
+                    if num not in voting_dict:
+                        voting_dict[num] = [0, 0.0]
+                    voting_dict[num][0] += 1
+                    voting_dict[num][1] += std_p[idx]
+            
+            # Calculate Union Hits
+            u_hits = len(actual_draw & union_set)
+            union_hits += u_hits
+            union_size_sum += len(union_set)
+            union_history.append((u_hits, len(union_set)))
+            
+            # --- Voting Ensemble (Top 6 most frequent) ---
+            # Sort by Count (desc), then Sum_Std_Prob (desc)
+            sorted_votes = sorted(voting_dict.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
+            voting_top_6 = [x[0] for x in sorted_votes[:6]]
+            v_hits = len(actual_draw & set(voting_top_6))
+            voting_hits_6 += v_hits
+            voting_history.append(v_hits / 6.0)
+            
+        else:
+            ensemble_history.append((0, 0))
+            union_history.append((0, 0))
+            voting_history.append(0)
+
     results = {
         m: {
             'avg_10': hit_counts_10[m] / (test_size * 6),
@@ -524,7 +688,59 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             'history': hit_history[m]
         } for m in active_methods
     }
-    return results
+    
+    # Add Ensemble Results
+    results['Ensemble'] = {
+        'avg_10': ensemble_hits_10 / (test_size * 6),
+        'avg_6': ensemble_hits_6 / (test_size * 6),
+        'history': ensemble_history
+    }
+    
+    results['Union'] = {
+        'avg_hits': union_hits / test_size,
+        'avg_size': union_size_sum / test_size,
+        'history': union_history
+    }
+    
+    results['Voting'] = {
+        'avg_6': voting_hits_6 / (test_size * 6),
+        'history': voting_history
+    }
+    
+    return results, current_run_time
+
+def log_prediction_to_csv(run_time, target_period, results, models_config):
+    """Logs a single prediction row to backtest.csv"""
+    csv_file = 'backtest.csv'
+    header = ['Run_Time', 'Target_Period']
+    for m in ['A', 'B', 'C', 'D']:
+        header.append(f'Params_{m}')
+        for n in range(1, TOTAL_NUMBERS + 1):
+            header.append(f'Prob_{m}_{n:02d}')
+            
+    row_data = {
+        'Run_Time': run_time,
+        'Target_Period': target_period
+    }
+    
+    for m in ['A', 'B', 'C', 'D']:
+        if m in results:
+            row_data[f'Params_{m}'] = json.dumps(models_config.get(m, {}))
+            probs = results[m]
+            probs = probs[0] if isinstance(probs, tuple) else probs
+            for n in range(1, TOTAL_NUMBERS + 1):
+                row_data[f'Prob_{m}_{n:02d}'] = float(probs[n-1])
+        else:
+            row_data[f'Params_{m}'] = "{}"
+            for n in range(1, TOTAL_NUMBERS + 1):
+                row_data[f'Prob_{m}_{n:02d}'] = 0.0
+
+    file_exists = os.path.isfile(csv_file)
+    with open(csv_file, mode='a', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=header)
+        if not file_exists or os.path.getsize(csv_file) == 0:
+            writer.writeheader()
+        writer.writerow(row_data)
 
 def main():
     parser = argparse.ArgumentParser(description="SSQ Multi-Model Prediction")
@@ -539,19 +755,35 @@ def main():
     full_df = pd.concat([df, omission_df], axis=1)
     
     active_methods = ['A', 'B', 'C', 'D'] if args.method == 'all' else [args.method]
-    eval_results = evaluate_methods(df, full_df, test_size=args.eval_size, active_methods=active_methods)
     
-    methods_to_run = active_methods
+    # 1. Evaluation / Backtest
+    eval_results, run_id = evaluate_methods(df, full_df, test_size=args.eval_size, active_methods=active_methods)
+    
+    # 2. Final Prediction for Next Period
+    next_period_id = int(df.iloc[-1]['期号']) + 1 # Assuming period IDs are sequential integers
+    print("\n" + "="*65)
+    print(f"🚀 正在预测下一期号码 (目标期号: {next_period_id})...")
+    
     results = {}
     importances = {}
-
-    for m in methods_to_run:
-        res = run_prediction(df, m, full_df, next_omission)
+    qualified_methods = active_methods 
+    methods_to_run = active_methods
+    _, current_omission = get_omission_matrix(df)
+    
+    for m in qualified_methods:
+        res = run_prediction(df, m, full_df, current_omission)
         if isinstance(res, tuple):
             results[m], importances[m] = res
         else:
             results[m] = res
-
+        
+    # Log Final Prediction to CSV
+    log_prediction_to_csv(run_id, next_period_id, results, MODEL_CONFIG)
+    
+    # 3. Display Results
+    # The original loop for methods_to_run is now replaced by the above final prediction logic
+    # and the display logic below.
+    
     # Output Results
     print("\n" + "="*65)
     print(f"🔮 双色球多模型综合分析报告 (历史回测期数: {args.eval_size})")
@@ -591,15 +823,15 @@ def main():
         
         ensemble_scores = np.zeros(TOTAL_NUMBERS)
         
-        # Filter methods with at least 35% hit rate
-        qualified_methods = [m for m in active_methods if eval_results[m]['avg_10'] >= 0.35]
+        # Filter methods with at least 30% hit rate
+        qualified_methods = [m for m in active_methods if eval_results[m]['avg_10'] >= 0.30]
         
         if not qualified_methods:
             print("\n" + "="*65)
-            print("⚠️ 没有模型的历史命中率达到 35% 阈值，跳过综合推荐。")
+            print("⚠️ 没有模型的历史命中率达到 30% 阈值，跳过综合推荐。")
             print("="*65)
         else:
-            total_weight = sum([eval_results[m]['avg_10'] for m in qualified_methods])
+            total_weight = sum([eval_results[m]['avg_10'] for m in qualified_methods])  # 30% hit rate      
             
             print("\n" + "="*65)
             print("🏆 多模型标准概率综合推荐 (Ensemble: 4-Model Weighted)")
@@ -628,14 +860,33 @@ def main():
                 ensemble_scores /= total_weight
                 
             top_10_idx = ensemble_scores.argsort()[-10:][::-1]
-            top_10_nums = [int(idx + 1) for idx in top_10_idx]
+            top_10_nums = [int(idx + 1) for idx in top_10_idx] 
+            
+            print(f"最佳 6 红组合: {sorted(top_10_nums[:6])}")
+            print(f"推荐 Top 10 (标准综合得分):")
+            for idx in top_10_idx:
+                print(f"  号码: {int(idx+1):02d} - 标准得分: {ensemble_scores[idx]:.4f}")
+            
+            print("\n" + "="*65)
+            # Display Ensemble History
+            if 'Ensemble' in eval_results:
+                ens_res = eval_results['Ensemble']
+                ens_history_str = ", ".join([f"{h6:.0%}/{h10:.0%}" for h6, h10 in ens_res['history']])
+                print(f"🏆 综合推荐历史命中率 (Top 6/10 覆盖率): {ens_res['avg_6']:.2%}/{ens_res['avg_10']:.2%} [{ens_history_str}]")
+                
+                # Display Union & Voting Stats
+                if 'Union' in eval_results:
+                    u_res = eval_results['Union']
+                    u_hist_str = ", ".join([f"{h}({s})" for h, s in u_res['history']])
+                    print(f"🌌 全模型并集 (Top 10 Union) 历史: 平均命中 {u_res['avg_hits']:.1f} 个 / 平均选号 {u_res['avg_size']:.1f} 个 [{u_hist_str}]")
+                
+                if 'Voting' in eval_results:
+                    v_res = eval_results['Voting']
+                    v_hist_str = ", ".join([f"{h:.0%}" for h in v_res['history']])
+                    print(f"🗳️ 频次投票 (Best 6) 历史命中率: {v_res['avg_6']:.2%} [{v_hist_str}]")
+                    
+                print("="*65)
         
-        print(f"最佳 6 红组合: {sorted(top_10_nums[:6])}")
-        print(f"推荐 Top 10 (标准综合得分):")
-        for idx in top_10_idx:
-            print(f"  号码: {int(idx+1):02d} - 标准得分: {ensemble_scores[idx]:.4f}")
-        print("="*65)
-
 
 if __name__ == "__main__":
     main()

@@ -7,6 +7,9 @@ import logging
 import os
 import google.generativeai as genai
 from funcs.functions import analyze_top_companion_pairs, analyze_top_triples
+import time
+import json
+import ast
 
 # --- Configuration ---
 logging.basicConfig(
@@ -1018,6 +1021,206 @@ def render_ai(df, config):
         except Exception as e: 
             st.error(f"分析过程中出现错误: {e}")
 
+def render_backtest_results(df_full, conf):
+    st.markdown("### 📋 历史回测详情分析")
+    
+    # 1. Load Data
+    csv_file = 'backtest.csv'
+    if not os.path.exists(csv_file):
+        st.warning("⚠️ 暂无回测数据 (backtest.csv 不存在)")
+        return
+        
+    try:
+        df_back = pd.read_csv(csv_file)
+    except Exception as e:
+        st.error(f"读取回测数据失败: {e}")
+        return
+        
+    if df_back.empty:
+        st.warning("⚠️ 回测数据为空")
+        return
+        
+    # 2. Selectors
+    # Run Time
+    run_times = sorted(df_back['Run_Time'].unique(), reverse=True)
+    sel_run_time = st.selectbox("1. 选择回测执行时间", run_times)
+    
+    df_run = df_back[df_back['Run_Time'] == sel_run_time].sort_values("Target_Period", ascending=False)
+    
+    # Target Period
+    periods = df_run['Target_Period'].unique()
+    
+    # Helper to check if period has actual draw
+    def format_period_label(p):
+        p_match = df_full[df_full['期号'].astype(str) == str(p)]
+        if p_match.empty:
+            return f"✨ 期号 {p} (预测下一期)"
+        return f"🔙 期号 {p} (历史回测)"
+
+    sel_period = st.selectbox("2. 选择回测目标期号", periods, format_func=format_period_label)
+    
+    row = df_run[df_run['Target_Period'] == sel_period].iloc[0]
+    
+    # 3. Get Actual Draw
+    actual_red = []
+    actual_blue = []
+    
+    # Check if period exists in full data
+    # Ensure types match
+    try:
+        p_match = df_full[df_full['期号'].astype(str) == str(sel_period)]
+        if not p_match.empty:
+            draw_row = p_match.iloc[0]
+            red_cols = [c for c in df_full.columns if conf['red_col_prefix'] in c]
+            actual_red = sorted(draw_row[red_cols].values.astype(int).tolist())
+            if conf['has_blue'] and conf['blue_col_name']:
+                actual_blue = [int(draw_row[conf['blue_col_name']])]
+    except Exception as e:
+        st.warning(f"无法获取实际开奖数据: {e}")
+
+    # Display Actual Draw
+    if actual_red:
+        st.markdown(f"**实际开奖 ({sel_period}):** " + 
+                    " ".join([f"<span class='lottery-ball red-ball'>{r}</span>" for r in actual_red]) + 
+                    (f" <span class='lottery-ball blue-ball'>{actual_blue[0]}</span>" if actual_blue else ""), 
+                    unsafe_allow_html=True)
+    else:
+        st.info(f"期号 {sel_period} 暂无实际开奖数据 (可能是未来预测)")
+
+    st.divider()
+
+    # 4. Process Model Data & Ensemble
+    # We need to construct a DataFrame for 33 numbers
+    # Columns: Num, Prob_A, Score_A, Prob_B, Score_B, ..., Ensemble_Score
+    
+    methods = ['A', 'B', 'C', 'D']
+    data = []
+    
+    # Calculate Ensemble Weights (Simple Average of Standardized Scores if Prob > 0)
+    # Or just use the weighted logic from ssq_multi_model? 
+    # For visualization, let's use Standardized Score Average
+    
+    total_nums = conf['red_range'][1]
+    
+    for n in range(1, total_nums + 1):
+        item = {'Number': n}
+        
+        for m in methods:
+            prob_col = f"Prob_{m}_{n:02d}"
+            if prob_col in row:
+                prob = row[prob_col]
+                item[f'Prob_{m}'] = prob
+            else:
+                item[f'Prob_{m}'] = 0.0
+        
+        data.append(item)
+        
+    df_metrics = pd.DataFrame(data)
+    
+    # Calculate Standard Scores & Ensemble
+    for m in methods:
+        col_p = f'Prob_{m}'
+        p_min = df_metrics[col_p].min()
+        p_max = df_metrics[col_p].max()
+        
+        # Standardize
+        if p_max > p_min:
+            df_metrics[f'Score_{m}'] = (df_metrics[col_p] - p_min) / (p_max - p_min)
+        else:
+            df_metrics[f'Score_{m}'] = 0.0
+            
+    # Ensemble Score (Average of Scores)
+    df_metrics['Ensemble_Score'] = df_metrics[[f'Score_{m}' for m in methods]].mean(axis=1)
+    
+    # Rank
+    df_metrics['Rank'] = df_metrics['Ensemble_Score'].rank(ascending=False)
+    df_metrics = df_metrics.sort_values('Ensemble_Score', ascending=False)
+    
+    # 5. Display Summary Metrics
+    # Top 10 Hit Rate
+    top_10_nums = df_metrics.head(10)['Number'].tolist()
+    top_6_nums = df_metrics.head(6)['Number'].tolist()
+    
+    hits_10 = len(set(top_10_nums) & set(actual_red)) if actual_red else 0
+    hits_6 = len(set(top_6_nums) & set(actual_red)) if actual_red else 0
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Ensemble Top 10 命中", f"{hits_10}/6")
+    c2.metric("Ensemble Top 6 命中", f"{hits_6}/6")
+    
+    st.divider()
+    
+    # 6. Detailed Table Comparison
+    st.subheader("🔢 模型详细对比 (Top 15)")
+    
+    # Pre-calculate data and hit metrics for the table
+    top_n = 15
+    col_data = {
+        'Ensemble': df_metrics.sort_values('Ensemble_Score', ascending=False).reset_index(drop=True)
+    }
+    for m in methods:
+        col_data[m] = df_metrics.sort_values(f'Prob_{m}', ascending=False).reset_index(drop=True)
+
+    # Calculate Header Metrics
+    header_metrics = {}
+    for key, data_df in col_data.items():
+        if actual_red:
+            h6 = len(set(data_df.head(6)['Number']) & set(actual_red))
+            h10 = len(set(data_df.head(10)['Number']) & set(actual_red))
+            header_metrics[key] = f"<br><small style='color:#28a745; font-weight:normal'>Hits: {h6}/6 | {h10}/6</small>"
+        else:
+            header_metrics[key] = ""
+
+    # Build HTML table
+    table_html = f"""
+    <style>
+        .backtest-table {{ width:100%; border-collapse: collapse; font-family: sans-serif; table-layout: fixed; border: 1px solid #dee2e6; }}
+        .backtest-table th {{ padding: 12px; text-align: center; background-color: #f8f9fa; border: 1px solid #dee2e6; color: #495057; font-weight: 600; }}
+        .backtest-table td {{ padding: 10px; text-align: center; border: 1px solid #dee2e6; vertical-align: middle; }}
+        .backtest-table tr:hover {{ background-color: #f1f3f5; }}
+        .hit-score {{ color: #d10000; font-weight: bold; background-color: #fff0f0 !important; }}
+        .num-label {{ font-size: 1.1em; display: block; margin-bottom: 2px; }}
+        .stat-label {{ color: #888; font-size: 0.85em; }}
+    </style>
+    <table class="backtest-table">
+    <thead>
+    <tr>
+        <th style="width: 60px;">排名</th>
+        <th>🏆 综合推荐{header_metrics['Ensemble']}</th>
+        <th>模型 A (统计){header_metrics['A']}</th>
+        <th>模型 B (RF){header_metrics['B']}</th>
+        <th>模型 C (XGB){header_metrics['C']}</th>
+        <th>模型 D (LSTM){header_metrics['D']}</th>
+    </tr>
+    </thead>
+    <tbody>
+    """
+    
+    for i in range(top_n):
+        table_html += "<tr>"
+        table_html += f"<td style='color: #6c757d; font-weight: 500;'>{i+1}</td>"
+        
+        # Ensemble cell
+        r_ens = col_data['Ensemble'].iloc[i]
+        num_ens = int(r_ens['Number'])
+        is_hit_ens = num_ens in actual_red
+        class_ens = "class='hit-score'" if is_hit_ens else ""
+        table_html += f"<td {class_ens}><span class='num-label'>{num_ens:02d}</span><span class='stat-label'>({r_ens['Ensemble_Score']:.3f})</span></td>"
+        
+        # Model cells
+        for m in methods:
+            r_m = col_data[m].iloc[i]
+            num_m = int(r_m['Number'])
+            is_hit_m = num_m in actual_red
+            class_m = "class='hit-score'" if is_hit_m else ""
+            table_html += f"<td {class_m}><span class='num-label'>{num_m:02d}</span><span class='stat-label'>{r_m[f'Prob_{m}']:.1%}<br>({r_m[f'Score_{m}']:.2f})</span></td>"
+            
+        table_html += "</tr>"
+        
+    table_html += "</tbody></table>"
+    st.markdown(table_html, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
 def main():
     st.set_page_config(page_title="彩票分析工具", layout="wide")
     st.markdown("<style>.lottery-ball { display: inline-block; width: 40px; height: 40px; border-radius: 50%; text-align: center; line-height: 40px; margin: 5px; font-weight: bold; color: white; } .red-ball { background-color: #ff5b5b; } .blue-ball { background-color: #5b9fff; }</style>", unsafe_allow_html=True)
@@ -1029,7 +1232,7 @@ def main():
     if df.empty: st.error(f"No data for {sel}"); return
     
     st.title(f"📊 {sel} 数据分析")
-    t1, t2, t3 = st.tabs(["📈 趋势分析", "🤖 AI 预测", "📋 历史数据"])
+    t1, t2, t3, t4 = st.tabs(["📈 趋势分析", "🤖 AI 预测", "📋 历史数据", "🔙 回测结果"])
     with t1:
         render_metrics(df, conf)
         charts = conf.get("supported_charts", ["red_freq"])
@@ -1054,5 +1257,6 @@ def main():
                 if ck in c_map: c_map[ck](df, conf); st.divider()
     with t2: render_ai(df, conf)
     with t3: st.dataframe(df, use_container_width=True)
+    with t4: render_backtest_results(df_full, conf)
 
 if __name__ == "__main__": main()
