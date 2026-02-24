@@ -1116,6 +1116,10 @@ def render_backtest_results(df_full, conf):
         data.append(item)
         
     df_metrics = pd.DataFrame(data)
+    # Ensure all Prob_ columns are numeric to avoid type mismatch errors
+    for m in methods:
+        col_p = f'Prob_{m}'
+        df_metrics[col_p] = pd.to_numeric(df_metrics[col_p], errors='coerce').fillna(0.0)
     
     # Calculate Standard Scores & Ensemble
     for m in methods:
