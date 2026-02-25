@@ -84,7 +84,8 @@ def load_data(file_path=DATA_FILE):
         df = pd.read_csv(file_path)
         if 'issue' in df.columns:
             df = df.rename(columns={'issue': '期号'})
-        df['期号'] = df['期号'].astype(str)
+        # Ensure '期号' is read as integer then string to remove .0 decimals
+        df['期号'] = pd.to_numeric(df['期号'], errors='coerce').fillna(0).astype(int).astype(str)
         # Ensure oldest to newest
         if int(df['期号'].iloc[0]) > int(df['期号'].iloc[-1]):
             df = df.iloc[::-1].reset_index(drop=True)
@@ -720,7 +721,7 @@ def log_prediction_to_csv(run_time, target_period, results, models_config):
             
     row_data = {
         'Run_Time': run_time,
-        'Target_Period': target_period
+        'Target_Period': int(float(target_period)) if target_period and str(target_period).replace('.','').isdigit() else target_period
     }
     
     for m in ['A', 'B', 'C', 'D']:

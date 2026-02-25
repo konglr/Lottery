@@ -183,7 +183,8 @@ def load_full_data(lottery_name):
         if 'period' in df.columns: column_mapping['period'] = '期号'
         if column_mapping: df = df.rename(columns=column_mapping)
         if '期号' in df.columns:
-            df['期号'] = df['期号'].astype(str)
+            # Ensure '期号' is read as integer then string to remove .0 decimals
+            df['期号'] = pd.to_numeric(df['期号'], errors='coerce').fillna(0).astype(int).astype(str)
             # Sort by issue number (descending) so head(100) gets most recent
             df = df.sort_values('期号', ascending=False)
             
@@ -355,7 +356,7 @@ def render_chart_odd_even_trend(df, config):
 def _get_consecutive_cols(df, red_count):
     CN_KEYS = ["", "", "二", "三", "四", "五", "六", "七", "八", "九", "十", 
                "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"]
-    # Generate list based on red_count and check existence in df (limited to 20 per all_process_data.py)
+    # Generate list based on red_count and check existence in df (limited to 20 per request_process_all_data.py)
     potential_cols = [f"{CN_KEYS[k]}连" for k in range(2, min(int(red_count) + 1, 21))]
     return [c for c in potential_cols if c in df.columns]
 
@@ -1032,6 +1033,10 @@ def render_backtest_results(df_full, conf):
         
     try:
         df_back = pd.read_csv(csv_file)
+        # Ensure Target_Period is string/int without .0 decimals
+        if 'Target_Period' in df_back.columns:
+            # Convert to float first to handle potential NaNs, then to int, then to str
+            df_back['Target_Period'] = pd.to_numeric(df_back['Target_Period'], errors='coerce').fillna(0).astype(int).astype(str)
     except Exception as e:
         st.error(f"读取回测数据失败: {e}")
         return
@@ -1056,17 +1061,122 @@ def render_backtest_results(df_full, conf):
         if p_match.empty:
             return f"✨ 期号 {p} (预测下一期)"
         return f"🔙 期号 {p} (历史回测)"
-
+    
     sel_period = st.selectbox("2. 选择回测目标期号", periods, format_func=format_period_label)
+
+    # 3. Build Run Summary Table (All periods in this run)
+    st.markdown("#### 📊 本次运行汇总 (命中率概览)")
+    summary_data = []
+    methods = ['A', 'B', 'C', 'D']
     
-    row = df_run[df_run['Target_Period'] == sel_period].iloc[0]
+    # Pre-calculate red ball columns prefix
+    red_cols = [c for c in df_full.columns if conf['red_col_prefix'] in c]
     
-    # 3. Get Actual Draw
+    for _, r_idx in df_run.iterrows():
+        p = r_idx['Target_Period']
+        p_str = str(p)
+        
+        # Get Actual Draw
+        p_match = df_full[df_full['期号'].astype(str) == p_str]
+        if p_match.empty:
+            summary_data.append({
+                "回测期号": f"{p} ✨",
+                "综合推荐": "-", "模型 A (统计)": "-", "模型 B (RF)": "-", "模型 C (XGB)": "-", "模型 D (LSTM)": "-"
+            })
+            continue
+            
+        a_red = set(p_match.iloc[0][red_cols].values.astype(int).tolist())
+        
+        # Calculate Hits for each method
+        p_hits = {"回测期号": p_str}
+        
+        # Calculate Ensemble Score for all numbers
+        total_nums = conf['red_range'][1]
+        m_probs = {m: [] for m in methods}
+        for n in range(1, total_nums + 1):
+            for m in methods:
+                col = f"Prob_{m}_{n:02d}"
+                m_probs[m].append(r_idx[col] if col in r_idx else 0.0)
+        
+        # Standardize and Ensemble
+        m_scores = {}
+        for m in methods:
+            probs = np.array(m_probs[m])
+            p_min, p_max = probs.min(), probs.max()
+            if p_max > p_min:
+                m_scores[m] = (probs - p_min) / (p_max - p_min)
+            else:
+                m_scores[m] = np.zeros_like(probs)
+        
+        ens_scores = np.mean([m_scores[m] for m in methods], axis=0)
+        
+        # Get Top 6 and Top 10 for Ensemble
+        top_indices = np.argsort(ens_scores)[::-1]
+        top_6_ens = (top_indices[:6] + 1).tolist()
+        top_10_ens = (top_indices[:10] + 1).tolist()
+        h6_ens = len(set(top_6_ens) & a_red)
+        h10_ens = len(set(top_10_ens) & a_red)
+        p_hits["综合推荐"] = f"{h6_ens}/6 (6) | {h10_ens}/6 (10)"
+        
+        # Get Top 6 and Top 10 for each model
+        for m in methods:
+            probs = np.array(m_probs[m])
+            top_indices_m = np.argsort(probs)[::-1]
+            top_6_m = (top_indices_m[:6] + 1).tolist()
+            top_10_m = (top_indices_m[:10] + 1).tolist()
+            h6_m = len(set(top_6_m) & a_red)
+            h10_m = len(set(top_10_m) & a_red)
+            
+            name_map = {'A': '模型 A (统计)', 'B': '模型 B (RF)', 'C': '模型 C (XGB)', 'D': '模型 D (LSTM)'}
+            p_hits[name_map[m]] = f"{h6_m}/6 (6) | {h10_m}/6 (10)"
+            
+        summary_data.append(p_hits)
+
+    if summary_data:
+        # Build HTML table for summary with conditional coloring
+        html = """
+        <style>
+            .summary-table { width:100%; border-collapse: collapse; margin-bottom: 20px; }
+            .summary-table th { padding: 8px; background-color: #f0f2f6; border: 1px solid #ddd; text-align: center; }
+            .summary-table td { padding: 8px; border: 1px solid #ddd; text-align: center; }
+            .hit-req { color: #28a745; font-weight: bold; } /* 3/6 Green */
+            .hit-exc { color: #d73a49; font-weight: bold; } /* 4+/6 Red */
+        </style>
+        <table class="summary-table">
+        <thead><tr>
+        """
+        for col in ["回测期号", "综合推荐", "模型 A (统计)", "模型 B (RF)", "模型 C (XGB)", "模型 D (LSTM)"]:
+            html += f"<th>{col}</th>"
+        html += "</tr></thead><tbody>"
+        
+        for row in summary_data:
+            html += "<tr>"
+            for col in ["回测期号", "综合推荐", "模型 A (统计)", "模型 B (RF)", "模型 C (XGB)", "模型 D (LSTM)"]:
+                val = row.get(col, "-")
+                cell_style = ""
+                # Parse h6 value from "X/6 (6) | Y/6 (10)"
+                if "/" in val and "(" in val:
+                    try:
+                        h6 = int(val.split("/")[0])
+                        if h6 == 3:
+                            cell_style = "class='hit-req'"
+                        elif h6 >= 4:
+                            cell_style = "class='hit-exc'"
+                    except:
+                        pass
+                html += f"<td {cell_style}>{val}</td>"
+            html += "</tr>"
+        html += "</tbody></table>"
+        st.markdown(html, unsafe_allow_html=True)
+    
+    st.divider()
+
+    # 4. Details for Selected Period
+    st.markdown(f"#### 🔍 期号 {sel_period} 详细回测对比")
+    
+    # actual_red/blue logic
     actual_red = []
     actual_blue = []
-    
-    # Check if period exists in full data
-    # Ensure types match
     try:
         p_match = df_full[df_full['期号'].astype(str) == str(sel_period)]
         if not p_match.empty:
@@ -1076,81 +1186,46 @@ def render_backtest_results(df_full, conf):
             if conf['has_blue'] and conf['blue_col_name']:
                 actual_blue = [int(draw_row[conf['blue_col_name']])]
     except Exception as e:
-        st.warning(f"无法获取实际开奖数据: {e}")
+        pass
 
-    # Display Actual Draw
-    if actual_red:
-        st.markdown(f"**实际开奖 ({sel_period}):** " + 
-                    " ".join([f"<span class='lottery-ball red-ball'>{r}</span>" for r in actual_red]) + 
-                    (f" <span class='lottery-ball blue-ball'>{actual_blue[0]}</span>" if actual_blue else ""), 
-                    unsafe_allow_html=True)
-    else:
-        st.info(f"期号 {sel_period} 暂无实际开奖数据 (可能是未来预测)")
-
-    st.divider()
-
-    # 4. Process Model Data & Ensemble
-    # We need to construct a DataFrame for 33 numbers
-    # Columns: Num, Prob_A, Score_A, Prob_B, Score_B, ..., Ensemble_Score
-    
-    methods = ['A', 'B', 'C', 'D']
+    # Display Actual Draw & Main Metrics
+    col_l, col_r = st.columns([1, 1])
+    with col_l:
+        if actual_red:
+            st.markdown(f"**实际开奖:** " + 
+                        " ".join([f"<span class='lottery-ball red-ball'>{r}</span>" for r in actual_red]) + 
+                        (f" <span class='lottery-ball blue-ball'>{actual_blue[0]}</span>" if actual_blue else ""), 
+                        unsafe_allow_html=True)
+        else:
+            st.info("暂无实际开奖数据 (未来预测)")
+            
+    # Process Score Data for Selected Period
+    row = df_run[df_run['Target_Period'] == sel_period].iloc[0]
     data = []
-    
-    # Calculate Ensemble Weights (Simple Average of Standardized Scores if Prob > 0)
-    # Or just use the weighted logic from ssq_multi_model? 
-    # For visualization, let's use Standardized Score Average
-    
     total_nums = conf['red_range'][1]
-    
     for n in range(1, total_nums + 1):
         item = {'Number': n}
-        
         for m in methods:
             prob_col = f"Prob_{m}_{n:02d}"
-            if prob_col in row:
-                prob = row[prob_col]
-                item[f'Prob_{m}'] = prob
-            else:
-                item[f'Prob_{m}'] = 0.0
-        
+            item[f'Prob_{m}'] = row[prob_col] if prob_col in row else 0.0
         data.append(item)
-        
     df_metrics = pd.DataFrame(data)
-    # Ensure all Prob_ columns are numeric to avoid type mismatch errors
     for m in methods:
         col_p = f'Prob_{m}'
         df_metrics[col_p] = pd.to_numeric(df_metrics[col_p], errors='coerce').fillna(0.0)
-    
-    # Calculate Standard Scores & Ensemble
-    for m in methods:
-        col_p = f'Prob_{m}'
-        p_min = df_metrics[col_p].min()
-        p_max = df_metrics[col_p].max()
-        
-        # Standardize
-        if p_max > p_min:
-            df_metrics[f'Score_{m}'] = (df_metrics[col_p] - p_min) / (p_max - p_min)
-        else:
-            df_metrics[f'Score_{m}'] = 0.0
+        p_min, p_max = df_metrics[col_p].min(), df_metrics[col_p].max()
+        df_metrics[f'Score_{m}'] = (df_metrics[col_p] - p_min) / (p_max - p_min) if p_max > p_min else 0.0
             
-    # Ensemble Score (Average of Scores)
     df_metrics['Ensemble_Score'] = df_metrics[[f'Score_{m}' for m in methods]].mean(axis=1)
     
-    # Rank
-    df_metrics['Rank'] = df_metrics['Ensemble_Score'].rank(ascending=False)
-    df_metrics = df_metrics.sort_values('Ensemble_Score', ascending=False)
+    # Calculate current period hits for display in col_r
+    h6 = len(set(df_metrics.sort_values('Ensemble_Score', ascending=False).head(6)['Number']) & set(actual_red)) if actual_red else 0
+    h10 = len(set(df_metrics.sort_values('Ensemble_Score', ascending=False).head(10)['Number']) & set(actual_red)) if actual_red else 0
     
-    # 5. Display Summary Metrics
-    # Top 10 Hit Rate
-    top_10_nums = df_metrics.head(10)['Number'].tolist()
-    top_6_nums = df_metrics.head(6)['Number'].tolist()
-    
-    hits_10 = len(set(top_10_nums) & set(actual_red)) if actual_red else 0
-    hits_6 = len(set(top_6_nums) & set(actual_red)) if actual_red else 0
-    
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Ensemble Top 10 命中", f"{hits_10}/6")
-    c2.metric("Ensemble Top 6 命中", f"{hits_6}/6")
+    with col_r:
+        s1, s2 = st.columns(2)
+        s1.metric("Ensemble Top 6", f"{h6}/6")
+        s2.metric("Ensemble Top 10", f"{h10}/6")
     
     st.divider()
     
