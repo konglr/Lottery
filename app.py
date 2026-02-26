@@ -853,11 +853,12 @@ def render_ai(df, config):
     env_key_name = env_keys.get(brand)
     default_key = os.getenv(env_key_name, "")
     
-    key = st.text_input(f"{brand} API Key:", value=default_key, type="password")
+    # Retrieve API key from environment; no UI input displayed
+    key = default_key
     
     if st.button("开始分析并预测"):
-        if not key: 
-            st.error(f"请输入有效的 {brand} API Key")
+        if not key:
+            st.error(f"请在系统环境变量中设置 {env_key_name}")
             return
             
         try:

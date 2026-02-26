@@ -16,7 +16,7 @@ description: 本项目使用的 AI API 配置、技术指标规范及项目架�
     * OpenAI 兼容协议：`https://coding.dashscope.aliyuncs.com/v1`
     * Anthropic 兼容协议：`https://coding.dashscope.aliyuncs.com/apps/anthropic`
 * **已验证模型**:
-    * **Qwen系列**: `qwen3.5-plus`, `qwen3-max-2026-01-23`, `qwen3-coder-next`, `qwen3-coder-plus`, `qwen-max`, `qwen-plus`
+    * **Qwen系列**: `qwen3.5-plus`, `qwen3-max-2026-01-23`, `qwen3-coder-next`, `qwen3-coder-plus`
     * **第三方托管**: `MiniMax-M2.5`, `glm-5`, `glm-4.7`, `kimi-k2.5`, `glm-4`, `kimi-k2-5`
 * **R 示例**:
     ```r
@@ -27,28 +27,22 @@ description: 本项目使用的 AI API 配置、技术指标规范及项目架�
 ---
 ---
 
-## 2. Gemini API (✅ 已迁移至 google-genai)
+## 2. Gemini API (New)
 
-* **SDK 要求**: 必须使用最新的 `google-genai` package (不再支持 `google-generativeai`)。
-* **API Key 环境变量**: `GEMINI_API_KEY` (从 `.Renviron` 读取)
+* **API Key 环境变量**: `GEMINI_API_KEY` (注意：代码中已从 `GOOGLE_API_KEY` 统一为 `GEMINI_API_KEY`)
 * **已验证模型**:
     * **Gemini 3系列**: `models/gemini-3.1-pro-preview`, `models/gemini-3-pro-preview`, `models/gemini-3-flash-preview`
     * **Gemini 2.5系列**: `models/gemini-2.5-pro`, `models/gemini-2.5-flash`, `models/gemini-2.5-flash-lite`
     * **Gemini 2.0系列**: `models/gemini-2.0-flash`
-* **Python 调用示例** (最新 Client 架构):
+* **Python 调用示例**:
     ```python
-    from google import genai
+    import google.generativeai as genai
     import os
     
-    # 手动加载 .Renviron (详见下文 4. 规范)
     api_key = os.getenv("GEMINI_API_KEY")
-    client = genai.Client(api_key=api_key)
-    
-    response = client.models.generate_content(
-        model='models/gemini-3-flash-preview',
-        contents="Hello"
-    )
-    print(response.text)
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('models/gemini-3-flash-preview')
+    response = model.generate_content("Hello")
     ```
 
 ---

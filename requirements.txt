@@ -1,5 +1,8 @@
-openpyxl
+streamlit
 pandas
 numpy
 matplotlib
-google-generativeai
+altair
+google-genai
+openai
+openpyxl

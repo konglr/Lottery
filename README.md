@@ -1,36 +1,62 @@
-#  Lottery Analysis & Prediction
+# 🎰 Lottery Analysis & Prediction (彩票数据采集、分析与预测)
 
 [![Streamlit App](https://img.shields.io/badge/Streamlit%20App-Online-brightgreen)](https://lottery-analysis.streamlit.app)
 
-探索彩票数据的奥秘，提高你的中奖概率！
+基于 Python 和 Streamlit 构建的一站式彩票数据处理平台，集成自动化数据采集、深度统计分析及多模型 AI 预测功能。
 
-##  数据分析
+## 🌟 核心功能
 
-- **深度分析：** 我们深入挖掘历史彩票数据，揭示隐藏的模式和趋势。
-- **可视化呈现：** 通过直观的图表和图形，让你轻松理解复杂的数据。
-- **多维度分析：** 从号码频率到分布，我们提供全方位的分析视角。
+### 1. 自动化数据管理
+- **实时采集**：支持中国福利彩票与体育彩票官方数据的自动增量更新。
+- **数据校验**：内置完整性检查脚本，确保历史开奖数据的准确无误。
 
-## ️ 选号工具
+### 2. 多维统计分析
+- **冷热分析**：可视化红蓝球出现频率、遗漏值及百分比。
+- **规律挖掘**：包含奇偶比、大小比、连号、跳号、区间分布、和值趋势等 20+ 项技术指标。
+- **关联分析**：支持 Top 伴随对、三连组合等深度关联挖掘。
 
-- **智能选号：** 基于数据分析结果，为你推荐潜在的中奖号码。
-- **号码过滤：** 根据你的偏好，筛选出符合条件的号码组合。
-- **自定义设置：** 灵活调整参数，定制你的专属选号方案。
+### 3. 多模型 AI 预测
+集成全球顶级大模型，通过历史规律辅助选号：
+- **Google Gemini** (Gemini 2.0/1.5 系列)
+- **NVIDIA NIM** (GLM-4.7, Llama 3.1)
+- **MiniMax** (M2.5)
+- **阿里 DashScope** (通义千问 Qwen 系列)
 
-##  预测方式 (开发中)
+### 4. 自动化回测
+- 内置模型评估系统，通过历史数据验证预测策略的有效性，并生成可视化回测报告。
 
-- **统计模型：** 利用概率论和统计学，预测未来开奖号码。
-- **机器学习：** 训练 AI 模型，学习历史数据，提高预测准确率。
-- **深度学习：** 探索神经网络在彩票预测中的应用，挖掘更深层次的模式。
+## 📊 支持彩种
 
-##  支持彩种
+项目现已支持以下 8 种主流彩票：
+- **福利彩票 (CWL)**：双色球 (SSQ)、快乐8 (KL8)、福彩3D (D3)、七乐彩 (QLC)
+- **体育彩票 (CSL)**：超级大乐透 (DLT)、排列三 (PL3)、排列五 (PL5)、七星彩 (XQXC)
 
-- **中国福利彩票：**
-    - 双色球
-- **更多彩种：**
-    - 即将推出...
+## 🚀 快速开始
 
-##  体验网址
+### 本地运行
+1. **环境准备**：推荐使用 Python 3.12。
+2. **安装依赖**：
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **配置密钥**：在根目录创建 `.Renviron` 或系统环境变量，配置 API 密钥（如 `GEMINI_API_KEY`, `ALIYUNCS_API_KEY` 等）。
+4. **启动应用**：
+   ```bash
+   streamlit run app.py
+   ```
 
-访问我们的在线应用，开启你的彩票分析之旅：
+### 部署
+项目支持通过 GitHub 轻松部署至 **Streamlit Cloud**。部署后请在 Streamlit 控制台的 "Secrets" 中配置相关的 API 密钥。
 
+## 🛠️ 技术栈
+- **Frontend**: Streamlit
+- **Analysis**: Pandas, NumPy, Collections
+- **Visualization**: Altair, Matplotlib
+- **AI SDK**: google-genai, openai (compatible APIs)
+
+---
+
+## 🔗 体验网址
 [https://lottery-analysis.streamlit.app](https://lottery-analysis.streamlit.app)
+
+**免责声明**：本项目仅用于数据分析与技术研究，不构成任何投资建议。请理性购彩。
