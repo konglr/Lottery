@@ -14,6 +14,7 @@ import torch.nn as nn
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from config import LOTTERY_CONFIG
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,12 +25,78 @@ torch.manual_seed(42)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 
-# --- CONFIG ---
-DATA_FILE = "data/双色球_lottery_data.csv"
-RED_COLS = [f'红球{i}' for i in range(1, 7)]
+# --- Argument Parsing for Dynamic Config ---
+def get_args():
+    parser = argparse.ArgumentParser(description="Multi-Model Lottery Prediction")
+    parser.add_argument("--lottery", type=str, default="超级大乐透", help="彩票名称 (e.g., 双色球, 福彩3D)")
+    parser.add_argument("--method", type=str, choices=['A', 'B', 'C', 'D', 'all'], default='all', help="分析方法")
+    parser.add_argument("--eval_size", type=int, default=10, help="回测期数")
+    return parser.parse_args()
+
+args = get_args()
+LOTTERY_NAME = args.lottery
+if LOTTERY_NAME not in LOTTERY_CONFIG:
+    print(f"Error: Lottery '{LOTTERY_NAME}' not found in LOTTERY_CONFIG.")
+    sys.exit(1)
+
+conf = LOTTERY_CONFIG[LOTTERY_NAME]
+DATA_FILE = conf['data_file']
+RED_COUNT = conf['red_count']
+RED_RANGE = conf['red_range'] # (start, end)
+RED_COL_PREFIX = conf['red_col_prefix']
+RED_COLS = [f"{RED_COL_PREFIX}{i}" for i in range(1, RED_COUNT + 1)]
+TOTAL_NUMBERS = RED_RANGE[1] - RED_RANGE[0] + 1
+NUM_LIST = list(range(RED_RANGE[0], RED_RANGE[1] + 1))
 WINDOW_SIZE = 4
-TOTAL_NUMBERS = 33
-DEFAULT_EVAL_SIZE = 10
+DEFAULT_EVAL_SIZE = args.eval_size
+BACKTEST_CSV = f"data/{conf['code']}_backtest.csv"
+
+# --- Globals for Dynamic Features ---
+STAT_COLS = []
+STAT_MAP = {}
+
+def determine_stat_features(df):
+    """Dynamically identify relevant statistical columns from the dataframe."""
+    global STAT_COLS, STAT_MAP
+    
+    # Core stats that should always be checked
+    core_stats = ['和值', 'AC', '跨度', '奇数', '大号', '重号', '邻号', '孤号', '一区', '二区', '三区']
+    STAT_COLS = [c for c in core_stats if c in df.columns]
+    
+    # Add all '连' (consecutive) and '跳' (jump) columns
+    pattern_cols = [c for c in df.columns if c.endswith('连') or c.endswith('跳')]
+    # Sort them to maintain consistent feature order (e.g., 二连, 三连...)
+    # Note: Chinese sorting might be tricky, but consistent relative order is enough.
+    STAT_COLS.extend(sorted(pattern_cols))
+    
+    # Translation map for plots
+    translation = {
+        '和值': 'Sum', 'AC': 'AC', '跨度': 'Span', '奇数': 'OddCnt', 
+        '大号': 'BigCnt', '重号': 'Repeat', '邻号': 'Neighbor', '孤号': 'Isolated',
+        '一区': 'Zone1', '二区': 'Zone2', '三区': 'Zone3'
+    }
+    
+    # Chinese number to Arabic map for Consec/Jump
+    cn_num_map = {
+        '一': '1', '二': '2', '三': '3', '四': '4', '五': '5', '六': '6', '七': '7', '八': '8', '九': '9', '十': '10',
+        '十一': '11', '十二': '12', '十三': '13', '十四': '14', '十五': '15', '十六': '16', '十七': '17', '十八': '18', '十九': '19', '二十': '20'
+    }
+    
+    for col in STAT_COLS:
+        if col in translation:
+            STAT_MAP[col] = translation[col]
+        elif '连' in col:
+            num_str = col.replace('连', '')
+            eng_num = cn_num_map.get(num_str, num_str)
+            STAT_MAP[col] = f"Consec_{eng_num}"
+        elif '跳' in col:
+            num_str = col.replace('跳', '')
+            eng_num = cn_num_map.get(num_str, num_str)
+            STAT_MAP[col] = f"Jump_{eng_num}"
+        else:
+            STAT_MAP[col] = col
+    
+    logging.info(f"动态特征识别完成: {len(STAT_COLS)} 个统计特征 [{', '.join(STAT_COLS)}]")
 
 # --- MODEL HYPERPARAMETERS ---
 MODEL_CONFIG = {
@@ -69,10 +136,11 @@ MODEL_CONFIG = {
         'eval_metric': 'logloss'
     },
     'D': {
-        'hidden_dim': 128,
-        'num_layers': 2,
-        'dropout': 0.2,
-        'lr': 0.005,
+        'embedding_dim': 16,
+        'hidden_dim': 32,
+        'num_layers': 1,
+        'dropout': 0.5,
+        'lr': 0.001,
         'epochs': 100
     }
 }
@@ -101,12 +169,12 @@ def get_omission_matrix(df):
     for i in range(n_rows):
         omission_matrix[i] = current_omission.copy()
         current_draw = set(df.loc[i, RED_COLS].values)
-        for num in range(1, TOTAL_NUMBERS + 1):
+        for idx, num in enumerate(NUM_LIST):
             if num in current_draw:
-                current_omission[num-1] = 0
+                current_omission[idx] = 0
             else:
-                current_omission[num-1] += 1
-    cols = [f'Omission_{i}' for i in range(1, TOTAL_NUMBERS + 1)]
+                current_omission[idx] += 1
+    cols = [f'Omission_{i}' for i in NUM_LIST]
     return pd.DataFrame(omission_matrix, columns=cols), current_omission
 
 def extract_features(df, window_data, next_omission):
@@ -121,16 +189,12 @@ def extract_features(df, window_data, next_omission):
     features.extend(next_omission)
     
     # C. Stats
-    stat_cols = [
-        '和值', 'AC', '跨度', '奇数', '大号', '重号', '邻号', 
-        '二连', '三连', '二跳', '三跳', '四跳', '五跳', '六跳'
-    ]
     w_data = window_data.copy()
-    for col in stat_cols:
+    for col in STAT_COLS:
         if col not in w_data.columns: w_data[col] = 0
     
-    features.extend(w_data[stat_cols].mean().values)
-    features.extend(w_data[stat_cols].iloc[-1].values)
+    features.extend(w_data[STAT_COLS].mean().values)
+    features.extend(w_data[STAT_COLS].iloc[-1].values)
     
     # D. Tail Frequency
     all_tails = [int(n) % 10 for n in all_balls if n > 0]
@@ -143,22 +207,12 @@ def get_feature_names():
     """Map indices to human-readable names (English-safe for plots)."""
     names = []
     # A. Freq
-    names.extend([f"Freq_{i:02d}" for i in range(1, 34)])
+    names.extend([f"Freq_{i:02d}" for i in NUM_LIST])
     # B. Omission
-    names.extend([f"Omission_{i:02d}" for i in range(1, 34)])
-    # C. Stats (Translated for plots)
-    stat_map = {
-        '和值': 'Sum', 'AC': 'AC', '跨度': 'Span', '奇数': 'OddCnt', 
-        '大号': 'BigCnt', '重号': 'Repeat', '邻号': 'Neighbor', 
-        '二连': 'Consec2', '三连': 'Consec3', '二跳': 'Jump2', 
-        '三跳': 'Jump3', '四跳': 'Jump4', '五跳': 'Jump5', '六跳': 'Jump6'
-    }
-    stat_cols = [
-        '和值', 'AC', '跨度', '奇数', '大号', '重号', '邻号', 
-        '二连', '三连', '二跳', '三跳', '四跳', '五跳', '六跳'
-    ]
-    names.extend([f"Avg_{stat_map[c]}" for c in stat_cols])
-    names.extend([f"Last_{stat_map[c]}" for c in stat_cols])
+    names.extend([f"Omission_{i:02d}" for i in NUM_LIST])
+    # C. Stats (Dynamic translation)
+    names.extend([f"Avg_{STAT_MAP[c]}" for c in STAT_COLS])
+    names.extend([f"Last_{STAT_MAP[c]}" for c in STAT_COLS])
     # D. Tails
     names.extend([f"Tail_{i}" for i in range(10)])
     return names
@@ -244,7 +298,7 @@ def predict_similarity(df):
     target_ac = target_window['AC'].mean()
     
     # Omission similarity
-    omission_cols = [f'Omission_{i}' for i in range(1, TOTAL_NUMBERS + 1)]
+    omission_cols = [f'Omission_{i}' for i in NUM_LIST]
     has_omission = all(c in df.columns for c in omission_cols)
     if has_omission:
         target_omission = target_window.iloc[-1][omission_cols].values.astype(float)
@@ -322,11 +376,11 @@ def predict_similarity(df):
     pred_counts = np.zeros(TOTAL_NUMBERS)
     for m in top_matches:
         for n in m['draw']:
-            if 1 <= int(n) <= 33:
-                # Basic frequency increment
-                weight = 1.0
-                # Could add property weighting here (e.g. if num fits the sum range better)
-                pred_counts[int(n)-1] += weight
+            try:
+                idx = NUM_LIST.index(int(n))
+                pred_counts[idx] += 1.0
+            except ValueError:
+                pass
                 
     probs = pred_counts / pred_counts.sum() if pred_counts.sum() > 0 else np.zeros(TOTAL_NUMBERS)
     return probs
@@ -399,92 +453,116 @@ def train_predict_xgb(X, y, final_feature):
 
 # --- Method D: LSTM (PyTorch) ---
 
-class SSQLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
-        super(SSQLSTM, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout if num_layers > 1 else 0)
-        self.fc = nn.Linear(hidden_size, output_size)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        # Initialize hidden and cell states
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+class LotteryLSTM(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_layers, dropout):
+        super(LotteryLSTM, self).__init__()
         
-        out, _ = self.lstm(x, (h0, c0))
-        out = self.fc(out[:, -1, :])
-        return self.sigmoid(out)
+        # 1. Embedding Layer: maps ball IDs (0 to vocab_size-1) to vectors
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        
+        # 2. LSTM Layer
+        self.lstm = nn.LSTM(embedding_dim, 
+                            hidden_dim, 
+                            num_layers=num_layers, 
+                            dropout=dropout if num_layers > 1 else 0, 
+                            batch_first=True)
+        
+        # 3. Dropout for regularization
+        self.dropout = nn.Dropout(dropout)
+        
+        # 4. Output Layer: Logits for all possible IDs
+        self.fc = nn.Linear(hidden_dim, vocab_size)
+        
+    def forward(self, x):
+        # x shape: (batch_size, seq_len)
+        embeds = self.embedding(x) # (batch_size, seq_len, embed_dim)
+        
+        lstm_out, _ = self.lstm(embeds) # (batch_size, seq_len, hidden_dim)
+        
+        # Take the last time step
+        last_step = lstm_out[:, -1, :]
+        
+        out = self.dropout(last_step)
+        logits = self.fc(out)
+        return logits
 
 def train_predict_lstm(df):
     try:
-        torch.set_num_threads(1) # Potential fix for Mac hangs
-        logging.info("Method D: 训练 LSTM 走势捕捉模型...")
-        # Vectorized creation of seq_data
-        n_rows = len(df)
-        seq_data = np.zeros((n_rows, TOTAL_NUMBERS), dtype=np.float32)
-        red_vals = df[RED_COLS].values.astype(int)
-        for i in range(n_rows):
-            for n in red_vals[i]:
-                if 1 <= n <= 33:
-                    seq_data[i, n-1] = 1.0
+        torch.set_num_threads(1)
+        logging.info("Method D: 训练 LSTM 走势捕捉模型 (Embedding + CrossEntropy)...")
         
-        # Prepare X, y sequences
-        n_sequences = n_rows - WINDOW_SIZE
-        if n_sequences <= 0:
+        # 1. Data Preparation
+        vocab_size = NUM_LIST[-1] + 1
+        n_rows = len(df)
+        ball_seqs = []
+        for i in range(n_rows):
+            nums = sorted([int(n) for n in df.iloc[i][RED_COLS].values if pd.notna(n)])
+            ball_seqs.append(nums)
+            
+        X_list, y_list = [], []
+        for i in range(WINDOW_SIZE, n_rows):
+            x_seq = []
+            for j in range(i - WINDOW_SIZE, i):
+                x_seq.extend(ball_seqs[j])
+            
+            for target_ball in ball_seqs[i]:
+                X_list.append(x_seq)
+                y_list.append(target_ball)
+                
+        if not X_list:
             logging.warning("数据量不足, 无法训练 LSTM.")
             return np.zeros(TOTAL_NUMBERS)
             
-        logging.info(f"LSTM 数据准备完成: 序列数={n_sequences}")
-        X_seq_np = np.zeros((n_sequences, WINDOW_SIZE, TOTAL_NUMBERS), dtype=np.float32)
-        y_seq_np = np.zeros((n_sequences, TOTAL_NUMBERS), dtype=np.float32)
+        X_train = torch.LongTensor(X_list)
+        y_train = torch.LongTensor(y_list)
         
-        for i in range(n_sequences):
-            X_seq_np[i] = seq_data[i : i + WINDOW_SIZE]
-            y_seq_np[i] = seq_data[i + WINDOW_SIZE]
-            
-        # Validate target range
-        if not ((y_seq_np >= 0).all() and (y_seq_np <= 1).all()):
-            logging.error("LSTM 目标数据超出 [0, 1] 范围.")
-            return np.zeros(TOTAL_NUMBERS)
-
-        X_seq = torch.from_numpy(X_seq_np)
-        y_seq = torch.from_numpy(y_seq_np)
+        logging.info(f"LSTM 数据准备完成: 样本数={len(X_list)}, 词表大小={vocab_size}")
         
-        # Hyperparameters from CONFIG
-        conf = MODEL_CONFIG['D']
-        conf = MODEL_CONFIG['D']
-        model = SSQLSTM(
-            TOTAL_NUMBERS, 
-            conf['hidden_dim'], 
-            TOTAL_NUMBERS, 
-            num_layers=conf.get('num_layers', 1), 
-            dropout=conf.get('dropout', 0)
+        # 2. Model Initialization
+        conf_d = MODEL_CONFIG['D']
+        model = LotteryLSTM(
+            vocab_size, 
+            conf_d['embedding_dim'], 
+            conf_d['hidden_dim'], 
+            conf_d['num_layers'], 
+            conf_d['dropout']
         )
-        criterion = nn.BCELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=conf['lr'])
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=conf_d['lr'])
         
-        epochs = conf['epochs']
+        # 3. Training
+        epochs = conf_d['epochs']
         model.train()
-        logging.info(f"开始 LSTM 训练 ({epochs} epochs)...")
         pbar = tqdm(range(epochs), desc="LSTM 训练", leave=False)
         for _ in pbar:
             optimizer.zero_grad()
-            outputs = model(X_seq)
-            loss = criterion(outputs, y_seq)
-            if torch.isnan(loss):
-                logging.warning(f"LSTM loss is NaN, stopping early.")
-                break
+            logits = model(X_train)
+            loss = criterion(logits, y_train)
+            if torch.isnan(loss): break
             loss.backward()
             optimizer.step()
             pbar.set_postfix(loss=f"{loss.item():.4f}")
             
+        # 4. Prediction
         model.eval()
-        last_seq = torch.from_numpy(seq_data[-WINDOW_SIZE:]).unsqueeze(0)
+        last_x = []
+        for j in range(n_rows - WINDOW_SIZE, n_rows):
+            last_x.extend(ball_seqs[j])
+        
+        last_x_tensor = torch.LongTensor([last_x])
         with torch.no_grad():
-            probs = model(last_seq).numpy()[0]
-        return probs
+            logits = model(last_x_tensor)
+            probs_all = torch.softmax(logits, dim=1).numpy()[0]
+            
+        final_probs = np.zeros(TOTAL_NUMBERS)
+        for i, num in enumerate(NUM_LIST):
+            if num < len(probs_all):
+                final_probs[i] = probs_all[num]
+        
+        if final_probs.sum() > 0:
+            final_probs /= final_probs.sum()
+            
+        return final_probs
     except Exception as e:
         logging.error(f"Method D (LSTM) Error: {e}")
         import traceback
@@ -498,10 +576,14 @@ def run_prediction(df, method, full_df, next_omission):
         X_list, y_list = [], []
         for i in range(WINDOW_SIZE, len(full_df)):
             win = full_df.iloc[i-WINDOW_SIZE : i]
-            feat = extract_features(full_df, win, full_df.iloc[i][[f'Omission_{k}' for k in range(1, 34)]].values)
+            feat = extract_features(full_df, win, full_df.iloc[i][[f'Omission_{k}' for k in NUM_LIST]].values)
             target = np.zeros(TOTAL_NUMBERS)
             for n in full_df.loc[i, RED_COLS].values:
-                if 1 <= int(n) <= 33: target[int(n)-1] = 1
+                try:
+                    idx = NUM_LIST.index(int(n))
+                    target[idx] = 1
+                except ValueError:
+                    pass
             X_list.append(feat)
             y_list.append(target)
         last_win = full_df.iloc[-WINDOW_SIZE:]
@@ -541,12 +623,12 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
     header = ['Run_Time', 'Target_Period']
     for m in ['A', 'B', 'C', 'D']:
         header.append(f'Params_{m}')
-        for n in range(1, TOTAL_NUMBERS + 1):
+        for n in NUM_LIST:
             header.append(f'Prob_{m}_{n:02d}')
             
-    with open(csv_file, mode='a', newline='', encoding='utf-8') as f:
+    with open(BACKTEST_CSV, mode='a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        if not file_exists or os.path.getsize(csv_file) == 0:
+        if not file_exists or os.path.getsize(BACKTEST_CSV) == 0:
             writer.writerow(header)
 
     # Overall backtest progress bar
@@ -566,6 +648,9 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             'Target_Period': target_period
         }
         
+        metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10, "green_threshold": 3, "red_threshold": 4})
+        n1, n2 = metrics['top_n_1'], metrics['top_n_2']
+        
         current_probs = {} # Store probs for logging
         
         for m in active_methods:
@@ -573,17 +658,17 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             probs = res[0] if isinstance(res, tuple) else res
             sorted_idx = probs.argsort()[::-1]
             
-            # Top 10
-            top_10 = sorted_idx[:10]
-            hits_10 = len(actual_draw & set([int(idx+1) for idx in top_10]))
-            hit_counts_10[m] += hits_10
+            # Top n2 (usually 10 or 20)
+            top_n2_idx = sorted_idx[:n2]
+            hits_n2 = len(actual_draw & set([NUM_LIST[idx] for idx in top_n2_idx]))
+            hit_counts_10[m] += hits_n2 # keeping variable name for now to avoid too much renaming
             
-            # Top 6
-            top_6 = sorted_idx[:6]
-            hits_6 = len(actual_draw & set([int(idx+1) for idx in top_6]))
-            hit_counts_6[m] += hits_6
+            # Top n1 (usually 6 or 10)
+            top_n1_idx = sorted_idx[:n1]
+            hits_n1 = len(actual_draw & set([NUM_LIST[idx] for idx in top_n1_idx]))
+            hit_counts_6[m] += hits_n1
             
-            hit_history[m].append((hits_6 / 6.0, hits_10 / 6.0))
+            hit_history[m].append((hits_n1 / RED_COUNT, hits_n2 / RED_COUNT))
             
             # Save probs for logging
             current_probs[m] = probs
@@ -606,7 +691,7 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             else:
                 log_row.extend(['0.0000'] * TOTAL_NUMBERS)
                 
-        with open(csv_file, mode='a', newline='', encoding='utf-8') as f:
+        with open(BACKTEST_CSV, mode='a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(log_row)
         
@@ -633,15 +718,15 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             
             # Check hits
             ens_sorted_idx = ens_scores.argsort()[::-1]
-            ens_top_10 = ens_sorted_idx[:10]
-            ens_hits_10 = len(actual_draw & set([int(idx+1) for idx in ens_top_10]))
-            ensemble_hits_10 += ens_hits_10
+            ens_top_n2 = ens_sorted_idx[:n2]
+            ens_hits_n2 = len(actual_draw & set([NUM_LIST[idx] for idx in ens_top_n2]))
+            ensemble_hits_10 += ens_hits_n2
             
-            ens_top_6 = ens_sorted_idx[:6]
-            ens_hits_6 = len(actual_draw & set([int(idx+1) for idx in ens_top_6]))
-            ensemble_hits_6 += ens_hits_6
+            ens_top_n1 = ens_sorted_idx[:n1]
+            ens_hits_n1 = len(actual_draw & set([NUM_LIST[idx] for idx in ens_top_n1]))
+            ensemble_hits_6 += ens_hits_n1
             
-            ensemble_history.append((ens_hits_6 / 6.0, ens_hits_10 / 6.0))
+            ensemble_history.append((ens_hits_n1 / RED_COUNT, ens_hits_n2 / RED_COUNT))
             
             # --- Union Ensemble (Top 10 of All Qualified) ---
             # Union of all active methods' Top 10
@@ -669,13 +754,13 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             union_size_sum += len(union_set)
             union_history.append((u_hits, len(union_set)))
             
-            # --- Voting Ensemble (Top 6 most frequent) ---
+            # --- Voting Ensemble (Top n1 most frequent) ---
             # Sort by Count (desc), then Sum_Std_Prob (desc)
             sorted_votes = sorted(voting_dict.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
-            voting_top_6 = [x[0] for x in sorted_votes[:6]]
-            v_hits = len(actual_draw & set(voting_top_6))
+            voting_top_n1 = [x[0] for x in sorted_votes[:n1]]
+            v_hits = len(actual_draw & set(voting_top_n1))
             voting_hits_6 += v_hits
-            voting_history.append(v_hits / 6.0)
+            voting_history.append(v_hits / RED_COUNT)
             
         else:
             ensemble_history.append((0, 0))
@@ -684,16 +769,16 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
 
     results = {
         m: {
-            'avg_10': hit_counts_10[m] / (test_size * 6),
-            'avg_6': hit_counts_6[m] / (test_size * 6),
+            'avg_n1': hit_counts_6[m] / (test_size * RED_COUNT),
+            'avg_n2': hit_counts_10[m] / (test_size * RED_COUNT),
             'history': hit_history[m]
         } for m in active_methods
     }
     
     # Add Ensemble Results
     results['Ensemble'] = {
-        'avg_10': ensemble_hits_10 / (test_size * 6),
-        'avg_6': ensemble_hits_6 / (test_size * 6),
+        'avg_n1': ensemble_hits_6 / (test_size * RED_COUNT),
+        'avg_n2': ensemble_hits_10 / (test_size * RED_COUNT),
         'history': ensemble_history
     }
     
@@ -704,7 +789,7 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
     }
     
     results['Voting'] = {
-        'avg_6': voting_hits_6 / (test_size * 6),
+        'avg_n1': voting_hits_6 / (test_size * RED_COUNT),
         'history': voting_history
     }
     
@@ -712,11 +797,11 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
 
 def log_prediction_to_csv(run_time, target_period, results, models_config):
     """Logs a single prediction row to backtest.csv"""
-    csv_file = 'backtest.csv'
+    csv_file = BACKTEST_CSV
     header = ['Run_Time', 'Target_Period']
     for m in ['A', 'B', 'C', 'D']:
         header.append(f'Params_{m}')
-        for n in range(1, TOTAL_NUMBERS + 1):
+        for n in NUM_LIST:
             header.append(f'Prob_{m}_{n:02d}')
             
     row_data = {
@@ -729,11 +814,11 @@ def log_prediction_to_csv(run_time, target_period, results, models_config):
             row_data[f'Params_{m}'] = json.dumps(models_config.get(m, {}))
             probs = results[m]
             probs = probs[0] if isinstance(probs, tuple) else probs
-            for n in range(1, TOTAL_NUMBERS + 1):
-                row_data[f'Prob_{m}_{n:02d}'] = float(probs[n-1])
+            for idx, n in enumerate(NUM_LIST):
+                row_data[f'Prob_{m}_{n:02d}'] = float(probs[idx])
         else:
             row_data[f'Params_{m}'] = "{}"
-            for n in range(1, TOTAL_NUMBERS + 1):
+            for n in NUM_LIST:
                 row_data[f'Prob_{m}_{n:02d}'] = 0.0
 
     file_exists = os.path.isfile(csv_file)
@@ -744,14 +829,18 @@ def log_prediction_to_csv(run_time, target_period, results, models_config):
         writer.writerow(row_data)
 
 def main():
-    parser = argparse.ArgumentParser(description="SSQ Multi-Model Prediction")
+    parser = argparse.ArgumentParser(description=f"{LOTTERY_NAME} Multi-Model Prediction")
+    parser.add_argument("--lottery", type=str, default="双色球", help="彩票名称")
     parser.add_argument("--method", type=str, choices=['A', 'B', 'C', 'D', 'all'], default='all', help="分析方法: A-统计, B-RF, C-XGB, D-LSTM, all-全对比")
-    parser.add_argument("--eval_size", type=int, default=DEFAULT_EVAL_SIZE, help=f"回测期数 (默认 {DEFAULT_EVAL_SIZE})")
+    parser.add_argument("--eval_size", type=int, default=DEFAULT_EVAL_SIZE, help="回测期数")
     args = parser.parse_args()
     
     df = load_data()
     if df is None: return
-
+    
+    # Identify dynamic features after loading data
+    determine_stat_features(df)
+    
     omission_df, next_omission = get_omission_matrix(df)
     full_df = pd.concat([df, omission_df], axis=1)
     
@@ -782,37 +871,37 @@ def main():
     log_prediction_to_csv(run_id, next_period_id, results, MODEL_CONFIG)
     
     # 3. Display Results
-    # The original loop for methods_to_run is now replaced by the above final prediction logic
-    # and the display logic below.
-    
-    # Output Results
     print("\n" + "="*65)
-    print(f"🔮 双色球多模型综合分析报告 (历史回测期数: {args.eval_size})")
+    print(f"🔮 {LOTTERY_NAME} 多模型综合分析报告 (历史回测期数: {args.eval_size})")
     print("="*65)
-    print(f"最近期号: {df.iloc[-1]['期号']} | 预测目标: 正常下一期")
+    print(f"最近期号: {df.iloc[-1]['期号']} | 预测目标: {next_period_id}")
     
     for m in methods_to_run:
         probs = results[m]
-        top_10_idx = probs.argsort()[-10:][::-1]
-        top_10_nums = [int(idx + 1) for idx in top_10_idx]
+        top_indices = probs.argsort()[::-1]
+        top_10_nums = [NUM_LIST[idx] for idx in top_indices[:10]]
         
         # Calculate Min/Max for individual model standardization display
         p_min, p_max = probs.min(), probs.max()
         
         m_names = {'A': "统计相似度 (Method A)", 'B': "机器学习 RF (Method B)", 'C': "机器学习 XGB (Method C)", 'D': "深度学习 LSTM (Method D)"}
         print("\n" + f"--- {m_names[m]} ---")
-        history_str = ", ".join([f"{h6:.0%}/{h10:.0%}" for h6, h10 in eval_results[m]['history']])
-        print(f"历史回测平均命中率 (Top 6/10 覆盖率): {eval_results[m]['avg_6']:.2%}/{eval_results[m]['avg_10']:.2%} [{history_str}]")
-        print(f"最佳 6 红推荐: {sorted(top_10_nums[:6])}")
-        print(f"推荐 Top 10 号码 (原始概率 | 标准得分):")
-        for idx in top_10_idx:
+        metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
+        n1, n2 = metrics['top_n_1'], metrics['top_n_2']
+        
+        history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in eval_results[m]['history']])
+        print(f"历史回测平均命中率 (Top {n1}/{n2} 覆盖率): {eval_results[m]['avg_n1']:.2%}/{eval_results[m]['avg_n2']:.2%} [{history_str}]")
+        print(f"最佳 {n1} 推荐: {sorted(top_10_nums[:n1])}")
+        print(f"推荐 Top {n2} 号码 (原始概率 | 标准得分):")
+        for idx in top_indices[:n2]:
             std_val = (probs[idx] - p_min) / (p_max - p_min) if p_max > p_min else 0.0
-            print(f"  号码: {int(idx+1):02d} - 概率: {probs[idx]:.2%} | 标准得分: {std_val:.4f}")
+            print(f"  号码: {NUM_LIST[idx]:02d} - 概率: {probs[idx]:.2%} | 标准得分: {std_val:.4f}")
             
         # Display Feature Importance if available
         if m in importances:
             f_names = get_feature_names()
-            top_f = plot_importance(importances[m], f_names, m_names[m], f"importance_{m.lower()}.png")
+            plot_filename = f"data/{conf['code']}_importance_{m.lower()}.png"
+            top_f = plot_importance(importances[m], f_names, m_names[m], plot_filename)
             print(f"  核心特征影响 (Top 10):")
             for _, row in top_f.iterrows():
                 print(f"    - {row['Feature']}: {row['Importance']:.4f}")
@@ -825,25 +914,25 @@ def main():
         ensemble_scores = np.zeros(TOTAL_NUMBERS)
         
         # Filter methods with at least 30% hit rate
-        qualified_methods = [m for m in active_methods if eval_results[m]['avg_10'] >= 0.30]
+        qualified_methods = [m for m in active_methods if eval_results[m]['avg_n2'] >= 0.30]
         
         if not qualified_methods:
             print("\n" + "="*65)
             print("⚠️ 没有模型的历史命中率达到 30% 阈值，跳过综合推荐。")
             print("="*65)
         else:
-            total_weight = sum([eval_results[m]['avg_10'] for m in qualified_methods])  # 30% hit rate      
+            total_weight = sum([eval_results[m]['avg_n2'] for m in qualified_methods])  # 30% hit rate      
             
             print("\n" + "="*65)
             print("🏆 多模型标准概率综合推荐 (Ensemble: 4-Model Weighted)")
             print("="*65)
             print(f"计算逻辑: [标准化概率 = (原概率 - Min) / (Max - Min)]")
-            print(f"入选模型: " + ", ".join([f"{m}={eval_results[m]['avg_10']:.2%}" for m in qualified_methods]))
+            print(f"入选模型: " + ", ".join([f"{m}={eval_results[m]['avg_n2']:.2%}" for m in qualified_methods]))
             print("-" * 65)
             
             for m in qualified_methods:
                 raw_probs = results[m]
-                weight = eval_results[m]['avg_10']
+                weight = eval_results[m]['avg_n2']
                 
                 p_min = raw_probs.min()
                 p_max = raw_probs.max()
@@ -860,20 +949,20 @@ def main():
             if total_weight > 0:
                 ensemble_scores /= total_weight
                 
-            top_10_idx = ensemble_scores.argsort()[-10:][::-1]
-            top_10_nums = [int(idx + 1) for idx in top_10_idx] 
+            top_indices = ensemble_scores.argsort()[::-1]
+            top_n2_nums = [NUM_LIST[idx] for idx in top_indices[:n2]] 
             
-            print(f"最佳 6 红组合: {sorted(top_10_nums[:6])}")
-            print(f"推荐 Top 10 (标准综合得分):")
-            for idx in top_10_idx:
-                print(f"  号码: {int(idx+1):02d} - 标准得分: {ensemble_scores[idx]:.4f}")
+            print(f"最佳 {n1} 组合: {sorted(top_n2_nums[:n1])}")
+            print(f"推荐 Top {n2} (标准综合得分):")
+            for idx in top_indices[:n2]:
+                print(f"  号码: {NUM_LIST[idx]:02d} - 标准得分: {ensemble_scores[idx]:.4f}")
             
             print("\n" + "="*65)
             # Display Ensemble History
             if 'Ensemble' in eval_results:
                 ens_res = eval_results['Ensemble']
-                ens_history_str = ", ".join([f"{h6:.0%}/{h10:.0%}" for h6, h10 in ens_res['history']])
-                print(f"🏆 综合推荐历史命中率 (Top 6/10 覆盖率): {ens_res['avg_6']:.2%}/{ens_res['avg_10']:.2%} [{ens_history_str}]")
+                ens_history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in ens_res['history']])
+                print(f"🏆 综合推荐历史命中率 (Top {n1}/{n2} 覆盖率): {ens_res['avg_n1']:.2%}/{ens_res['avg_n2']:.2%} [{ens_history_str}]")
                 
                 # Display Union & Voting Stats
                 if 'Union' in eval_results:
@@ -884,7 +973,7 @@ def main():
                 if 'Voting' in eval_results:
                     v_res = eval_results['Voting']
                     v_hist_str = ", ".join([f"{h:.0%}" for h in v_res['history']])
-                    print(f"🗳️ 频次投票 (Best 6) 历史命中率: {v_res['avg_6']:.2%} [{v_hist_str}]")
+                    print(f"🗳️ 频次投票 (Best {n1}) 历史命中率: {v_res['avg_n1']:.2%} [{v_hist_str}]")
                     
                 print("="*65)
         

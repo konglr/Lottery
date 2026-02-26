@@ -5,11 +5,14 @@ import altair as alt
 from collections import Counter
 import logging
 import os
-import google.generativeai as genai
 from funcs.functions import analyze_top_companion_pairs, analyze_top_triples
 import time
 import json
 import ast
+from funcs.ai_helper import load_renviron, get_brand_models, prepare_lottery_data_text, generate_ai_prediction
+
+# Load environment variables from .Renviron
+load_renviron()
 
 # --- Configuration ---
 logging.basicConfig(
@@ -21,147 +24,7 @@ logging.basicConfig(
     ]
 )
 
-# Global Configuration for Lotteries
-LOTTERY_CONFIG = {
-    "双色球": {
-        "code": "ssq",
-        "data_file": "data/双色球_lottery_data.csv",
-        "has_blue": True,
-        "red_col_prefix": "红球",
-        "blue_col_name": "蓝球",
-        "red_count": 6,
-        "blue_count": 1,
-        "red_range": (1, 33),
-        "blue_range": (1, 16),
-        "supported_charts": [
-            "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"
-        ]
-    },
-    "福彩3D": {
-        "code": "d3",
-        "data_file": "data/福彩3D_lottery_data.csv",
-        "has_blue": False,
-        "red_col_prefix": "红球",
-        "blue_col_name": None,
-        "red_count": 3,
-        "blue_count": 0,
-        "red_range": (0, 9),
-        "blue_range": None,
-        "supported_charts": [ "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
-    },
-    "排列三": {
-        "code": "pl3",
-        "data_file": "data/排列三_lottery_data.csv",
-        "has_blue": False,
-        "red_col_prefix": "红球",
-        "blue_col_name": None,
-        "red_count": 3,
-        "blue_count": 0,
-        "red_range": (0, 9),
-        "blue_range": None,
-        "supported_charts": [ "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
-    },
-    "排列五": {
-        "code": "pl5",
-        "data_file": "data/排列五_lottery_data.csv",
-        "has_blue": False,
-        "red_col_prefix": "红球",
-        "blue_col_name": None,
-        "red_count": 5,
-        "blue_count": 0,
-        "red_range": (0, 9),
-        "blue_range": None,
-        "supported_charts": [ "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
-    },
-    "超级大乐透": {
-        "code": "dlt",
-        "data_file": "data/超级大乐透_lottery_data.csv",
-        "has_blue": True,
-        "red_col_prefix": "红球",
-        "blue_col_name": "蓝球", # Data uses 蓝球1, 蓝球2. logic handles this.
-        "red_count": 5,
-        "blue_count": 2,
-        "red_range": (1, 35),
-        "blue_range": (1, 12),
-        "supported_charts": ["red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
-    },
-    "七乐彩": {
-        "code": "qlc",
-        "data_file": "data/七乐彩_lottery_data.csv",
-        "has_blue": True,
-        "red_col_prefix": "红球",
-        "blue_col_name": "篮球", # CSV uses 篮球
-        "red_count": 7,
-        "blue_count": 1,
-        "red_range": (1, 30),
-        "blue_range": (1, 30),
-        "supported_charts": [ "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
-    },
-    "七星彩": {
-        "code": "xqxc", 
-        "data_file": "data/七星彩_lottery_data.csv",
-        "has_blue": True,
-        "red_col_prefix": "红球",
-        "blue_col_name": "篮球", # CSV uses 篮球
-        "red_count": 6,
-        "blue_count": 1,
-        "red_range": (0, 9),
-        "blue_range": (0, 14),
-        "supported_charts": [ "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
-    },
-    "快乐8": {
-        "code": "kl8",
-        "data_file": "data/快乐8_lottery_data.csv",
-        "has_blue": False,
-        "red_col_prefix": "红球",
-        "blue_col_name": None,
-        "red_count": 20,
-        "blue_count": 0,
-        "red_range": (1, 80),
-        "blue_range": None,
-        "supported_charts": [ "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
-            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
-            "tail_dist", "tail_trend", "size_ratio", "size_trend",
-            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
-            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
-            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
-    }
-}
+from config import LOTTERY_CONFIG
 
 # --- Helper Functions ---
 
@@ -835,6 +698,17 @@ def render_sidebar(config):
         if st.session_state.hot_nums_filter: st.session_state.hot_nums = st.sidebar.slider("红球热号个数", 0, 6, (1, 2))
         st.session_state.cold_nums_filter = st.sidebar.checkbox("冷号筛选", value=st.session_state.cold_nums_filter)
         if st.session_state.cold_nums_filter: st.session_state.cold_nums = st.sidebar.slider("红球冷号个数", 0, 6, (1, 2))
+    st.sidebar.divider()
+    st.sidebar.subheader("🤖 AI 助手配置")
+    
+    brand_models = get_brand_models()
+    ai_brand = st.sidebar.selectbox("AI 模型品牌", list(brand_models.keys()), index=0)
+    ai_model = st.sidebar.selectbox("具体模型选择", brand_models[ai_brand], index=0)
+    
+    # Store in session state for render_ai to use
+    st.session_state.ai_brand = ai_brand
+    st.session_state.ai_model = ai_model
+    
     return period
 
 def render_metrics(df, config):
@@ -964,78 +838,62 @@ def render_metrics(df, config):
     st.markdown("---")
 
 def render_ai(df, config):
-    st.subheader("🤖 AI 预测助手 (Gemini)")
-    key = st.text_input("Gemini API Key:", type="password")
+    st.subheader(f"🤖 AI 预测助手 ({st.session_state.get('ai_brand', 'Gemini')})")
+    
+    brand = st.session_state.get("ai_brand", "Gemini")
+    model_name = st.session_state.get("ai_model", "gemini-2.0-flash")
+    
+    # Try to get API Key from environment first
+    env_keys = {
+        "Gemini": "GEMINI_API_KEY",
+        "NVIDIA": "NV_API_KEY",
+        "MiniMax": "MINIMAX_API_KEY",
+        "DashScope": "ALIYUNCS_API_KEY"
+    }
+    env_key_name = env_keys.get(brand)
+    default_key = os.getenv(env_key_name, "")
+    
+    key = st.text_input(f"{brand} API Key:", value=default_key, type="password")
     
     if st.button("开始分析并预测"):
         if not key: 
-            st.error("请输入有效的 Gemini API Key")
+            st.error(f"请输入有效的 {brand} API Key")
             return
             
         try:
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            # Get period from session state if needed, but here we use the df passed in
+            # which is already filtered by the slider 'period'
+            data_str = prepare_lottery_data_text(df, config)
             
-            # 使用最近10期数据
-            recent = df.head(10)
-            data_str = ""
-            for _, r in recent.iterrows():
-                reds = [int(r[f"{config['red_col_prefix']}{i}"]) for i in range(1, config['red_count']+1) if f"{config['red_col_prefix']}{i}" in r]
-                blues = []
-                if config['has_blue']:
-                    if config['blue_count'] == 1:
-                        bc = config['blue_col_name'] if config['blue_col_name'] in r else '蓝球'
-                        if bc in r: blues.append(int(r[bc]))
-                        elif '篮球' in r: blues.append(int(r['篮球']))
-                    else:
-                        base = config['blue_col_name']
-                        for i in range(1, config['blue_count'] + 1):
-                            if f"{base}{i}" in r: 
-                                blues.append(int(r[f"{base}{i}"]))
-                            elif f"篮球{i}" in r: 
-                                blues.append(int(r[f"篮球{i}"]))
-                data_str += f"期号: {r['期号']}, 红球: {reds}" + (f", 蓝球: {blues}" if blues else "") + "\n"
-            
-            # 构造详细的 Prompt
-            prompt = f"""你是一位专业的彩票数据分析专家。请根据以下最新的 10 期 {config['name']} 开奖数据进行深度分析：
-
-{data_str}
-
-**要求：**
-1. 简要分析近期号码的冷热趋势、奇偶比例以及是否有明显的连号或跳号规律。
-2. 结合分析结果，为下一期给出 10 组推荐的投注号码。
-3. 详细给出你选择这些号码的理由（如：考虑了遗漏值、和值范围、或是特定组合的重复性）。
-
-**输出格式：** 请使用清晰的 Markdown 格式输出，语言为中文。"""
-
-            # 在页面上显示发送给 AI 的 Prompt
+            # Show Prompt
             with st.expander("查看发送给 AI 的原始指令 (Prompt)"):
-                st.code(prompt, language="text")
+                # We rebuild the prompt logic here just for display, or we could expose it from helper
+                # To keep it simple, just note what's sent
+                st.info(f"正在配置 {brand} / {model_name} 进行分析...")
+                st.text_area("数据内容:", data_str, height=200)
             
             with st.status("AI 正在深度分析中...", expanded=True) as status:
-                resp = model.generate_content(prompt)
+                prediction = generate_ai_prediction(brand, model_name, key, data_str, config)
                 status.update(label="分析完成！", state="complete", expanded=False)
                 
             st.markdown("### 📊 AI 预测建议")
-            st.markdown(resp.text)
+            st.markdown(prediction)
             
         except Exception as e: 
             st.error(f"分析过程中出现错误: {e}")
 
 def render_backtest_results(df_full, conf):
-    st.markdown("### 📋 历史回测详情分析")
+    st.markdown(f"### 📋 {conf['name']} 历史回测详情分析")
     
     # 1. Load Data
-    csv_file = 'backtest.csv'
+    csv_file = f"data/{conf['code']}_backtest.csv"
     if not os.path.exists(csv_file):
-        st.warning("⚠️ 暂无回测数据 (backtest.csv 不存在)")
+        st.warning(f"⚠️ 暂无回测数据 ({csv_file} 不存在)")
         return
         
     try:
         df_back = pd.read_csv(csv_file)
-        # Ensure Target_Period is string/int without .0 decimals
         if 'Target_Period' in df_back.columns:
-            # Convert to float first to handle potential NaNs, then to int, then to str
             df_back['Target_Period'] = pd.to_numeric(df_back['Target_Period'], errors='coerce').fillna(0).astype(int).astype(str)
     except Exception as e:
         st.error(f"读取回测数据失败: {e}")
@@ -1046,38 +904,33 @@ def render_backtest_results(df_full, conf):
         return
         
     # 2. Selectors
-    # Run Time
     run_times = sorted(df_back['Run_Time'].unique(), reverse=True)
     sel_run_time = st.selectbox("1. 选择回测执行时间", run_times)
-    
     df_run = df_back[df_back['Run_Time'] == sel_run_time].sort_values("Target_Period", ascending=False)
-    
-    # Target Period
     periods = df_run['Target_Period'].unique()
     
-    # Helper to check if period has actual draw
     def format_period_label(p):
         p_match = df_full[df_full['期号'].astype(str) == str(p)]
-        if p_match.empty:
-            return f"✨ 期号 {p} (预测下一期)"
+        if p_match.empty: return f"✨ 期号 {p} (预测下一期)"
         return f"🔙 期号 {p} (历史回测)"
     
     sel_period = st.selectbox("2. 选择回测目标期号", periods, format_func=format_period_label)
 
-    # 3. Build Run Summary Table (All periods in this run)
+    # 3. Build Run Summary Table
     st.markdown("#### 📊 本次运行汇总 (命中率概览)")
     summary_data = []
     methods = ['A', 'B', 'C', 'D']
+    metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10, "green_threshold": 3, "red_threshold": 4})
+    n1, n2 = metrics['top_n_1'], metrics['top_n_2']
+    total_draw = conf['red_count']
     
-    # Pre-calculate red ball columns prefix
     red_cols = [c for c in df_full.columns if conf['red_col_prefix'] in c]
     
     for _, r_idx in df_run.iterrows():
         p = r_idx['Target_Period']
         p_str = str(p)
-        
-        # Get Actual Draw
         p_match = df_full[df_full['期号'].astype(str) == p_str]
+        
         if p_match.empty:
             summary_data.append({
                 "回测期号": f"{p} ✨",
@@ -1086,85 +939,71 @@ def render_backtest_results(df_full, conf):
             continue
             
         a_red = set(p_match.iloc[0][red_cols].values.astype(int).tolist())
-        
-        # Calculate Hits for each method
         p_hits = {"回测期号": p_str}
         
-        # Calculate Ensemble Score for all numbers
-        total_nums = conf['red_range'][1]
+        r_start, r_end = conf['red_range']
+        num_list = list(range(r_start, r_end + 1))
         m_probs = {m: [] for m in methods}
-        for n in range(1, total_nums + 1):
+        for n in num_list:
             for m in methods:
                 col = f"Prob_{m}_{n:02d}"
-                m_probs[m].append(r_idx[col] if col in r_idx else 0.0)
+                val = r_idx[col] if col in r_idx else 0.0
+                try:
+                    # Handle potential string/mixed types from CSV
+                    m_probs[m].append(float(val))
+                except (ValueError, TypeError):
+                    m_probs[m].append(0.0)
         
-        # Standardize and Ensemble
         m_scores = {}
         for m in methods:
             probs = np.array(m_probs[m])
             p_min, p_max = probs.min(), probs.max()
-            if p_max > p_min:
-                m_scores[m] = (probs - p_min) / (p_max - p_min)
-            else:
-                m_scores[m] = np.zeros_like(probs)
+            m_scores[m] = (probs - p_min) / (p_max - p_min) if p_max > p_min else np.zeros_like(probs)
         
         ens_scores = np.mean([m_scores[m] for m in methods], axis=0)
         
-        # Get Top 6 and Top 10 for Ensemble
-        top_indices = np.argsort(ens_scores)[::-1]
-        top_6_ens = (top_indices[:6] + 1).tolist()
-        top_10_ens = (top_indices[:10] + 1).tolist()
-        h6_ens = len(set(top_6_ens) & a_red)
-        h10_ens = len(set(top_10_ens) & a_red)
-        p_hits["综合推荐"] = f"{h6_ens}/6 (6) | {h10_ens}/6 (10)"
-        
-        # Get Top 6 and Top 10 for each model
+        def get_hit_str(scores, actual):
+            top_indices = np.argsort(scores)[::-1]
+            t1 = (np.array(num_list)[top_indices[:n1]]).tolist()
+            t2 = (np.array(num_list)[top_indices[:n2]]).tolist()
+            h1 = len(set(t1) & actual)
+            h2 = len(set(t2) & actual)
+            return f"{h1}/{total_draw} ({n1}) | {h2}/{total_draw} ({n2})"
+
+        p_hits["综合推荐"] = get_hit_str(ens_scores, a_red)
         for m in methods:
-            probs = np.array(m_probs[m])
-            top_indices_m = np.argsort(probs)[::-1]
-            top_6_m = (top_indices_m[:6] + 1).tolist()
-            top_10_m = (top_indices_m[:10] + 1).tolist()
-            h6_m = len(set(top_6_m) & a_red)
-            h10_m = len(set(top_10_m) & a_red)
-            
             name_map = {'A': '模型 A (统计)', 'B': '模型 B (RF)', 'C': '模型 C (XGB)', 'D': '模型 D (LSTM)'}
-            p_hits[name_map[m]] = f"{h6_m}/6 (6) | {h10_m}/6 (10)"
-            
+            p_hits[name_map[m]] = get_hit_str(m_probs[m], a_red)
         summary_data.append(p_hits)
 
     if summary_data:
-        # Build HTML table for summary with conditional coloring
-        html = """
+        html = f"""
         <style>
-            .summary-table { width:100%; border-collapse: collapse; margin-bottom: 20px; }
-            .summary-table th { padding: 8px; background-color: #f0f2f6; border: 1px solid #ddd; text-align: center; }
-            .summary-table td { padding: 8px; border: 1px solid #ddd; text-align: center; }
-            .hit-req { color: #28a745; font-weight: bold; } /* 3/6 Green */
-            .hit-exc { color: #d73a49; font-weight: bold; } /* 4+/6 Red */
+            .summary-table {{ width:100%; border-collapse: collapse; margin-bottom: 20px; }}
+            .summary-table th {{ padding: 8px; background-color: #f0f2f6; border: 1px solid #ddd; text-align: center; }}
+            .summary-table td {{ padding: 8px; border: 1px solid #ddd; text-align: center; }}
+            .hit-req {{ color: #28a745; font-weight: bold; }}
+            .hit-exc {{ color: #d73a49; font-weight: bold; }}
         </style>
         <table class="summary-table">
         <thead><tr>
         """
-        for col in ["回测期号", "综合推荐", "模型 A (统计)", "模型 B (RF)", "模型 C (XGB)", "模型 D (LSTM)"]:
-            html += f"<th>{col}</th>"
+        cols = ["回测期号", "综合推荐", "模型 A (统计)", "模型 B (RF)", "模型 C (XGB)", "模型 D (LSTM)"]
+        for col in cols: html += f"<th>{col}</th>"
         html += "</tr></thead><tbody>"
         
         for row in summary_data:
             html += "<tr>"
-            for col in ["回测期号", "综合推荐", "模型 A (统计)", "模型 B (RF)", "模型 C (XGB)", "模型 D (LSTM)"]:
+            for col in cols:
                 val = row.get(col, "-")
-                cell_style = ""
-                # Parse h6 value from "X/6 (6) | Y/6 (10)"
+                style = ""
                 if "/" in val and "(" in val:
                     try:
-                        h6 = int(val.split("/")[0])
-                        if h6 == 3:
-                            cell_style = "class='hit-req'"
-                        elif h6 >= 4:
-                            cell_style = "class='hit-exc'"
-                    except:
-                        pass
-                html += f"<td {cell_style}>{val}</td>"
+                        h = int(val.split("/")[0])
+                        if h >= metrics['red_threshold']: style = "class='hit-exc'"
+                        elif h >= metrics['green_threshold']: style = "class='hit-req'"
+                    except: pass
+                html += f"<td {style}>{val}</td>"
             html += "</tr>"
         html += "</tbody></table>"
         st.markdown(html, unsafe_allow_html=True)
@@ -1202,8 +1041,10 @@ def render_backtest_results(df_full, conf):
     # Process Score Data for Selected Period
     row = df_run[df_run['Target_Period'] == sel_period].iloc[0]
     data = []
-    total_nums = conf['red_range'][1]
-    for n in range(1, total_nums + 1):
+    r_start, r_end = conf['red_range']
+    num_list = list(range(r_start, r_end + 1))
+    
+    for n in num_list:
         item = {'Number': n}
         for m in methods:
             prob_col = f"Prob_{m}_{n:02d}"
@@ -1219,21 +1060,21 @@ def render_backtest_results(df_full, conf):
     df_metrics['Ensemble_Score'] = df_metrics[[f'Score_{m}' for m in methods]].mean(axis=1)
     
     # Calculate current period hits for display in col_r
-    h6 = len(set(df_metrics.sort_values('Ensemble_Score', ascending=False).head(6)['Number']) & set(actual_red)) if actual_red else 0
-    h10 = len(set(df_metrics.sort_values('Ensemble_Score', ascending=False).head(10)['Number']) & set(actual_red)) if actual_red else 0
+    h1 = len(set(df_metrics.sort_values('Ensemble_Score', ascending=False).head(n1)['Number']) & set(actual_red)) if actual_red else 0
+    h2 = len(set(df_metrics.sort_values('Ensemble_Score', ascending=False).head(n2)['Number']) & set(actual_red)) if actual_red else 0
     
     with col_r:
         s1, s2 = st.columns(2)
-        s1.metric("Ensemble Top 6", f"{h6}/6")
-        s2.metric("Ensemble Top 10", f"{h10}/6")
+        s1.metric(f"Ensemble Top {n1}", f"{h1}/{total_draw}")
+        s2.metric(f"Ensemble Top {n2}", f"{h2}/{total_draw}")
     
     st.divider()
     
     # 6. Detailed Table Comparison
-    st.subheader("🔢 模型详细对比 (Top 15)")
+    st.subheader(f"🔢 模型详细对比 (Top {n2 + 5})")
     
     # Pre-calculate data and hit metrics for the table
-    top_n = 15
+    top_n = n2 + 5
     col_data = {
         'Ensemble': df_metrics.sort_values('Ensemble_Score', ascending=False).reset_index(drop=True)
     }
@@ -1244,9 +1085,9 @@ def render_backtest_results(df_full, conf):
     header_metrics = {}
     for key, data_df in col_data.items():
         if actual_red:
-            h6 = len(set(data_df.head(6)['Number']) & set(actual_red))
-            h10 = len(set(data_df.head(10)['Number']) & set(actual_red))
-            header_metrics[key] = f"<br><small style='color:#28a745; font-weight:normal'>Hits: {h6}/6 | {h10}/6</small>"
+            hh1 = len(set(data_df.head(n1)['Number']) & set(actual_red))
+            hh2 = len(set(data_df.head(n2)['Number']) & set(actual_red))
+            header_metrics[key] = f"<br><small style='color:#28a745; font-weight:normal'>Hits: {hh1}/{total_draw} ({n1}) | {hh2}/{total_draw} ({n2})</small>"
         else:
             header_metrics[key] = ""
 
@@ -1275,7 +1116,7 @@ def render_backtest_results(df_full, conf):
     <tbody>
     """
     
-    for i in range(top_n):
+    for i in range(min(top_n, len(df_metrics))):
         table_html += "<tr>"
         table_html += f"<td style='color: #6c757d; font-weight: 500;'>{i+1}</td>"
         

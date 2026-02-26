@@ -1232,3 +1232,8 @@ INFO:root:Data synchronized: 2025024
 2026-02-25 19:53:00,167 - INFO -    pl3 synchronized: 26045
 2026-02-25 19:53:00,423 - INFO -    pl5 synchronized: 26045
 2026-02-25 19:53:00,607 - INFO -    xqxc synchronized: 26020
+2026-02-26 17:29:48,328 - INFO - HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-02-26 17:46:10,153 - INFO - HTTP Request: POST https://api.minimax.chat/v1/chat/completions "HTTP/1.1 200 OK"
+2026-02-26 19:00:14,663 - INFO - HTTP Request: POST https://coding.dashscope.aliyuncs.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-02-26 19:02:49,835 - INFO - HTTP Request: POST https://coding.dashscope.aliyuncs.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-02-26 19:03:28,418 - INFO - HTTP Request: POST https://coding.dashscope.aliyuncs.com/v1/chat/completions "HTTP/1.1 400 Bad Request"
