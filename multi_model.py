@@ -28,7 +28,7 @@ if torch.cuda.is_available():
 # --- Argument Parsing for Dynamic Config ---
 def get_args():
     parser = argparse.ArgumentParser(description="Multi-Model Lottery Prediction")
-    parser.add_argument("--lottery", type=str, default="超级大乐透", help="彩票名称 (e.g., 双色球, 福彩3D)")
+    parser.add_argument("--lottery", type=str, default="双色球ge", help="彩票名称 (e.g., 双色球, 福彩3D)")
     parser.add_argument("--method", type=str, choices=['A', 'B', 'C', 'D', 'all'], default='all', help="分析方法")
     parser.add_argument("--eval_size", type=int, default=10, help="回测期数")
     return parser.parse_args()

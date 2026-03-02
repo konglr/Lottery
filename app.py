@@ -5,11 +5,13 @@ import altair as alt
 from collections import Counter
 import logging
 import os
+import itertools
 from funcs.functions import analyze_top_companion_pairs, analyze_top_triples
 import time
 import json
 import ast
 from funcs.ai_helper import load_renviron, get_brand_models, prepare_lottery_data_text, generate_ai_prediction
+from funcs.ball_filter import calculate_morphology_score, get_morphology_report
 
 # Load environment variables from .Renviron
 load_renviron()
@@ -46,10 +48,15 @@ def load_full_data(lottery_name):
         if 'period' in df.columns: column_mapping['period'] = '期号'
         if column_mapping: df = df.rename(columns=column_mapping)
         if '期号' in df.columns:
-            # Ensure '期号' is read as integer then string to remove .0 decimals
+            # 统一处理期号：转为数值，处理大乐透 26019 这种格式
             df['期号'] = pd.to_numeric(df['期号'], errors='coerce').fillna(0).astype(int).astype(str)
-            # Sort by issue number (descending) so head(100) gets most recent
-            df = df.sort_values('期号', ascending=False)
+            
+            # 如果是开奖日期存在，优先按日期排序，确保最新开奖在首行
+            if '开奖日期' in df.columns:
+                df['开奖日期'] = pd.to_datetime(df['开奖日期'], errors='coerce')
+                df = df.sort_values(['开奖日期', '期号'], ascending=[False, False])
+            else:
+                df = df.sort_values('期号', ascending=False)
             
         # Limit to 100 as the UI slider max is 100
         return df.head(100)
@@ -1142,6 +1149,141 @@ def render_backtest_results(df_full, conf):
     st.markdown(table_html, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
+def render_morphological_analysis(df_full, conf):
+    """
+    形态学优选分析：从回测概率中选取高分球进行组合评分
+    """
+    st.subheader(f"🎯 {conf['name']} 形态学智能优选")
+    
+    # 1. 加载回测数据
+    csv_file = f"data/{conf['code']}_backtest.csv"
+    if not os.path.exists(csv_file):
+        st.warning(f"⚠️ 暂无回测数据，请先运行预测脚本。")
+        return
+        
+    try:
+        df_back = pd.read_csv(csv_file)
+        if df_back.empty: return
+        # 核心修复：排除掉重复写入的表头行数据
+        df_back = df_back[df_back['Target_Period'] != 'Target_Period']
+    except Exception as e:
+        st.error(f"读取数据失败: {e}")
+        return
+
+    # 2. 预测记录选择 (时间 & 期号)
+    run_times = sorted(df_back['Run_Time'].unique(), reverse=True)
+    sel_run_time = st.selectbox("📅 1. 选择预测执行批次 (按时间)", run_times, key="morph_run_time")
+    
+    df_run = df_back[df_back['Run_Time'] == sel_run_time]
+    periods = sorted(df_run['Target_Period'].unique(), reverse=True)
+    sel_period = st.selectbox("🔢 2. 选择目标预测期号", periods, key="morph_period")
+    
+    row_data = df_run[df_run['Target_Period'] == sel_period].iloc[0]
+
+    # 3. 参数与模型选择
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        model_options = {'Prob_A': '模型 A (统计)', 'Prob_B': '模型 B (RF)', 'Prob_C': '模型 C (XGB)', 'Prob_D': '模型 D (LSTM)'}
+        sel_model = st.selectbox("选择评分基准模型", list(model_options.keys()), format_func=lambda x: model_options[x], index=1)
+    with col2:
+        top_n_balls = st.slider("候选红球池数量", 10, 20, 15)
+    with col3:
+        num_rec = st.slider("推荐组合数量", 1, 10, 5)
+
+    # 4. 提取与展示元数据
+    st.info(f"📋 **当前方案详情**: 目标期号 `{sel_period}` | 源模型 `{model_options[sel_model]}` | 预测生成于 `{sel_run_time}`")
+
+    # 4.1 提取实际开奖 (如果已开奖)
+    actual_red = []
+    p_match = df_full[df_full['期号'].astype(str) == str(sel_period)]
+    if not p_match.empty:
+        r_cols = [f"{conf['red_col_prefix']}{i}" for i in range(1, conf['red_count'] + 1)]
+        actual_red = sorted(p_match.iloc[0][r_cols].values.astype(int).tolist())
+        st.write(f"✅ **该期实际开奖**: " + " ".join([f"<span style='color:#ff4b4b; font-weight:bold;'>{r:02d}</span>" for r in actual_red]), unsafe_allow_html=True)
+    else:
+        st.write("✨ **该期尚未开奖 (未来预测)**")
+
+    # 提取高分红球
+    r_start, r_end = conf['red_range']
+    prob_cols = [f"{sel_model}_{i:02d}" for i in range(r_start, r_end + 1)]
+    prob_cols = [c for c in prob_cols if c in row_data.index]
+    
+    if not prob_cols:
+        st.error("所选模型的概率数据缺失")
+        return
+
+    probs = pd.to_numeric(row_data[prob_cols]).values
+    top_indices = np.argsort(probs)[-top_n_balls:][::-1]
+    top_balls = sorted([int(prob_cols[i].split('_')[-1]) for i in top_indices])
+    
+    # 高亮命中
+    ball_html = []
+    hit_count = 0
+    for b in top_balls:
+        if b in actual_red:
+            ball_html.append(f"<span style='color:#28a745; font-weight:bold; border-bottom:2px solid #28a745;'>{b:02d}</span>")
+            hit_count += 1
+        else:
+            ball_html.append(f"<span>{b:02d}</span>")
+    
+    st.write(f"💡 **锁定 Top {top_n_balls} 核心候选球 (命中: {hit_count})**: " + " ".join(ball_html), unsafe_allow_html=True)
+
+    # 5. 获取上一期号码 (对比开奖)
+    if df_full.empty: return
+    
+    # 智能查找上一期：
+    # 1. 尝试找到当前期号的开奖日期
+    target_row = df_full[df_full['期号'].astype(str) == str(sel_period)]
+    if not target_row.empty:
+        target_date = target_row['开奖日期'].iloc[0]
+        # 找到日期早于 target_date 的第一条记录
+        history_row = df_full[df_full['开奖日期'] < target_date].head(1)
+    else:
+        # 如果当前期还没开奖，直接取最新的开奖记录
+        history_row = df_full.head(1)
+        
+    if history_row.empty: history_row = df_full.iloc[0] # 兜底
+    
+    last_period_nums = sorted([
+        int(history_row[f"{conf['red_col_prefix']}{i}"].iloc[0] if isinstance(history_row, pd.DataFrame) else history_row[f"{conf['red_col_prefix']}{i}"]) 
+        for i in range(1, conf['red_count'] + 1)
+    ])
+    
+    # 获取上一期的期号用于显示
+    last_issue = history_row['期号'].iloc[0] if not history_row.empty else "未知"
+    st.write(f"📏 **形态参考基准**: 以 `{last_issue}` 期号码 `{', '.join([f'{x:02d}' for x in last_period_nums])}` 为参照")
+
+    # 6. 生成组合并打分
+    if st.button("🚀 开始形态学漏斗筛选"):
+        with st.status("正在进行数千种组合的物理分布扫描...", expanded=True) as status:
+            all_combos = list(itertools.combinations(top_balls, 6))
+            scored_data = []
+            
+            for combo in all_combos:
+                c_list = list(combo)
+                score = calculate_morphology_score(c_list, last_period_nums, conf['name'])
+                scored_data.append((c_list, score))
+            
+            # 排序
+            scored_data.sort(key=lambda x: x[1], reverse=True)
+            
+            # 统计分数分布
+            score_counts = Counter([d[1] for d in scored_data])
+            total_c = len(scored_data)
+            dist_str = " | ".join([f"**{s}分**: {count}组({count/total_c:.1%})" for s, count in sorted(score_counts.items(), reverse=True)])
+            
+            status.update(label=f"扫描完成！从 {total_c} 组中筛选出最优方案。", state="complete")
+            st.markdown(f"📊 **组合得分分布**: {dist_str}")
+
+        # 7. 展示结果
+        st.success(f"已为您筛选出得分最高的 {num_rec} 组精品组合：")
+        for i in range(min(num_rec, len(scored_data))):
+            combo, score = scored_data[i]
+            with st.expander(f"🏆 {sel_period}期 推荐组合 {i+1} (得分: {score}/100) - {', '.join([f'{x:02d}' for x in combo])}"):
+                report = get_morphology_report(combo, last_period_nums, conf['name'])
+                st.code(report, language="text")
+                st.write(f"**投注建议:** `{', '.join([f'{x:02d}' for x in combo])}`")
+
 def main():
     st.set_page_config(page_title="彩票分析工具", layout="wide")
     st.markdown("<style>.lottery-ball { display: inline-block; width: 40px; height: 40px; border-radius: 50%; text-align: center; line-height: 40px; margin: 5px; font-weight: bold; color: white; } .red-ball { background-color: #ff5b5b; } .blue-ball { background-color: #5b9fff; }</style>", unsafe_allow_html=True)
@@ -1153,7 +1295,7 @@ def main():
     if df.empty: st.error(f"No data for {sel}"); return
     
     st.title(f"📊 {sel} 数据分析")
-    t1, t2, t3, t4 = st.tabs(["📈 趋势分析", "🤖 AI 预测", "📋 历史数据", "🔙 回测结果"])
+    t1, t2, t3, t4, t5 = st.tabs(["📈 趋势分析", "🤖 AI 预测", "🎯 形态优选", "📋 历史数据", "🔙 回测结果"])
     with t1:
         render_metrics(df, conf)
         charts = conf.get("supported_charts", ["red_freq"])
@@ -1177,7 +1319,8 @@ def main():
             with cols[i % 2]:
                 if ck in c_map: c_map[ck](df, conf); st.divider()
     with t2: render_ai(df, conf)
-    with t3: st.dataframe(df, use_container_width=True)
-    with t4: render_backtest_results(df_full, conf)
+    with t3: render_morphological_analysis(df_full, conf)
+    with t4: st.dataframe(df, use_container_width=True)
+    with t5: render_backtest_results(df_full, conf)
 
 if __name__ == "__main__": main()

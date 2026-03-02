@@ -7,4 +7,5 @@ __pycache__/
 .idea/
 *.xlsx
 my_log_file.log
-.Renviron
+.Renviron.git_corrupted/
+.git_corrupted/
