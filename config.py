@@ -11,6 +11,7 @@ LOTTERY_CONFIG = {
         "blue_count": 1,
         "red_range": (1, 33),
         "blue_range": (1, 16),
+        "window_size": 4,
         "eval_metrics": {"top_n_1": 6, "top_n_2": 10, "green_threshold": 3, "red_threshold": 4},
         "morphology_rules": {
             "sum_range": (75, 135),
@@ -39,6 +40,7 @@ LOTTERY_CONFIG = {
         "blue_count": 2,
         "red_range": (1, 35),
         "blue_range": (1, 12),
+        "window_size": 6,
         "eval_metrics": {"top_n_1": 5, "top_n_2": 10, "green_threshold": 3, "red_threshold": 4},
         "morphology_rules": {
             "sum_range": (65, 115),
@@ -65,6 +67,7 @@ LOTTERY_CONFIG = {
         "blue_count": 1,
         "red_range": (1, 30),
         "blue_range": (1, 30),
+        "window_size": 3,
         "eval_metrics": {"top_n_1": 7, "top_n_2": 12, "green_threshold": 4, "red_threshold": 5},
         "morphology_rules": {
             "sum_range": (80, 140),
@@ -91,6 +94,7 @@ LOTTERY_CONFIG = {
         "blue_count": 0,
         "red_range": (1, 80),
         "blue_range": None,
+        "window_size": 3,
         "eval_metrics": {"top_n_1": 10, "top_n_2": 20, "green_threshold": 4, "red_threshold": 6},
         "morphology_rules": {
             "sum_range": (680, 940),
@@ -106,5 +110,121 @@ LOTTERY_CONFIG = {
             "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
             "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
             "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
+    },
+    "福彩3D": {
+        "code": "d3",
+        "data_file": "data/福彩3D_lottery_data.csv",
+        "has_blue": False,
+        "red_col_prefix": "红球",
+        "blue_col_name": None,
+        "red_count": 3,
+        "blue_count": 0,
+        "red_range": (0, 9),
+        "blue_range": None,
+        "window_size": 9, #每一位数字都可以是0-9，所以窗口大小是9
+        "eval_metrics": {"top_n_1": 3, "top_n_2": 6, "green_threshold": 1, "red_threshold": 2},
+        "morphology_rules": {
+            "sum_range": (10, 18),
+            "span_range": (3, 8),
+            "ideal_repeats": (0, 1),
+            "ideal_consecutive": [0, 1],
+            "ideal_odd_counts": [1, 2],
+            "ideal_same_tails": [0, 1]
+        },
+        "supported_charts": [
+            "red_freq", "odd_even_ratio", "odd_even_trend",
+            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
+            "tail_dist", "tail_trend", "size_ratio", "size_trend",
+            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
+            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
+            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"
+        ]
+    },
+    "排列三": {
+        "code": "pl3",
+        "data_file": "data/排列三_lottery_data.csv",
+        "has_blue": False,
+        "red_col_prefix": "红球",
+        "blue_col_name": None,
+        "red_count": 3,
+        "blue_count": 0,
+        "red_range": (0, 9),
+        "blue_range": None,
+        "window_size": 9, #每一位数字都可以是0-9，所以窗口大小是9
+        "eval_metrics": {"top_n_1": 3, "top_n_2": 6, "green_threshold": 1, "red_threshold": 2},
+        "morphology_rules": {
+            "sum_range": (10, 18),
+            "span_range": (3, 8),
+            "ideal_repeats": (0, 1),
+            "ideal_consecutive": [0, 1],
+            "ideal_odd_counts": [1, 2],
+            "ideal_same_tails": [0, 1]
+        },
+        "supported_charts": [
+            "red_freq", "odd_even_ratio", "odd_even_trend",
+            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
+            "tail_dist", "tail_trend", "size_ratio", "size_trend",
+            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
+            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
+            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"
+        ]
+    },
+    "排列五": {
+        "code": "pl5",
+        "data_file": "data/排列五_lottery_data.csv",
+        "has_blue": False,
+        "red_col_prefix": "红球",
+        "blue_col_name": None,
+        "red_count": 5,
+        "blue_count": 0,
+        "red_range": (0, 9),
+        "blue_range": None,
+        "window_size": 9, #每一位数字都可以是0-9，所以窗口大小是9
+        "eval_metrics": {"top_n_1": 5, "top_n_2": 10, "green_threshold": 2, "red_threshold": 3},
+        "morphology_rules": {
+            "sum_range": (15, 30),
+            "span_range": (4, 9),
+            "ideal_repeats": (0, 2),
+            "ideal_consecutive": [0, 1],
+            "ideal_odd_counts": [2, 3],
+            "ideal_same_tails": [0, 1, 2]
+        },
+        "supported_charts": [
+            "red_freq", "odd_even_ratio", "odd_even_trend",
+            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
+            "tail_dist", "tail_trend", "size_ratio", "size_trend",
+            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
+            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
+            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"
+        ]
+    },
+    "七星彩": {
+        "code": "xqxc",
+        "data_file": "data/七星彩_lottery_data.csv",
+        "has_blue": True,
+        "red_col_prefix": "红球",
+        "blue_col_name": "篮球",
+        "red_count": 6,
+        "blue_count": 1,
+        "red_range": (0, 9),
+        "blue_range": (0, 14),
+        "window_size": 9,  #每一位数字都可以是0-9，所以窗口大小是9
+        "eval_metrics": {"top_n_1": 6, "top_n_2": 12, "green_threshold": 3, "red_threshold": 4},
+        "morphology_rules": {
+            "sum_range": (20, 35),
+            "span_range": (5, 9),
+            "ideal_repeats": (0, 2),
+            "ideal_consecutive": [0, 1],
+            "ideal_odd_counts": [2, 3, 4],
+            "ideal_same_tails": [0, 1, 2]
+        },
+        "supported_charts": [
+            "red_freq", "blue_freq", "odd_even_ratio", "odd_even_trend",
+            "consecutive_dist", "consecutive_trend", "jump_dist", "jump_trend",
+            "tail_dist", "tail_trend", "size_ratio", "size_trend",
+            "zone_dist", "zone_trend", "repeat_dist", "repeat_trend",
+            "neighbor_dist", "neighbor_trend", "isolated_dist", "isolated_trend",
+            "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"
+        ]
     }
 }

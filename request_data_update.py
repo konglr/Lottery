@@ -1,7 +1,9 @@
 import os
+import time
 import pandas as pd
 import logging
 from request_data_all import requests_data, parse_lottery_data, get_latest_issue_from_system, process_ssq_data
+from request_process_all_data import process_all_files
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -112,9 +114,11 @@ def main():
 
     for key, value in lotteries.items():
         update_lottery_incremental(value["id"], value["jc"])
+        # 每个彩种更新完后暂停一下，避免请求太频繁
+        time.sleep(2)
 
-    # 专门为双色球触发后期处理
-    #process_ssq_data()
+    # 数据同步完成后，自动触发所有彩种数据的后期统计加工处理
+    process_all_files()
 
 if __name__ == "__main__":
     main()

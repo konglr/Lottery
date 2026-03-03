@@ -8,6 +8,8 @@ import csv # 添加csv 模块的导入
 import math
 import pandas as pd
 from tqdm import tqdm
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 # 获取脚本根目录
@@ -26,6 +28,22 @@ logging.basicConfig(
 )
 
 logging.info(f"日志文件保存在：{os.path.join(root_dir, 'my_log_file.log')}")
+
+# 创建一个全局 Session 并配置自动重试
+def create_session():
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=5,  # 最大重试次数
+        backoff_factor=1,  # 指数退避因子 (1s, 2s, 4s, 8s, 16s)
+        status_forcelist=[429, 500, 502, 503, 504],  # 需要重试的状态码
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+session = create_session()
 
 def get_total_issue_count(lottery_id):
     """
@@ -93,7 +111,14 @@ def requests_data(pages, issue_count, ID, start_issue='', end_issue=''):
          params['endIssue'] = end_issue
 
     try:
-        response = requests.get('https://jc.zhcw.com/port/client_json.php', headers=headers, params=params).content.decode('utf-8')
+        # 使用全局 session 发送请求，增加超时时间并禁用 SSL 验证（更鲁棒）
+        response = session.get(
+            'https://jc.zhcw.com/port/client_json.php', 
+            headers=headers, 
+            params=params, 
+            timeout=15, 
+            verify=False
+        ).content.decode('utf-8')
         return response
     except requests.exceptions.RequestException as e:
         logging.error(f"网络请求错误: {e}")
@@ -230,6 +255,9 @@ def get_lottery_data(lottery_id, lottery_name):
             lottery_data = parse_lottery_data(json_data) # 分解红球和蓝球数据到单独列
             if lottery_data:
                 all_data.extend(lottery_data)
+        
+        # 为了更小的连接冲击逻辑，每页抓取后增加一个微小随机延迟
+        time.sleep(1)
 
     # 保存数据
     save_to_csv(all_data, filename)

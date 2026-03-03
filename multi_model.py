@@ -1,23 +1,34 @@
+import logging
+import sys
+import os
+import time
+
+# --- Immediate Feedback ---
+print("🚀 [System] 启动模型分析引擎...", flush=True)
+
+# --- Logging Setup ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.info("正在加载核心预测引擎, 请稍候 (首次运行可能较慢)...")
+
 import pandas as pd
 import numpy as np
-import logging
 import argparse
-import sys
 import csv
 import json
-import os
 from datetime import datetime
+
+# --- Heavy Imports (might be slow) ---
+import matplotlib
+matplotlib.use('Agg') # 关键：禁用 GUI 后端，防止在无显示器环境下挂起
+import matplotlib.pyplot as plt
+
 from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 import torch
 import torch.nn as nn
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 from config import LOTTERY_CONFIG
-
-# --- Logging Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Reproducibility ---
 np.random.seed(42)
@@ -25,21 +36,23 @@ torch.manual_seed(42)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 
-# --- Argument Parsing for Dynamic Config ---
-def get_args():
+# --- Global Configuration ---
+def init_config():
     parser = argparse.ArgumentParser(description="Multi-Model Lottery Prediction")
-    parser.add_argument("--lottery", type=str, default="双色球ge", help="彩票名称 (e.g., 双色球, 福彩3D)")
+    parser.add_argument("--lottery", type=str, default="快乐8", help="彩票名称 (e.g., 双色球, 福彩3D,快乐8)")
     parser.add_argument("--method", type=str, choices=['A', 'B', 'C', 'D', 'all'], default='all', help="分析方法")
     parser.add_argument("--eval_size", type=int, default=10, help="回测期数")
-    return parser.parse_args()
+    args = parser.parse_args()
+    
+    if args.lottery not in LOTTERY_CONFIG:
+        print(f"Error: Lottery '{args.lottery}' not found in LOTTERY_CONFIG.")
+        sys.exit(1)
+        
+    conf = LOTTERY_CONFIG[args.lottery]
+    return args, conf
 
-args = get_args()
+args, conf = init_config()
 LOTTERY_NAME = args.lottery
-if LOTTERY_NAME not in LOTTERY_CONFIG:
-    print(f"Error: Lottery '{LOTTERY_NAME}' not found in LOTTERY_CONFIG.")
-    sys.exit(1)
-
-conf = LOTTERY_CONFIG[LOTTERY_NAME]
 DATA_FILE = conf['data_file']
 RED_COUNT = conf['red_count']
 RED_RANGE = conf['red_range'] # (start, end)
@@ -47,7 +60,7 @@ RED_COL_PREFIX = conf['red_col_prefix']
 RED_COLS = [f"{RED_COL_PREFIX}{i}" for i in range(1, RED_COUNT + 1)]
 TOTAL_NUMBERS = RED_RANGE[1] - RED_RANGE[0] + 1
 NUM_LIST = list(range(RED_RANGE[0], RED_RANGE[1] + 1))
-WINDOW_SIZE = 4
+WINDOW_SIZE = conf.get('window_size', 4)
 DEFAULT_EVAL_SIZE = args.eval_size
 BACKTEST_CSV = f"data/{conf['code']}_backtest.csv"
 
@@ -631,8 +644,9 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
         if not file_exists or os.path.getsize(BACKTEST_CSV) == 0:
             writer.writerow(header)
 
-    # Overall backtest progress bar
+    # Overall backtest progress
     current_run_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"回测配置: 窗口大小 (WINDOW_SIZE) = {WINDOW_SIZE}")
     for i in tqdm(range(len(df) - test_size, len(df)), desc="历史回测进度"):
         train_df = df.iloc[:i].reset_index(drop=True)
         train_full_df = full_df.iloc[:i].reset_index(drop=True)
@@ -829,11 +843,6 @@ def log_prediction_to_csv(run_time, target_period, results, models_config):
         writer.writerow(row_data)
 
 def main():
-    parser = argparse.ArgumentParser(description=f"{LOTTERY_NAME} Multi-Model Prediction")
-    parser.add_argument("--lottery", type=str, default="双色球", help="彩票名称")
-    parser.add_argument("--method", type=str, choices=['A', 'B', 'C', 'D', 'all'], default='all', help="分析方法: A-统计, B-RF, C-XGB, D-LSTM, all-全对比")
-    parser.add_argument("--eval_size", type=int, default=DEFAULT_EVAL_SIZE, help="回测期数")
-    args = parser.parse_args()
     
     df = load_data()
     if df is None: return

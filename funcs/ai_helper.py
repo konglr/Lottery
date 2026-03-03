@@ -88,7 +88,7 @@ def generate_ai_prediction(brand, model, api_key, history_text, config):
     if is_kl8:
         prompt += "2. 结合分析结果，为下一期给出 20 个推荐的投注号码。\n"
     else:
-        prompt += "2. 结合分析结果，为下一期给出 5 组推荐的投注号码。\n"
+        prompt += "2. 结合分析结果，为下一期给出 5 组推荐的投注号码。(考虑组号形态学的概率分布（如： 每组号码的连号，跳号，重号，形态学的分布)\n"
         
     prompt += "3. 详细给出你选择这些号码的理由（如：考虑了遗漏值、和值范围、或是特定组合的重复性）。\n"
     prompt += "\n**输出格式：** 请使用清晰的 Markdown 格式输出，语言为中文。"

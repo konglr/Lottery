@@ -1281,3 +1281,77 @@ INFO:root:Data synchronized: 2025024
 2026-02-28 00:02:49,715 - INFO - 🔄 七星彩 发现新数据: 本地 26020 -> 系统 26021
 2026-02-28 00:02:50,059 - INFO - ➕ 七星彩 新增 1 条记录
 2026-02-28 00:02:50,127 - INFO - 💾 七星彩 增量更新完成，已保存至 data/七星彩_lottery_data.csv
+2026-03-02 09:56:31,693 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-03-02 09:56:34,538 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416593993&transactionType=10001001&lotteryId=1&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416594003 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:34,538 - WARNING - ⚠️ 无法获取 双色球 的系统最新期号，跳过。
+2026-03-02 09:56:35,085 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416594592&transactionType=10001001&lotteryId=2&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416594602 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:35,085 - WARNING - ⚠️ 无法获取 福彩3D 的系统最新期号，跳过。
+2026-03-02 09:56:35,807 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416595135&transactionType=10001001&lotteryId=3&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416595145 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:35,808 - WARNING - ⚠️ 无法获取 七乐彩 的系统最新期号，跳过。
+2026-03-02 09:56:36,435 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416595966&transactionType=10001001&lotteryId=6&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416595976 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:36,435 - WARNING - ⚠️ 无法获取 快乐8 的系统最新期号，跳过。
+2026-03-02 09:56:37,086 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416596506&transactionType=10001001&lotteryId=281&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416596516 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:37,086 - WARNING - ⚠️ 无法获取 超级大乐透 的系统最新期号，跳过。
+2026-03-02 09:56:37,784 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416597157&transactionType=10001001&lotteryId=283&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416597167 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:37,784 - WARNING - ⚠️ 无法获取 排列三 的系统最新期号，跳过。
+2026-03-02 09:56:38,433 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416597811&transactionType=10001001&lotteryId=284&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416597821 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:38,434 - WARNING - ⚠️ 无法获取 排列五 的系统最新期号，跳过。
+2026-03-02 09:56:39,292 - ERROR - 网络请求错误: HTTPSConnectionPool(host='jc.zhcw.com', port=443): Max retries exceeded with url: /port/client_json.php?callback=jQuery1122035713028555611515_1772416598451&transactionType=10001001&lotteryId=287&issueCount=1&startDate=&endDate=&type=0&pageNum=1&pageSize=100&tt=0.123456789&_=1772416598461 (Caused by SSLError(SSLError(136, '[X509: NO_CERTIFICATE_OR_CRL_FOUND] no certificate or crl found (_ssl.c:4147)')))
+2026-03-02 09:56:39,292 - WARNING - ⚠️ 无法获取 七星彩 的系统最新期号，跳过。
+2026-03-02 10:09:29,542 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-03-02 10:09:29,843 - WARNING -    ssq mismatch: CSV: 2026021, System: 2026022
+2026-03-02 10:09:30,144 - WARNING -    d3 mismatch: CSV: 2026048, System: 2026050
+2026-03-02 10:09:30,484 - INFO -    qlc synchronized: 2026021
+2026-03-02 10:09:30,824 - WARNING -    kl8 mismatch: CSV: 2026048, System: 2026050
+2026-03-02 10:09:31,159 - WARNING -    dlt mismatch: CSV: 26019, System: 26020
+2026-03-02 10:09:31,431 - WARNING -    pl3 mismatch: CSV: 26048, System: 26050
+2026-03-02 10:09:31,724 - WARNING -    pl5 mismatch: CSV: 26048, System: 26050
+2026-03-02 10:09:31,917 - WARNING -    xqxc mismatch: CSV: 26021, System: 26022
+2026-03-02 10:18:03,496 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-03-02 10:18:03,757 - INFO - 🔄 双色球 发现新数据: 本地 2026021 -> 系统 2026022
+2026-03-02 10:18:03,929 - INFO - ➕ 双色球 新增 1 条记录
+2026-03-02 10:18:04,097 - INFO - 💾 双色球 增量更新完成，已保存至 data/双色球_lottery_data.csv
+2026-03-02 10:18:06,244 - INFO - 🔄 福彩3D 发现新数据: 本地 2026048 -> 系统 2026050
+2026-03-02 10:18:06,411 - INFO - ➕ 福彩3D 新增 2 条记录
+2026-03-02 10:18:06,591 - INFO - 💾 福彩3D 增量更新完成，已保存至 data/福彩3D_lottery_data.csv
+2026-03-02 10:18:08,718 - INFO - ✅ 七乐彩 数据已是最新 (最新期号: 2026021)。
+2026-03-02 10:18:10,969 - INFO - 🔄 快乐8 发现新数据: 本地 2026048 -> 系统 2026050
+2026-03-02 10:18:11,321 - INFO - ➕ 快乐8 新增 2 条记录
+2026-03-02 10:18:11,748 - INFO - 💾 快乐8 增量更新完成，已保存至 data/快乐8_lottery_data.csv
+2026-03-02 10:18:13,921 - INFO - 🔄 超级大乐透 发现新数据: 本地 26019 -> 系统 26020
+2026-03-02 10:18:14,127 - INFO - ➕ 超级大乐透 新增 1 条记录
+2026-03-02 10:18:14,321 - INFO - 💾 超级大乐透 增量更新完成，已保存至 data/超级大乐透_lottery_data.csv
+2026-03-02 10:18:16,452 - INFO - 🔄 排列三 发现新数据: 本地 26048 -> 系统 26050
+2026-03-02 10:18:16,617 - INFO - ➕ 排列三 新增 2 条记录
+2026-03-02 10:18:16,812 - INFO - 💾 排列三 增量更新完成，已保存至 data/排列三_lottery_data.csv
+2026-03-02 10:18:18,973 - INFO - 🔄 排列五 发现新数据: 本地 26048 -> 系统 26050
+2026-03-02 10:18:19,139 - INFO - ➕ 排列五 新增 2 条记录
+2026-03-02 10:18:19,272 - INFO - 💾 排列五 增量更新完成，已保存至 data/排列五_lottery_data.csv
+2026-03-02 10:18:21,384 - INFO - 🔄 七星彩 发现新数据: 本地 26021 -> 系统 26022
+2026-03-02 10:18:21,597 - INFO - ➕ 七星彩 新增 1 条记录
+2026-03-02 10:18:21,643 - INFO - 💾 七星彩 增量更新完成，已保存至 data/七星彩_lottery_data.csv
+2026-03-02 10:18:23,650 - INFO - Processing data/超级大乐透_lottery_data.csv (Type: 超级大乐透)...
+2026-03-02 10:18:27,222 - INFO - Successfully updated data/超级大乐透_lottery_data.csv
+2026-03-02 10:18:27,224 - INFO - Processing data/七星彩_lottery_data.csv (Type: 七星彩)...
+2026-03-02 10:18:28,061 - INFO - Successfully updated data/七星彩_lottery_data.csv
+2026-03-02 10:18:28,061 - INFO - Processing data/排列三_lottery_data.csv (Type: 排列三)...
+2026-03-02 10:18:34,129 - INFO - Successfully updated data/排列三_lottery_data.csv
+2026-03-02 10:18:34,130 - INFO - Processing data/七乐彩_lottery_data.csv (Type: 七乐彩)...
+2026-03-02 10:18:37,243 - INFO - Successfully updated data/七乐彩_lottery_data.csv
+2026-03-02 10:18:37,243 - INFO - Processing data/福彩3D_lottery_data.csv (Type: 福彩3D)...
+2026-03-02 10:18:43,142 - INFO - Successfully updated data/福彩3D_lottery_data.csv
+2026-03-02 10:18:43,143 - INFO - Processing data/双色球_lottery_data.csv (Type: 双色球)...
+2026-03-02 10:18:46,839 - INFO - Successfully updated data/双色球_lottery_data.csv
+2026-03-02 10:18:46,839 - INFO - Processing data/排列五_lottery_data.csv (Type: 排列五)...
+2026-03-02 10:18:52,831 - INFO - Successfully updated data/排列五_lottery_data.csv
+2026-03-02 10:18:52,832 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
+2026-03-02 10:18:59,481 - INFO - Successfully updated data/快乐8_lottery_data.csv
+2026-03-02 10:21:37,683 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-03-02 10:21:38,039 - INFO -    ssq synchronized: 2026022
+2026-03-02 10:21:38,234 - INFO -    d3 synchronized: 2026050
+2026-03-02 10:21:42,101 - INFO -    qlc synchronized: 2026021
+2026-03-02 10:21:42,361 - INFO -    kl8 synchronized: 2026050
+2026-03-02 10:21:42,616 - INFO -    dlt synchronized: 26020
+2026-03-02 10:21:42,805 - INFO -    pl3 synchronized: 26050
+2026-03-02 10:21:42,967 - INFO -    pl5 synchronized: 26050
+2026-03-02 10:21:43,141 - INFO -    xqxc synchronized: 26022
