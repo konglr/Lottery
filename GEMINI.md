@@ -56,6 +56,7 @@ This project is a comprehensive Streamlit application designed for collecting, a
 ## Specialized Skills
 This project utilizes sub-skills for specific domains:
 - [AI API Configurations](./skills/ai_api_configs/SKILL.md): Protocols and models for Gemini, NVIDIA NIM, MiniMax, and DashScope.
+- [AI Prediction Workflow](./skills/ai_prediction_workflow/SKILL.md): Logic flow and prompt strategy for AI analysis.
 - [Lottery Rules](./skills/lottery_rules/SKILL.md): Official rules and prize structures for SSQ, KL8, DLT, etc.
 - [Execution Environment](./skills/environment.md): Details on the local Python environment.
 
