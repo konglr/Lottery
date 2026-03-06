@@ -43,3 +43,30 @@ API keys must be stored in the `.Renviron` file or system environment variables:
 - `NV_API_KEY` (NVIDIA)
 - `MINIMAX_API_KEY`
 - `ALIYUNCS_API_KEY` (DashScope)
+
+---
+
+## 4. Automated Batch Archival (`ai_batch_predict.py`)
+
+The project includes a standalone script for automated, multi-model batch predictions and structured archival.
+
+### Execution Flow
+1. **Configuration**: `BATCH_CONFIG` defines the target lotteries and the list of model tuples `(Brand, ModelName)` to run.
+2. **Data Synchronization**:
+    - Loads historical draw data from `data/`.
+    - Normalizes variety in column names (e.g., `issue`, `period` standardized to `期号`).
+    - Calculates the `target_period` (Latest + 1).
+3. **AI Logic Invoke**:
+    - Prepares the textual prompt with the last $N$ periods.
+    - Sequentially calls `generate_ai_prediction` for each configured model.
+4. **Structured Parsing**:
+    - Calls `parse_ai_recommendations` to convert the AI's Markdown report into standardized JSON.
+5. **Archival**:
+    - Appends results to `data/ai_predictions_history.csv`.
+    - Saves metadata: `timestamp`, `lottery`, `model`, `target_period`, `input_periods`, `recommendations` (JSON), and `raw_response` (Original Text).
+
+### Usage
+Run the batch engine manually via terminal to refresh archival data:
+```bash
+PYTHONPATH=. python3 ai_batch_predict.py
+```

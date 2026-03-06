@@ -39,30 +39,52 @@ if torch.cuda.is_available():
 # --- Global Configuration ---
 def init_config():
     parser = argparse.ArgumentParser(description="Multi-Model Lottery Prediction")
-    parser.add_argument("--lottery", type=str, default="快乐8", help="彩票名称 (e.g., 双色球, 福彩3D,快乐8)")
+    parser.add_argument("--lottery", type=str, default="all", help="彩票名称，支持多个以逗号分隔或输入 'all'") #"双色球", "七星彩", , "排列三", "排列五" "超级大乐透", "快乐8", "福彩3D",“七乐彩”
     parser.add_argument("--method", type=str, choices=['A', 'B', 'C', 'D', 'all'], default='all', help="分析方法")
     parser.add_argument("--eval_size", type=int, default=10, help="回测期数")
     args = parser.parse_args()
     
-    if args.lottery not in LOTTERY_CONFIG:
-        print(f"Error: Lottery '{args.lottery}' not found in LOTTERY_CONFIG.")
+    lotteries = []
+    if args.lottery.lower() == 'all':
+        lotteries = list(LOTTERY_CONFIG.keys())
+    else:
+        lotteries = [l.strip() for l in args.lottery.split(',') if l.strip() in LOTTERY_CONFIG]
+    
+    if not lotteries:
+        print(f"Error: 找不到有效的彩票类型或名称 '{args.lottery}'")
         sys.exit(1)
         
-    conf = LOTTERY_CONFIG[args.lottery]
-    return args, conf
+    return args, lotteries
 
-args, conf = init_config()
-LOTTERY_NAME = args.lottery
-DATA_FILE = conf['data_file']
-RED_COUNT = conf['red_count']
-RED_RANGE = conf['red_range'] # (start, end)
-RED_COL_PREFIX = conf['red_col_prefix']
-RED_COLS = [f"{RED_COL_PREFIX}{i}" for i in range(1, RED_COUNT + 1)]
-TOTAL_NUMBERS = RED_RANGE[1] - RED_RANGE[0] + 1
-NUM_LIST = list(range(RED_RANGE[0], RED_RANGE[1] + 1))
-WINDOW_SIZE = conf.get('window_size', 4)
+def update_lottery_config(lottery_name):
+    global LOTTERY_NAME, DATA_FILE, RED_COUNT, RED_RANGE, RED_COL_PREFIX, RED_COLS, TOTAL_NUMBERS, NUM_LIST, WINDOW_SIZE, BACKTEST_CSV, STAT_COLS, STAT_MAP
+    conf = LOTTERY_CONFIG[lottery_name]
+    LOTTERY_NAME = lottery_name
+    DATA_FILE = conf['data_file']
+    RED_COUNT = conf['red_count']
+    RED_RANGE = conf['red_range'] # (start, end)
+    RED_COL_PREFIX = conf['red_col_prefix']
+    RED_COLS = [f"{RED_COL_PREFIX}{i}" for i in range(1, RED_COUNT + 1)]
+    # Special handling for 七乐彩: Combine 7 red + 1 blue into 8 balls as they are from the same pool (1-30)
+    if lottery_name == "七乐彩" and conf.get('has_blue'):
+        blue_col = conf.get('blue_col_name')
+        if blue_col and blue_col in conf.get('blue_col_name', ''): # redundant check but safe
+            RED_COLS.append(blue_col)
+            RED_COUNT = len(RED_COLS) # Update RED_COUNT to 8 for metrics normalization
+            
+    TOTAL_NUMBERS = RED_RANGE[1] - RED_RANGE[0] + 1
+    NUM_LIST = list(range(RED_RANGE[0], RED_RANGE[1] + 1))
+    WINDOW_SIZE = conf.get('window_size', 4)
+    BACKTEST_CSV = f"data/{conf['code']}_backtest.csv"
+    STAT_COLS = []
+    STAT_MAP = {}
+    print(f"\n{'='*20} [切换彩票: {LOTTERY_NAME}] {'='*20}")
+    return conf
+
+args, LOTTERIES_TO_RUN = init_config()
+# Pre-initialize globals with the first lottery
+conf = update_lottery_config(LOTTERIES_TO_RUN[0])
 DEFAULT_EVAL_SIZE = args.eval_size
-BACKTEST_CSV = f"data/{conf['code']}_backtest.csv"
 
 # --- Globals for Dynamic Features ---
 STAT_COLS = []
@@ -131,14 +153,14 @@ MODEL_CONFIG = {
         'n_estimators': 1000,
         'max_depth': 15,
         'min_samples_split': 10,
-        'min_samples_leaf': 5,
+        'min_samples_leaf': 10,
         'max_features': 'log2',
         'random_state': 42,
         'n_jobs': -1
     },
     'C': {
         'n_estimators': 500,
-        'max_depth': 8,
+        'max_depth': 4,
         'learning_rate': 0.02,
         'subsample': 0.8,
         'colsample_bytree': 0.8,
@@ -154,7 +176,7 @@ MODEL_CONFIG = {
         'num_layers': 1,
         'dropout': 0.5,
         'lr': 0.001,
-        'epochs': 100
+        'epochs': 50
     }
 }
 
@@ -844,146 +866,141 @@ def log_prediction_to_csv(run_time, target_period, results, models_config):
 
 def main():
     
-    df = load_data()
-    if df is None: return
-    
-    # Identify dynamic features after loading data
-    determine_stat_features(df)
-    
-    omission_df, next_omission = get_omission_matrix(df)
-    full_df = pd.concat([df, omission_df], axis=1)
-    
-    active_methods = ['A', 'B', 'C', 'D'] if args.method == 'all' else [args.method]
-    
-    # 1. Evaluation / Backtest
-    eval_results, run_id = evaluate_methods(df, full_df, test_size=args.eval_size, active_methods=active_methods)
-    
-    # 2. Final Prediction for Next Period
-    next_period_id = int(df.iloc[-1]['期号']) + 1 # Assuming period IDs are sequential integers
-    print("\n" + "="*65)
-    print(f"🚀 正在预测下一期号码 (目标期号: {next_period_id})...")
-    
-    results = {}
-    importances = {}
-    qualified_methods = active_methods 
-    methods_to_run = active_methods
-    _, current_omission = get_omission_matrix(df)
-    
-    for m in qualified_methods:
-        res = run_prediction(df, m, full_df, current_omission)
-        if isinstance(res, tuple):
-            results[m], importances[m] = res
-        else:
-            results[m] = res
+    for lottery_name in LOTTERIES_TO_RUN:
+        conf = update_lottery_config(lottery_name)
+        df = load_data()
+        if df is None: continue
         
-    # Log Final Prediction to CSV
-    log_prediction_to_csv(run_id, next_period_id, results, MODEL_CONFIG)
-    
-    # 3. Display Results
-    print("\n" + "="*65)
-    print(f"🔮 {LOTTERY_NAME} 多模型综合分析报告 (历史回测期数: {args.eval_size})")
-    print("="*65)
-    print(f"最近期号: {df.iloc[-1]['期号']} | 预测目标: {next_period_id}")
-    
-    for m in methods_to_run:
-        probs = results[m]
-        top_indices = probs.argsort()[::-1]
-        top_10_nums = [NUM_LIST[idx] for idx in top_indices[:10]]
+        # Identify dynamic features after loading data
+        determine_stat_features(df)
         
-        # Calculate Min/Max for individual model standardization display
-        p_min, p_max = probs.min(), probs.max()
+        omission_df, next_omission = get_omission_matrix(df)
+        full_df = pd.concat([df, omission_df], axis=1)
         
-        m_names = {'A': "统计相似度 (Method A)", 'B': "机器学习 RF (Method B)", 'C': "机器学习 XGB (Method C)", 'D': "深度学习 LSTM (Method D)"}
-        print("\n" + f"--- {m_names[m]} ---")
-        metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
-        n1, n2 = metrics['top_n_1'], metrics['top_n_2']
+        active_methods = ['A', 'B', 'C', 'D'] if args.method == 'all' else [args.method]
         
-        history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in eval_results[m]['history']])
-        print(f"历史回测平均命中率 (Top {n1}/{n2} 覆盖率): {eval_results[m]['avg_n1']:.2%}/{eval_results[m]['avg_n2']:.2%} [{history_str}]")
-        print(f"最佳 {n1} 推荐: {sorted(top_10_nums[:n1])}")
-        print(f"推荐 Top {n2} 号码 (原始概率 | 标准得分):")
-        for idx in top_indices[:n2]:
-            std_val = (probs[idx] - p_min) / (p_max - p_min) if p_max > p_min else 0.0
-            print(f"  号码: {NUM_LIST[idx]:02d} - 概率: {probs[idx]:.2%} | 标准得分: {std_val:.4f}")
+        # 1. Evaluation / Backtest
+        eval_results, run_id = evaluate_methods(df, full_df, test_size=args.eval_size, active_methods=active_methods)
+        
+        # 2. Final Prediction for Next Period
+        try:
+            next_period_id = int(df.iloc[-1]['期号']) + 1 # Assuming period IDs are sequential integers
+        except (ValueError, TypeError):
+            next_period_id = "Next"
             
-        # Display Feature Importance if available
-        if m in importances:
-            f_names = get_feature_names()
-            plot_filename = f"data/{conf['code']}_importance_{m.lower()}.png"
-            top_f = plot_importance(importances[m], f_names, m_names[m], plot_filename)
-            print(f"  核心特征影响 (Top 10):")
-            for _, row in top_f.iterrows():
-                print(f"    - {row['Feature']}: {row['Importance']:.4f}")
-
-    if args.method == 'all':
-        # Standardized Probability Ensemble (Min-Max Scaling)
-        # 1. Normalize each model's raw probabilities to [0, 1]
-        # 2. Weighted average based on historical hit rates (Min 35% hit rate required)
+        print("\n" + "="*65)
+        print(f"🚀 正在预测下一期号码 (目标期号: {next_period_id})...")
         
-        ensemble_scores = np.zeros(TOTAL_NUMBERS)
+        results = {}
+        importances = {}
+        methods_to_run = active_methods
+        _, current_omission = get_omission_matrix(df)
         
-        # Filter methods with at least 30% hit rate
-        qualified_methods = [m for m in active_methods if eval_results[m]['avg_n2'] >= 0.30]
+        for m in active_methods:
+            res = run_prediction(df, m, full_df, current_omission)
+            if isinstance(res, tuple):
+                results[m], importances[m] = res
+            else:
+                results[m] = res
+            
+        # Log Final Prediction to CSV
+        log_prediction_to_csv(run_id, next_period_id, results, MODEL_CONFIG)
         
-        if not qualified_methods:
-            print("\n" + "="*65)
-            print("⚠️ 没有模型的历史命中率达到 30% 阈值，跳过综合推荐。")
-            print("="*65)
-        else:
-            total_weight = sum([eval_results[m]['avg_n2'] for m in qualified_methods])  # 30% hit rate      
+        # 3. Display Results
+        print("\n" + "="*65)
+        print(f"🔮 {LOTTERY_NAME} 多模型综合分析报告 (历史回测期数: {args.eval_size})")
+        print("="*65)
+        print(f"最近期号: {df.iloc[-1]['期号']} | 预测目标: {next_period_id}")
+        
+        for m in methods_to_run:
+            probs = results[m]
+            top_indices = probs.argsort()[::-1]
+            top_10_nums = [NUM_LIST[idx] for idx in top_indices[:10]]
             
-            print("\n" + "="*65)
-            print("🏆 多模型标准概率综合推荐 (Ensemble: 4-Model Weighted)")
-            print("="*65)
-            print(f"计算逻辑: [标准化概率 = (原概率 - Min) / (Max - Min)]")
-            print(f"入选模型: " + ", ".join([f"{m}={eval_results[m]['avg_n2']:.2%}" for m in qualified_methods]))
-            print("-" * 65)
+            # Calculate Min/Max for individual model standardization display
+            p_min, p_max = probs.min(), probs.max()
             
-            for m in qualified_methods:
-                raw_probs = results[m]
-                weight = eval_results[m]['avg_n2']
-                
-                p_min = raw_probs.min()
-                p_max = raw_probs.max()
-                
-                # Avoid division by zero if all probabilities are the same
-                if p_max > p_min:
-                    std_probs = (raw_probs - p_min) / (p_max - p_min)
-                else:
-                    std_probs = np.zeros(TOTAL_NUMBERS)
-                    
-                ensemble_scores += (std_probs * weight)
+            m_names = {'A': "统计相似度 (Method A)", 'B': "机器学习 RF (Method B)", 'C': "机器学习 XGB (Method C)", 'D': "深度学习 LSTM (Method D)"}
+            print("\n" + f"--- {m_names[m]} ---")
+            metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
+            n1, n2 = metrics['top_n_1'], metrics['top_n_2']
             
-            # Average by total weight
-            if total_weight > 0:
-                ensemble_scores /= total_weight
-                
-            top_indices = ensemble_scores.argsort()[::-1]
-            top_n2_nums = [NUM_LIST[idx] for idx in top_indices[:n2]] 
-            
-            print(f"最佳 {n1} 组合: {sorted(top_n2_nums[:n1])}")
-            print(f"推荐 Top {n2} (标准综合得分):")
+            history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in eval_results[m]['history']])
+            print(f"历史回测平均命中率 (Top {n1}/{n2} 覆盖率): {eval_results[m]['avg_n1']:.2%}/{eval_results[m]['avg_n2']:.2%} [{history_str}]")
+            print(f"最佳 {n1} 推荐: {sorted(top_10_nums[:n1])}")
+            print(f"推荐 Top {n2} 号码 (原始概率 | 标准得分):")
             for idx in top_indices[:n2]:
-                print(f"  号码: {NUM_LIST[idx]:02d} - 标准得分: {ensemble_scores[idx]:.4f}")
+                std_val = (probs[idx] - p_min) / (p_max - p_min) if p_max > p_min else 0.0
+                print(f"  号码: {NUM_LIST[idx]:02d} - 概率: {probs[idx]:.2%} | 标准得分: {std_val:.4f}")
+                
+            # Display Feature Importance if available
+            if m in importances:
+                f_names = get_feature_names()
+                plot_filename = f"data/{conf['code']}_importance_{m.lower()}.png"
+                top_f = plot_importance(importances[m], f_names, m_names[m], plot_filename)
+                print(f"  核心特征影响 (Top 10):")
+                for _, row in top_f.iterrows():
+                    print(f"    - {row['Feature']}: {row['Importance']:.4f}")
+    
+        if args.method == 'all':
+            # Standardized Probability Ensemble (Min-Max Scaling)
+            ensemble_scores = np.zeros(TOTAL_NUMBERS)
             
-            print("\n" + "="*65)
-            # Display Ensemble History
-            if 'Ensemble' in eval_results:
-                ens_res = eval_results['Ensemble']
-                ens_history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in ens_res['history']])
-                print(f"🏆 综合推荐历史命中率 (Top {n1}/{n2} 覆盖率): {ens_res['avg_n1']:.2%}/{ens_res['avg_n2']:.2%} [{ens_history_str}]")
+            # Filter methods with at least 30% hit rate
+            qualified_methods = [m for m in active_methods if eval_results[m]['avg_n2'] >= 0.30]
+            
+            if not qualified_methods:
+                print("\n" + "="*65)
+                print("⚠️ 没有模型的历史命中率达到 30% 阈值，跳过综合推荐。")
+                print("="*65)
+            else:
+                total_weight = sum([eval_results[m]['avg_n2'] for m in qualified_methods])      
                 
-                # Display Union & Voting Stats
-                if 'Union' in eval_results:
-                    u_res = eval_results['Union']
-                    u_hist_str = ", ".join([f"{h}({s})" for h, s in u_res['history']])
-                    print(f"🌌 全模型并集 (Top 10 Union) 历史: 平均命中 {u_res['avg_hits']:.1f} 个 / 平均选号 {u_res['avg_size']:.1f} 个 [{u_hist_str}]")
+                print("\n" + "="*65)
+                print("🏆 多模型标准概率综合推荐 (Ensemble: 4-Model Weighted)")
+                print("="*65)
+                print(f"入选模型: " + ", ".join([f"{m}={eval_results[m]['avg_n2']:.2%}" for m in qualified_methods]))
+                print("-" * 65)
                 
-                if 'Voting' in eval_results:
-                    v_res = eval_results['Voting']
-                    v_hist_str = ", ".join([f"{h:.0%}" for h in v_res['history']])
-                    print(f"🗳️ 频次投票 (Best {n1}) 历史命中率: {v_res['avg_n1']:.2%} [{v_hist_str}]")
+                for m in qualified_methods:
+                    raw_probs = results[m]
+                    weight = eval_results[m]['avg_n2']
+                    p_min, p_max = raw_probs.min(), raw_probs.max()
                     
+                    if p_max > p_min:
+                        std_probs = (raw_probs - p_min) / (p_max - p_min)
+                    else:
+                        std_probs = np.zeros(TOTAL_NUMBERS)
+                        
+                    ensemble_scores += (std_probs * weight)
+                
+                if total_weight > 0:
+                    ensemble_scores /= total_weight
+                    
+                top_indices = ensemble_scores.argsort()[::-1]
+                top_n2_nums = [NUM_LIST[idx] for idx in top_indices[:n2]] 
+                
+                print(f"最佳 {n1} 组合: {sorted(top_n2_nums[:n1])}")
+                print(f"推荐 Top {n2} (标准综合得分):")
+                for idx in top_indices[:n2]:
+                    print(f"  号码: {NUM_LIST[idx]:02d} - 标准得分: {ensemble_scores[idx]:.4f}")
+                
+                print("\n" + "="*65)
+                # Display Ensemble History
+                if 'Ensemble' in eval_results:
+                    ens_res = eval_results['Ensemble']
+                    ens_history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in ens_res['history']])
+                    print(f"🏆 综合推荐历史命中率 (Top {n1}/{n2} 覆盖率): {ens_res['avg_n1']:.2%}/{ens_res['avg_n2']:.2%} [{ens_history_str}]")
+                    
+                    if 'Union' in eval_results:
+                        u_res = eval_results['Union']
+                        u_hist_str = ", ".join([f"{h}({s})" for h, s in u_res['history']])
+                        print(f"🌌 全模型并集 (Top 10 Union) 历史: 平均命中 {u_res['avg_hits']:.1f} 个 / 平均选号 {u_res['avg_size']:.1f} 个 [{u_hist_str}]")
+                    
+                    if 'Voting' in eval_results:
+                        v_res = eval_results['Voting']
+                        v_hist_str = ", ".join([f"{h:.0%}" for h in v_res['history']])
+                        print(f"🗳️ 频次投票 (Best {n1}) 历史命中率: {v_res['avg_n1']:.2%} [{v_hist_str}]")
                 print("="*65)
         
 

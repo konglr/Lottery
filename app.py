@@ -10,7 +10,14 @@ from funcs.functions import analyze_top_companion_pairs, analyze_top_triples
 import time
 import json
 import ast
-from funcs.ai_helper import load_renviron, get_brand_models, prepare_lottery_data_text, generate_ai_prediction
+from funcs.ai_helper import (
+    load_renviron,
+    get_brand_models,
+    prepare_lottery_data_text,
+    generate_ai_prediction,
+    parse_ai_recommendations,
+    format_ai_response
+)
 from funcs.ball_filter import calculate_morphology_score, get_morphology_report
 
 # Load environment variables from .Renviron
@@ -46,6 +53,8 @@ def load_full_data(lottery_name):
         if 'issue' in df.columns: column_mapping['issue'] = '期号'
         if 'openTime' in df.columns: column_mapping['openTime'] = '开奖日期'
         if 'period' in df.columns: column_mapping['period'] = '期号'
+        if 'saleMoney' in df.columns: column_mapping['saleMoney'] = '本期销售金额'
+        if 'prizePoolMoney' in df.columns: column_mapping['prizePoolMoney'] = '奖池累计金额'
         if column_mapping: df = df.rename(columns=column_mapping)
         if '期号' in df.columns:
             # 统一处理期号：转为数值，处理大乐透 26019 这种格式
@@ -727,9 +736,20 @@ def render_metrics(df, config):
     col_left, col_right = st.columns([1, 1], gap="large")
     
     with col_left:
-        c1, c2 = st.columns([1, 3])
+        c1, c2, c3, c4 = st.columns([1, 1.5, 2, 2])
         with c1: st.metric("期号", str(row['期号']))
-        with c2: st.metric("开奖日期", str(row['开奖日期']))
+        
+        # Format Date: remove time
+        display_date = str(row['开奖日期'])
+        if ' ' in display_date: display_date = display_date.split(' ')[0]
+        elif 'T' in display_date: display_date = display_date.split('T')[0]
+        with c2: st.metric("开奖日期", display_date)
+        
+        # Add Sales and Pool metrics
+        if '本期销售金额' in row and not pd.isna(row['本期销售金额']):
+            with c3: st.metric("本期销售金额", f"{float(row['本期销售金额']):,.0f}")
+        if '奖池累计金额' in row and not pd.isna(row['奖池累计金额']):
+            with c4: st.metric("奖池累计金额", f"{float(row['奖池累计金额']):,.0f}")
         
         balls_html = ""
         for i in range(1, config['red_count']+1):
@@ -885,10 +905,162 @@ def render_ai(df, config):
                 status.update(label="分析完成！", state="complete", expanded=False)
                 
             st.markdown("### 📊 AI 预测建议")
-            st.markdown(prediction)
+            
+            raw_content = prediction
+            if "分析结果" in raw_content:
+                thinking, result = raw_content.split("分析结果", 1)
+                with st.expander("🤔 思考过程"):
+                    st.markdown(thinking.strip())
+                st.markdown("### 📋 深度分析报告")
+                st.markdown(result.strip().replace('\\n', '\n'))
+            else:
+                # 如果没有分割词，尝试使用 format_ai_response 处理可能的 <think> 块
+                thinking, result = format_ai_response(raw_content)
+                if thinking:
+                    with st.expander("🤔 查看 AI 思考过程"):
+                        st.markdown(thinking.strip())
+                st.markdown(result.replace('\\n', '\n'))
             
         except Exception as e: 
             st.error(f"分析过程中出现错误: {e}")
+
+def render_ai_analysis(df, config):
+    st.subheader(f"📊 {config['name']} AI 预测历史对比")
+    
+    csv_file = "data/ai_predictions_history.csv"
+    if not os.path.exists(csv_file):
+        st.info("尚未发现 AI 预测记录。请先在 'AI 预测' 板块生成预测或运行批量脚本。")
+        return
+        
+    try:
+        # Load and filter by lottery
+        df_hist = pd.read_csv(csv_file)
+        df_hist = df_hist[df_hist['lottery'] == config['name']]
+        
+        if df_hist.empty:
+            st.info(f"暂无 {config['name']} 的 AI 预测记录。")
+            return
+            
+        # Standardize period format
+        df_hist['target_period'] = df_hist['target_period'].astype(str)
+        
+        # Period Selector
+        periods = sorted(df_hist['target_period'].unique(), reverse=True)
+        sel_period = st.selectbox("📅 选择预测期号", periods, key="analysis_period_sel")
+        
+        # Filter by period
+        df_period = df_hist[df_hist['target_period'] == sel_period]
+        
+        # Latest record logic: keep only the latest prediction for each model
+        df_period = df_period.sort_values('timestamp', ascending=False).drop_duplicates('model')
+        
+        if df_period.empty:
+            st.warning("该期号暂无预测数据。")
+            return
+            
+        # 🟢 获取当期实际开奖结果 (用于命中标识)
+        draw_row = df[df['期号'].astype(str) == str(sel_period)]
+        winning_reds = []
+        winning_blues = []
+        
+        if not draw_row.empty:
+            row_draw = draw_row.iloc[0]
+            for i in range(1, config['red_count'] + 1):
+                col = f"{config['red_col_prefix']}{i}"
+                if col in row_draw: winning_reds.append(int(row_draw[col]))
+            
+            if config['has_blue']:
+                if '蓝球' in row_draw: winning_blues.append(int(row_draw['蓝球']))
+                elif '篮球' in row_draw: winning_blues.append(int(row_draw['篮球']))
+            
+            # 显示实际开奖号码
+            st.markdown(f"#### 📅 {sel_period}期 实际开奖结果")
+            res_html = ""
+            for r in winning_reds: res_html += f'<div class="lottery-ball red-ball">{r}</div>'
+            for b in winning_blues: res_html += f'<div class="lottery-ball blue-ball">{b}</div>'
+            st.markdown(res_html, unsafe_allow_html=True)
+        else:
+            st.markdown(f"#### 📅 {sel_period}期 开奖状态: `⏳ 等待开奖`")
+
+        st.divider()
+
+        # Display Comparative View
+        models = df_period['model'].unique()
+        cols = st.columns(len(models))
+        
+        for i, model in enumerate(models):
+            with cols[i]:
+                row = df_period[df_period['model'] == model].iloc[0]
+                st.markdown(f"#### 🤖 {model}")
+                st.caption(f"🕒 {row['timestamp']}")
+                
+                try:
+                    recs = json.loads(row['recommendations'])
+                    
+                    # 1. Dan Codes
+                    if recs.get('dan'):
+                        st.markdown(f"**📍 核心胆码**")
+                        dan_html = ""
+                        for d in recs['dan']:
+                            is_hit = "hit-ball" if int(d) in winning_reds else ""
+                            dan_html += f'<span class="lottery-ball red-ball {is_hit}" style="width:30px; height:30px; line-height:30px; font-size:0.8em;">{d}</span>'
+                        st.markdown(dan_html, unsafe_allow_html=True)
+                    
+                    # 2. Recommendations
+                    if recs.get('groups'):
+                        st.markdown("**💡 推荐组合**")
+                        for idx, g in enumerate(recs['groups']):
+                            with st.expander(f"方案 {idx+1}", expanded=(idx==0)):
+                                # Red balls
+                                reds_html = "🔴"
+                                for r in g.get('reds', []):
+                                    is_hit = "background-color:gold; color:black; font-weight:bold; padding:2px 4px; border-radius:3px;" if int(r) in winning_reds else ""
+                                    reds_html += f' <code style="{is_hit}">{r:02d}</code>'
+                                st.markdown(reds_html, unsafe_allow_html=True)
+                                
+                                # Blue balls if any
+                                if g.get('blues'):
+                                    blues_html = "🔵"
+                                    for b in g['blues']:
+                                        is_hit = "background-color:gold; color:black; font-weight:bold; padding:2px 4px; border-radius:3px;" if int(b) in winning_blues else ""
+                                        blues_html += f' <code style="{is_hit}">{b:02d}</code>'
+                                    st.markdown(blues_html, unsafe_allow_html=True)
+                                    
+                                # Reason
+                                if g.get('reason'):
+                                    st.caption(f"分析: {g['reason']}")
+                    
+                    # 3. KL8 Special
+                    if recs.get('kl8_numbers'):
+                        st.markdown("**🔢 快乐8 选二十**")
+                        nums = sorted(recs['kl8_numbers'])
+                        st.write(", ".join([f"{n:02d}" for n in nums]))
+                        
+                    # 4. Raw Analysis Summary
+                    with st.expander("📄 查看完整分析报告"):
+                        raw_content = row.get('raw_response', "")
+                        if "分析结果" in raw_content:
+                            thinking, result = raw_content.split("分析结果", 1)
+                            with st.expander("🤔 思考过程"):
+                                st.markdown(thinking.strip())
+                            st.markdown("### 📋 深度分析报告")
+                            st.markdown(result.strip().replace('\\n', '\n'))
+                        else:
+                            # 如果没有分割词，尝试使用 format_ai_response 处理可能的 <think> 块
+                            thinking, result = format_ai_response(raw_content)
+                            if thinking:
+                                with st.expander("🤔 查看 AI 思考过程"):
+                                    st.markdown(thinking.strip())
+                            st.markdown(result.replace('\\n', '\n'))
+                        
+                except Exception as e:
+                    st.error(f"解析预测数据失败: {e}")
+                    
+        st.divider()
+        st.caption("注：对比各模型的预测逻辑与命中规律，有助于提高选号参考价值。")
+
+    except Exception as e:
+        st.error(f"加载分析数据失败: {e}")
 
 def render_backtest_results(df_full, conf):
     st.markdown(f"### 📋 {conf['name']} 历史回测详情分析")
@@ -1286,7 +1458,16 @@ def render_morphological_analysis(df_full, conf):
 
 def main():
     st.set_page_config(page_title="彩票分析工具", layout="wide")
-    st.markdown("<style>.lottery-ball { display: inline-block; width: 40px; height: 40px; border-radius: 50%; text-align: center; line-height: 40px; margin: 5px; font-weight: bold; color: white; } .red-ball { background-color: #ff5b5b; } .blue-ball { background-color: #5b9fff; }</style>", unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+    .lottery-ball { display: inline-block; width: 40px; height: 40px; border-radius: 50%; text-align: center; line-height: 40px; margin: 5px; font-weight: bold; color: white; }
+    .red-ball { background-color: #ff5b5b; }
+    .blue-ball { background-color: #5b9fff; }
+    .hit-ball { border: 3px solid #ffd700 !important; box-shadow: 0 0 10px #ffd700; transform: scale(1.1); }
+    .ai-report-content { font-size: 1.05em; line-height: 1.7; color: #1a1a1a; padding: 15px; background: #fff; border-radius: 8px; border: 1px solid #eee; }
+    .ai-thinking-process { font-size: 0.9em; line-height: 1.5; color: #555; background: #fdfdfd; padding: 12px; border-left: 4px solid #ddd; margin-bottom: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
     sel = st.sidebar.selectbox("选择彩票类型", list(LOTTERY_CONFIG.keys()))
     conf = LOTTERY_CONFIG[sel]; conf['name'] = sel
     p = render_sidebar(conf)
@@ -1295,7 +1476,7 @@ def main():
     if df.empty: st.error(f"No data for {sel}"); return
     
     st.title(f"📊 {sel} 数据分析")
-    t1, t2, t3, t4, t5 = st.tabs(["📈 趋势分析", "🤖 AI 预测", "🎯 形态优选", "📋 历史数据", "🔙 回测结果"])
+    t1, ta, t2, t3, t4, t5 = st.tabs(["📈 趋势分析", "📊 预测分析", "🤖 AI 预测", "🎯 形态优选", "📋 历史数据", "🔙 回测结果"])
     with t1:
         render_metrics(df, conf)
         charts = conf.get("supported_charts", ["red_freq"])
@@ -1318,6 +1499,7 @@ def main():
             if i % 2 == 0: cols = st.columns(2)
             with cols[i % 2]:
                 if ck in c_map: c_map[ck](df, conf); st.divider()
+    with ta: render_ai_analysis(df, conf)
     with t2: render_ai(df, conf)
     with t3: render_morphological_analysis(df_full, conf)
     with t4: st.dataframe(df, use_container_width=True)

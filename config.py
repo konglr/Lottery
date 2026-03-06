@@ -2,6 +2,7 @@
 
 LOTTERY_CONFIG = {
     "双色球": {
+        "name": "双色球",
         "code": "ssq",
         "data_file": "data/双色球_lottery_data.csv",
         "has_blue": True,
@@ -31,6 +32,7 @@ LOTTERY_CONFIG = {
         ]
     },
     "超级大乐透": {
+        "name": "超级大乐透",
         "code": "dlt",
         "data_file": "data/超级大乐透_lottery_data.csv",
         "has_blue": True,
@@ -58,6 +60,7 @@ LOTTERY_CONFIG = {
             "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
     },
     "七乐彩": {
+        "name": "七乐彩",
         "code": "qlc",
         "data_file": "data/七乐彩_lottery_data.csv",
         "has_blue": True,
@@ -85,6 +88,7 @@ LOTTERY_CONFIG = {
             "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
     },
     "快乐8": {
+        "name": "快乐8",
         "code": "kl8",
         "data_file": "data/快乐8_lottery_data.csv",
         "has_blue": False,
@@ -112,6 +116,7 @@ LOTTERY_CONFIG = {
             "sum_trend", "span_trend", "ac_trend", "hot_pairs", "hot_triples"]
     },
     "福彩3D": {
+        "name": "福彩3D",
         "code": "d3",
         "data_file": "data/福彩3D_lottery_data.csv",
         "has_blue": False,
@@ -141,6 +146,7 @@ LOTTERY_CONFIG = {
         ]
     },
     "排列三": {
+        "name": "排列三",
         "code": "pl3",
         "data_file": "data/排列三_lottery_data.csv",
         "has_blue": False,
@@ -170,6 +176,7 @@ LOTTERY_CONFIG = {
         ]
     },
     "排列五": {
+        "name": "排列五",
         "code": "pl5",
         "data_file": "data/排列五_lottery_data.csv",
         "has_blue": False,
@@ -199,6 +206,7 @@ LOTTERY_CONFIG = {
         ]
     },
     "七星彩": {
+        "name": "七星彩",
         "code": "xqxc",
         "data_file": "data/七星彩_lottery_data.csv",
         "has_blue": True,

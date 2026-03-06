@@ -4,16 +4,17 @@ from collections import defaultdict, Counter
 import itertools
 from config import LOTTERY_CONFIG
 
-def calculate_same_number_counts(data):
+def calculate_same_number_counts(data, red_count=6):
     """计算每期红球同号数量"""
     same_number_counts = []
     if len(data) > 1:
+        red_cols = [f'红球{i}' for i in range(1, red_count + 1)]
         for i in range(1, len(data)):
             previous_row = data.iloc[i - 1]
             current_row = data.iloc[i]
             same_count = 0
-            for col in ['红球1', '红球2', '红球3', '红球4', '红球5', '红球6']:
-                if current_row[col] in previous_row.values:
+            for col in red_cols:
+                if col in current_row and current_row[col] in previous_row.values:
                     same_count += 1
             same_number_counts.append(same_count)
     return same_number_counts
@@ -184,19 +185,30 @@ def convert_and_display():
     else:
         st.session_state.simplified_bets_area = "没有可转化的投注结果"
 
-def check_winning(bet_str, winning_red_balls, winning_blue_ball, winning_amounts):
+def check_winning(bet_str, winning_red_balls, winning_blue_ball, winning_amounts, lottery_code="ssq", red_count=6):
     try:
         parts = bet_str.split("+")
         red_balls = sorted(map(int, parts[0].split(",")))
-        blue_balls = [int(parts[1])] if len(parts) > 1 else []
+        blue_balls = [int(parts[1])] if len(parts) > 1 and parts[1].strip() else []
         red_match = len(set(red_balls) & set(winning_red_balls))
         blue_match = 1 if blue_balls and blue_balls[0] == winning_blue_ball else 0
-        if red_match == 6 and blue_match == 1: return "一等奖", winning_amounts["一等奖奖金"]
-        if red_match == 6: return "二等奖", winning_amounts["二等奖奖金"]
-        if red_match == 5 and blue_match == 1: return "三等奖", 3000
-        if red_match == 5 or (red_match == 4 and blue_match == 1): return "四等奖", 200
-        if red_match == 4 or (red_match == 3 and blue_match == 1): return "五等奖", 10
-        if blue_match == 1: return "六等奖", 5
+        
+        if lottery_code == "ssq":
+            if red_match == 6 and blue_match == 1: return "一等奖", winning_amounts.get("一等奖奖金", 5000000)
+            if red_match == 6: return "二等奖", winning_amounts.get("二等奖奖金", 200000)
+            if red_match == 5 and blue_match == 1: return "三等奖", 3000
+            if red_match == 5 or (red_match == 4 and blue_match == 1): return "四等奖", 200
+            if red_match == 4 or (red_match == 3 and blue_match == 1): return "五等奖", 10
+            if blue_match == 1: return "六等奖", 5
+        elif lottery_code == "qlc":
+            if red_match == 7: return "一等奖", winning_amounts.get("一等奖奖金", 1000000)
+            if red_match == 6 and blue_match == 1: return "二等奖", winning_amounts.get("二等奖奖金", 50000)
+            if red_match == 6: return "三等奖", winning_amounts.get("三等奖奖金", 3000)
+            if red_match == 5 and blue_match == 1: return "四等奖", 200
+            if red_match == 5: return "五等奖", 50
+            if red_match == 4 and blue_match == 1: return "六等奖", 10
+            if red_match == 4: return "七等奖", 5
+        
         return "未中奖", 0
     except: return "格式错误", 0
 
@@ -206,12 +218,12 @@ def analyze_winning():
     total_winning_amount = 0
     try:
         selected_result = st.session_state.lottery_results.iloc[0]
-        win_red = sorted([selected_result[f'红球{i}'] for i in range(1, 7)])
-        win_blue = selected_result['蓝球']
-        win_amounts = {"一等奖奖金": selected_result["一等奖奖金"], "二等奖奖金": selected_result["二等奖奖金"]}
+        win_red = sorted([selected_result[f'红球{i}'] for i in range(1, config['red_count'] + 1)])
+        win_blue = selected_result[config.get('blue_col_name', '蓝球')] if config.get('has_blue') else None
+        win_amounts = {"一等奖奖金": selected_result.get("一等奖奖金", 0), "二等奖奖金": selected_result.get("二等奖奖金", 0), "三等奖奖金": selected_result.get("三等奖奖金", 0)}
         for line in analysis_bets:
             if isinstance(line, str) and line.strip():
-                level, amt = check_winning(line.strip(), win_red, win_blue, win_amounts)
+                level, amt = check_winning(line.strip(), win_red, win_blue, win_amounts, lottery_code=config['code'], red_count=config['red_count'])
                 winning_counts[level] += 1
                 total_winning_amount += amt
         table_data = [{"奖项": l, "中奖数量": winning_counts[l]} for l in ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖"]]
