@@ -71,7 +71,7 @@ LOTTERY_CONFIG = {
         "red_range": (1, 30),
         "blue_range": (1, 30),
         "window_size": 3,
-        "eval_metrics": {"top_n_1": 7, "top_n_2": 12, "green_threshold": 4, "red_threshold": 5},
+        "eval_metrics": {"top_n_1": 8, "top_n_2": 12, "green_threshold": 4, "red_threshold": 5},
         "morphology_rules": {
             "sum_range": (80, 140),
             "span_range": (16, 29),

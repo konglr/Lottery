@@ -182,6 +182,98 @@ MODEL_CONFIG = {
 
 # --- 1. Data Loading & Preprocessing ---
 
+def recalculate_stats(df):
+    """Recalculate statistical columns based on the current RED_COLS (e.g., 7+1 for QLC)."""
+    logging.info(f"正在重算 {LOTTERY_NAME} 的统计特征 (基于 {len(RED_COLS)} 个号码)...")
+    
+    # 1. Prep boundaries
+    midpoint = TOTAL_NUMBERS / 2
+    z1_limit = TOTAL_NUMBERS / 3.0
+    z2_limit = (TOTAL_NUMBERS * 2) / 3.0
+    
+    # Chinese Keys for Consec/Jump
+    CN_KEYS = ["", "", "二", "三", "四", "五", "六", "七", "八", "九", "十", 
+               "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"]
+    
+    # Reset temporal stats and consec/jump targets
+    temporal_cols = ['重号', '邻号', '孤号']
+    pattern_cols = [f"{CN_KEYS[k]}连" for k in range(2, 7)] + [f"{CN_KEYS[k]}跳" for k in range(2, 7)]
+    for c in temporal_cols + pattern_cols:
+        if c in df.columns: df[c] = 0
+    
+    # 2. Row by Row Stats
+    for idx in df.index:
+        try:
+            nums = sorted([int(v) for v in df.loc[idx, RED_COLS].values if pd.notna(v)])
+            if not nums: continue
+            n = len(nums)
+            
+            # Basic Stats
+            df.loc[idx, '和值'] = sum(nums)
+            df.loc[idx, '跨度'] = max(nums) - min(nums) if n >= 2 else 0
+            df.loc[idx, '奇数'] = sum(1 for v in nums if v % 2 != 0)
+            df.loc[idx, '大号'] = sum(1 for v in nums if v > midpoint)
+            
+            # AC
+            if n >= 2:
+                diffs = set(abs(a - b) for i, a in enumerate(nums) for b in nums[i+1:])
+                df.loc[idx, 'AC'] = len(diffs) - (n - 1)
+            
+            # Zones
+            z1, z2, z3 = 0, 0, 0
+            for v in nums:
+                if v <= z1_limit: z1 += 1
+                elif v <= z2_limit: z2 += 1
+                else: z3 += 1
+            df.loc[idx, '一区'], df.loc[idx, '二区'], df.loc[idx, '三区'] = z1, z2, z3
+            
+            # Patterns (Consecutive)
+            i_c = 0
+            while i_c < n - 1:
+                if nums[i_c] + 1 == nums[i_c + 1]:
+                    length = 2
+                    while i_c + length < n and nums[i_c + length - 1] + 1 == nums[i_c + length]:
+                        length += 1
+                    if length <= 6:
+                        key = f"{CN_KEYS[length]}连"
+                        if key in df.columns: df.loc[idx, key] += 1
+                    i_c += length
+                else: i_c += 1
+                
+            # Patterns (Jumps)
+            i_j = 0
+            while i_j < n - 1:
+                diff = nums[i_j + 1] - nums[i_j]
+                if diff >= 2:
+                    length = 1
+                    while i_j + length < n - 1 and nums[i_j + length + 1] - nums[i_j + length] == diff:
+                        length += 1
+                    jump_key = None
+                    if diff == 2:
+                        jump_key = {1:'二跳', 2:'三跳', 3:'四跳', 4:'五跳', 5:'六跳'}.get(length)
+                    elif diff in [3, 4, 5, 6] and (length == diff - 1 or length == diff):
+                        jump_key = {2:'三跳', 3:'四跳', 4:'五跳', 5:'六跳'}.get(length)
+                    if jump_key and jump_key in df.columns:
+                        df.loc[idx, jump_key] += 1
+                        i_j += (length + 1)
+                    else: i_j += 1
+                else: i_j += 1
+        except: continue
+
+    # 3. Temporal Pass (Oldest to Newest)
+    for i in range(1, len(df)):
+        try:
+            curr = set([int(v) for v in df.loc[i, RED_COLS].values if pd.notna(v)])
+            prev = set([int(v) for v in df.loc[i-1, RED_COLS].values if pd.notna(v)])
+            if not curr or not prev: continue
+            rep = len(curr & prev)
+            adj = sum(1 for n in curr if (n - 1 in prev or n + 1 in prev))
+            df.loc[i, '重号'], df.loc[i, '邻号'], df.loc[i, '孤号'] = rep, adj, len(curr) - rep - adj
+        except: continue
+        
+    return df
+
+
 def load_data(file_path=DATA_FILE):
     try:
         df = pd.read_csv(file_path)
@@ -192,6 +284,11 @@ def load_data(file_path=DATA_FILE):
         # Ensure oldest to newest
         if int(df['期号'].iloc[0]) > int(df['期号'].iloc[-1]):
             df = df.iloc[::-1].reset_index(drop=True)
+            
+        # Recalculate stats for QLC (7+1=8 balls)
+        if LOTTERY_NAME == "七乐彩":
+            df = recalculate_stats(df)
+            
         return df
     except Exception as e:
         logging.error(f"Error loading data: {e}")
@@ -604,7 +701,7 @@ def train_predict_lstm(df):
         logging.error(traceback.format_exc())
         return np.zeros(TOTAL_NUMBERS)
 
-def run_prediction(df, method, full_df, next_omission):
+def run_prediction(df, method, full_df, next_omission, conf=None):
     if method == 'A':
         return predict_similarity(full_df)
     elif method in ['B', 'C']:
@@ -631,7 +728,7 @@ def run_prediction(df, method, full_df, next_omission):
         return train_predict_lstm(df)
     return np.zeros(TOTAL_NUMBERS)
 
-def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', 'D']):
+def evaluate_methods(df, full_df, conf, test_size=10, active_methods=['A', 'B', 'C', 'D']):
     """Perform backtesting for all selected methods."""
     logging.info(f"开始历史回测分析 (最近 {test_size} 期)...")
     hit_counts_10 = {m: 0 for m in active_methods}
@@ -690,7 +787,7 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
         current_probs = {} # Store probs for logging
         
         for m in active_methods:
-            res = run_prediction(train_df, m, train_full_df, current_omission)
+            res = run_prediction(train_df, m, train_full_df, current_omission, conf)
             probs = res[0] if isinstance(res, tuple) else res
             sorted_idx = probs.argsort()[::-1]
             
@@ -704,7 +801,7 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             hits_n1 = len(actual_draw & set([NUM_LIST[idx] for idx in top_n1_idx]))
             hit_counts_6[m] += hits_n1
             
-            hit_history[m].append((hits_n1 / RED_COUNT, hits_n2 / RED_COUNT))
+            hit_history[m].append((hits_n1, hits_n2))
             
             # Save probs for logging
             current_probs[m] = probs
@@ -762,7 +859,7 @@ def evaluate_methods(df, full_df, test_size=10, active_methods=['A', 'B', 'C', '
             ens_hits_n1 = len(actual_draw & set([NUM_LIST[idx] for idx in ens_top_n1]))
             ensemble_hits_6 += ens_hits_n1
             
-            ensemble_history.append((ens_hits_n1 / RED_COUNT, ens_hits_n2 / RED_COUNT))
+            ensemble_history.append((ens_hits_n1, ens_hits_n2))
             
             # --- Union Ensemble (Top 10 of All Qualified) ---
             # Union of all active methods' Top 10
@@ -880,7 +977,7 @@ def main():
         active_methods = ['A', 'B', 'C', 'D'] if args.method == 'all' else [args.method]
         
         # 1. Evaluation / Backtest
-        eval_results, run_id = evaluate_methods(df, full_df, test_size=args.eval_size, active_methods=active_methods)
+        eval_results, run_id = evaluate_methods(df, full_df, conf, test_size=args.eval_size, active_methods=active_methods)
         
         # 2. Final Prediction for Next Period
         try:
@@ -897,7 +994,7 @@ def main():
         _, current_omission = get_omission_matrix(df)
         
         for m in active_methods:
-            res = run_prediction(df, m, full_df, current_omission)
+            res = run_prediction(df, m, full_df, current_omission, conf)
             if isinstance(res, tuple):
                 results[m], importances[m] = res
             else:
@@ -925,9 +1022,19 @@ def main():
             metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
             n1, n2 = metrics['top_n_1'], metrics['top_n_2']
             
-            history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in eval_results[m]['history']])
-            print(f"历史回测平均命中率 (Top {n1}/{n2} 覆盖率): {eval_results[m]['avg_n1']:.2%}/{eval_results[m]['avg_n2']:.2%} [{history_str}]")
-            print(f"最佳 {n1} 推荐: {sorted(top_10_nums[:n1])}")
+            history_str = ", ".join([f"{h1}/{RED_COUNT}({n1})|{h2}/{RED_COUNT}({n2})" for h1, h2 in eval_results[m]['history']])
+            hit_label = f"(Top {n1}/{n2} 覆盖率)"
+            if LOTTERY_NAME == "七乐彩":
+                hit_label = f"(Top {n1}/{n2} 覆/含特别号)"
+            print(f"历史回测平均命中率 {hit_label}: {eval_results[m]['avg_n1']:.2%}/{eval_results[m]['avg_n2']:.2%} [{history_str}]")
+            
+            if LOTTERY_NAME == "七乐彩" and n1 == 8:
+                best_7_red = sorted(top_10_nums[:7])
+                blue_ball = top_10_nums[7]
+                print(f"最佳 8 推荐 (7红 + 1蓝): {best_7_red} | 篮球: {blue_ball:02d}")
+            else:
+                print(f"最佳 {n1} 推荐: {sorted(top_10_nums[:n1])}")
+                
             print(f"推荐 Top {n2} 号码 (原始概率 | 标准得分):")
             for idx in top_indices[:n2]:
                 std_val = (probs[idx] - p_min) / (p_max - p_min) if p_max > p_min else 0.0
@@ -980,7 +1087,13 @@ def main():
                 top_indices = ensemble_scores.argsort()[::-1]
                 top_n2_nums = [NUM_LIST[idx] for idx in top_indices[:n2]] 
                 
-                print(f"最佳 {n1} 组合: {sorted(top_n2_nums[:n1])}")
+                if LOTTERY_NAME == "七乐彩" and n1 == 8:
+                    best_7_red = sorted(top_n2_nums[:7])
+                    blue_ball = top_n2_nums[7]
+                    print(f"最佳 8 组合 (7红 + 1蓝): {best_7_red} | 篮球: {blue_ball:02d}")
+                else:
+                    print(f"最佳 {n1} 组合: {sorted(top_n2_nums[:n1])}")
+                    
                 print(f"推荐 Top {n2} (标准综合得分):")
                 for idx in top_indices[:n2]:
                     print(f"  号码: {NUM_LIST[idx]:02d} - 标准得分: {ensemble_scores[idx]:.4f}")
@@ -989,8 +1102,11 @@ def main():
                 # Display Ensemble History
                 if 'Ensemble' in eval_results:
                     ens_res = eval_results['Ensemble']
-                    ens_history_str = ", ".join([f"{h1:.0%}/{h2:.0%}" for h1, h2 in ens_res['history']])
-                    print(f"🏆 综合推荐历史命中率 (Top {n1}/{n2} 覆盖率): {ens_res['avg_n1']:.2%}/{ens_res['avg_n2']:.2%} [{ens_history_str}]")
+                    ens_history_str = ", ".join([f"{h1}/{RED_COUNT}({n1})|{h2}/{RED_COUNT}({n2})" for h1, h2 in ens_res['history']])
+                    hit_label = f"(Top {n1}/{n2} 覆盖率)"
+                    if LOTTERY_NAME == "七乐彩":
+                        hit_label = f"(Top {n1}/{n2} 覆/含特别号)"
+                    print(f"🏆 综合推荐历史命中率 {hit_label}: {ens_res['avg_n1']:.2%}/{ens_res['avg_n2']:.2%} [{ens_history_str}]")
                     
                     if 'Union' in eval_results:
                         u_res = eval_results['Union']
