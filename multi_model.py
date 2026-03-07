@@ -390,17 +390,22 @@ def extract_features(df, window_data, next_omission):
     features = []
     # A. Hot/Cold (Freq in window)
     if SEPARATE_POOL:
-        red_balls = window_data[RED_COLS].values.flatten().astype(int)
-        blue_balls = window_data[BLUE_COLS].values.flatten().astype(int)
+        red_balls = window_data[RED_COLS].values.flatten()
+        red_balls = red_balls[~np.isnan(red_balls)].astype(int)  # 过滤 NaN
         # Offset frequencies for bincount based on range start
         r_freq = np.zeros(TOTAL_RED)
-        b_freq = np.zeros(TOTAL_BLUE)
         for b in red_balls:
             if RED_RANGE[0] <= b <= RED_RANGE[1]: r_freq[b - RED_RANGE[0]] += 1
-        for b in blue_balls:
-            if BLUE_RANGE[0] <= b <= BLUE_RANGE[1]: b_freq[b - BLUE_RANGE[0]] += 1
         features.extend(r_freq)
-        features.extend(b_freq)
+        
+        # Blue balls (only if BLUE_COLS exists)
+        if BLUE_COLS:
+            blue_balls = window_data[BLUE_COLS].values.flatten()
+            blue_balls = blue_balls[~np.isnan(blue_balls)].astype(int)  # 过滤 NaN
+            b_freq = np.zeros(TOTAL_BLUE)
+            for b in blue_balls:
+                if BLUE_RANGE[0] <= b <= BLUE_RANGE[1]: b_freq[b - BLUE_RANGE[0]] += 1
+            features.extend(b_freq)
     else:
         all_balls = window_data[RED_COLS].values.flatten().astype(int)
         freq = np.zeros(TOTAL_RED)
@@ -875,8 +880,8 @@ def evaluate_methods(df, full_df, conf, test_size=10, active_methods=['A', 'B', 
         train_df = df.iloc[:i].reset_index(drop=True)
         train_full_df = full_df.iloc[:i].reset_index(drop=True)
         
-        actual_red = set(df.iloc[i][RED_COLS].values.astype(int))
-        actual_blue = set(df.iloc[i][BLUE_COLS].values.astype(int)) if SEPARATE_POOL else set()
+        actual_red = set(df.iloc[i][RED_COLS].dropna().astype(int).values)
+        actual_blue = set(df.iloc[i][BLUE_COLS].dropna().astype(int).values) if SEPARATE_POOL and BLUE_COLS else set()
         target_period = df.iloc[i]['期号']
         
         _, current_omission = get_omission_matrix(train_df)

@@ -75,10 +75,10 @@ def render_backtest_results(df_full, conf):
         if p_match.empty:
             summary_data.append({"回测期号": f"{p} ✨", "综合推荐": "-", "模型 A": "-", "模型 B": "-", "模型 C": "-", "模型 D": "-"})
             continue
-        a_red = set(p_match.iloc[0][red_cols].values.astype(int).tolist())
-        a_blue = set(p_match.iloc[0][blue_cols].values.astype(int).tolist()) if separate_pool else set()
+        a_red = set(p_match.iloc[0][red_cols].dropna().astype(int).tolist())
+        a_blue = set(p_match.iloc[0][blue_cols].dropna().astype(int).tolist()) if separate_pool and blue_cols else set()
         r_start, r_end = conf['red_range']
-        b_start, b_end = conf.get('blue_range', (0, 0))
+        b_start, b_end = conf.get('blue_range') or (0, 0)
         r_list = list(range(r_start, r_end + 1))
         b_list = list(range(b_start, b_end + 1)) if separate_pool else []
         m_scores = {}
@@ -127,8 +127,8 @@ def render_backtest_results(df_full, conf):
     st.markdown(f"#### 🔍 期号 {sel_period} 详细回测对比")
     p_str = normalize_period(str(sel_period))
     p_match = df_full[df_full['期号'].astype(str) == p_str]
-    actual_red = set(p_match.iloc[0][red_cols].values.astype(int).tolist()) if not p_match.empty else set()
-    actual_blue = set(p_match.iloc[0][blue_cols].values.astype(int).tolist()) if not p_match.empty and separate_pool else set()
+    actual_red = set(p_match.iloc[0][red_cols].dropna().astype(int).tolist()) if not p_match.empty else set()
+    actual_blue = set(p_match.iloc[0][blue_cols].dropna().astype(int).tolist()) if not p_match.empty and separate_pool and blue_cols else set()
     if not p_match.empty:
         res_html = "**实际开奖:** "
         for r in sorted(list(actual_red)): res_html += f'<span class="lottery-ball red-ball">{r}</span>'
@@ -169,7 +169,7 @@ def render_backtest_results(df_full, conf):
 
     if separate_pool:
         st.subheader(f"🔵 蓝球排名对比")
-        b_start, b_end = conf['blue_range']
+        b_start, b_end = conf.get('blue_range') or (0, 0)
         b_list = list(range(b_start, b_end + 1))
         b_rank_data = []
         for n in b_list:
