@@ -16,6 +16,11 @@ def render_morphological_analysis(df_full, conf):
         df_back = pd.read_csv(csv_file)
         if df_back.empty: return
         df_back = df_back[df_back['Target_Period'] != 'Target_Period']
+    except pd.errors.ParserError:
+        st.error(f"⚠️ 数据文件格式冲突: {csv_file}")
+        st.warning("检测到 CSV 表头与数据列数不一致（可能因为模型增减导致）。")
+        st.info("请在后台手动删除该文件，然后重新运行预测脚本以生成新文件。")
+        return
     except Exception as e:
         st.error(f"读取数据失败: {e}")
         return
@@ -29,7 +34,7 @@ def render_morphological_analysis(df_full, conf):
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        model_options = {'Prob_A': '模型 A (统计)', 'Prob_B': '模型 B (RF)', 'Prob_C': '模型 C (XGB)', 'Prob_D': '模型 D (LSTM)'}
+        model_options = {'Prob_A': '模型 A (统计)', 'Prob_B': '模型 B (RF)', 'Prob_C': '模型 C (XGB)', 'Prob_D': '模型 D (LSTM)', 'Prob_E': '模型 E (LGBM)', 'Prob_F': '模型 F (CatBoost)', 'Prob_G': '模型 G (HMM)', 'Prob_H': '模型 H (EVT)', 'Prob_I': '模型 I (GA)', 'Prob_J': '模型 J (Poisson)'}
         sel_model = st.selectbox("选择评分基准模型", list(model_options.keys()), format_func=lambda x: model_options[x], index=1)
     with col2: top_n_balls = st.slider("候选红球池数量", 10, 20, 15)
     with col3: num_rec = st.slider("推荐组合数量", 1, 10, 5)
@@ -46,7 +51,7 @@ def render_morphological_analysis(df_full, conf):
 
     r_start, r_end = conf['red_range']
     # Handle both new R-prefix and old simple prefix
-    prefix_map = {'Prob_A': 'A', 'Prob_B': 'B', 'Prob_C': 'C', 'Prob_D': 'D'}
+    prefix_map = {'Prob_A': 'A', 'Prob_B': 'B', 'Prob_C': 'C', 'Prob_D': 'D', 'Prob_E': 'E', 'Prob_F': 'F', 'Prob_G': 'G', 'Prob_H': 'H', 'Prob_I': 'I', 'Prob_J': 'J'}
     mid = prefix_map[sel_model]
     prob_cols = [f"Prob_{mid}_R{i:02d}" for i in range(r_start, r_end + 1)]
     if not all(c in row_data.index for c in prob_cols):

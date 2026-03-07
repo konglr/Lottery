@@ -24,11 +24,17 @@ def fix_blue_ball(file_path):
 
         logging.info("Copying 'backWinningNum' to '蓝球' column...")
         
-        # Directly copy the 'backWinningNum' column to '蓝球'.
-        # pd.to_numeric ensures that the data is converted to a number,
-        # and any values that cannot be converted will become NaN (Not a Number),
-        # which the application will safely handle.
-        df['蓝球'] = pd.to_numeric(df['backWinningNum'], errors='coerce')
+        def parse_blue(val):
+            try:
+                if pd.isna(val): return 0
+                s = str(val).strip()
+                if not s: return 0
+                # Handle cases where it might be space-separated, take the first one
+                parts = s.split()
+                return int(parts[0]) if parts else 0
+            except: return 0
+
+        df['蓝球'] = df['backWinningNum'].apply(parse_blue)
 
         # Save the DataFrame back to the original file
         df.to_csv(file_path, index=False, encoding='utf-8-sig')

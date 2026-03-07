@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import re
 
 def render_backtest_results(df_full, conf):
     st.markdown(f"### 📋 {conf['name']} 历史回测详情分析")
@@ -13,6 +14,11 @@ def render_backtest_results(df_full, conf):
         df_back = pd.read_csv(csv_file)
         if 'Target_Period' in df_back.columns:
             df_back['Target_Period'] = df_back['Target_Period'].astype(str).str.replace(r'\.0$', '', regex=True)
+    except pd.errors.ParserError:
+        st.error(f"⚠️ 数据文件格式冲突: {csv_file}")
+        st.warning("检测到 CSV 表头与数据列数不一致（可能因为模型增减导致）。")
+        st.info("请在后台手动删除该文件，然后重新运行预测脚本以生成新文件。")
+        return
     except Exception as e:
         st.error(f"读取回测数据失败: {e}")
         return
@@ -47,7 +53,7 @@ def render_backtest_results(df_full, conf):
 
     st.markdown("#### 📊 本次运行汇总 (命中率概览)")
     summary_data = []
-    methods = ['A', 'B', 'C', 'D']
+    methods = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
     metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
     n1, n2 = metrics['top_n_1'], metrics['top_n_2']
     
@@ -73,7 +79,7 @@ def render_backtest_results(df_full, conf):
         p_str = normalize_period(str(p))
         p_match = df_full[df_full['期号'].astype(str) == p_str]
         if p_match.empty:
-            summary_data.append({"回测期号": f"{p} ✨", "综合推荐": "-", "模型 A": "-", "模型 B": "-", "模型 C": "-", "模型 D": "-"})
+            summary_data.append({"回测期号": f"{p} ✨", "综合推荐": "-", "模型 A": "-", "模型 B": "-", "模型 C": "-", "模型 D": "-", "模型 G": "-", "模型 H": "-", "模型 I": "-", "模型 J": "-"})
             continue
         a_red = set(p_match.iloc[0][red_cols].dropna().astype(int).tolist())
         a_blue = set(p_match.iloc[0][blue_cols].dropna().astype(int).tolist()) if separate_pool and blue_cols else set()
@@ -121,7 +127,25 @@ def render_backtest_results(df_full, conf):
         p_row = {"回测期号": p_str, "综合推荐": get_hit_str(ens_combined, a_red, a_blue)}
         for m in methods: p_row[f"模型 {m}"] = get_hit_str(m_scores[m], a_red, a_blue)
         summary_data.append(p_row)
-    if summary_data: st.table(pd.DataFrame(summary_data))
+
+    if summary_data:
+        df_summary = pd.DataFrame(summary_data)
+        def highlight_hits(val):
+            if not isinstance(val, str): return ''
+            # Pattern: R:3/6|B:1/1
+            m = re.search(r'R:(\d+)/(\d+)\|B:(\d+)/(\d+)', val)
+            if m:
+                r_hit, r_tot, b_hit, b_tot = map(int, m.groups())
+                if (r_hit >= r_tot / 2) or (b_hit >= b_tot / 2):
+                    return 'color: #28a745; font-weight: bold'
+            # Pattern: 3/7(6)|...
+            m2 = re.search(r'(\d+)/(\d+)\(\d+\)', val)
+            if m2:
+                hit, tot = map(int, m2.groups())
+                if hit >= tot / 2:
+                    return 'color: #28a745; font-weight: bold'
+            return ''
+        st.dataframe(df_summary.style.map(highlight_hits), use_container_width=True)
     st.divider()
 
     st.markdown(f"#### 🔍 期号 {sel_period} 详细回测对比")
