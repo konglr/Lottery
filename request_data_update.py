@@ -2,13 +2,13 @@ import os
 import time
 import pandas as pd
 import logging
-from request_data_all import requests_data, parse_lottery_data, get_latest_issue_from_system, process_ssq_data
+from request_data_all import requests_data, parse_lottery_data, get_latest_issue_from_system, process_ssq_data, normalize_issue
 from request_process_all_data import process_all_files
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def get_local_latest_issue(filepath):
+def get_local_latest_issue(filepath, lottery_id=None):
     """从本地 CSV 文件中获取最新的期号"""
     if not os.path.exists(filepath):
         return None
@@ -17,7 +17,10 @@ def get_local_latest_issue(filepath):
         if df.empty:
             return None
         # 假设期号是第一列且已排序或我们可以取最大值
-        return df['issue'].max()
+        latest = df['issue'].max()
+        if lottery_id:
+            return normalize_issue(latest, lottery_id)
+        return latest
     except Exception as e:
         logging.error(f"读取本地文件 {filepath} 出错: {e}")
         return None
@@ -27,7 +30,7 @@ def update_lottery_incremental(lottery_id, lottery_name):
     filename = f"{lottery_name}_lottery_data.csv"
     filepath = os.path.join("data", filename)
     
-    local_latest = get_local_latest_issue(filepath)
+    local_latest = get_local_latest_issue(filepath, lottery_id)
     system_latest = get_latest_issue_from_system(lottery_id)
     
     if system_latest is None:
@@ -36,14 +39,13 @@ def update_lottery_incremental(lottery_id, lottery_name):
 
     # 统一转换为整数进行比较
     try:
-        system_latest = int(system_latest)
-        if local_latest is not None:
-            local_latest = int(local_latest)
+        system_latest_int = int(system_latest)
+        local_latest_int = int(local_latest) if local_latest is not None else -1
     except ValueError:
         logging.error(f"期号转换格式错误: local={local_latest}, system={system_latest}")
         return
 
-    if local_latest is not None and local_latest >= system_latest:
+    if local_latest_int != -1 and local_latest_int >= system_latest_int:
         logging.info(f"✅ {lottery_name} 数据已是最新 (最新期号: {local_latest})。")
         return
 
@@ -71,15 +73,15 @@ def update_lottery_incremental(lottery_id, lottery_name):
         logging.error(f"❌ 抓取 {lottery_name} 增量数据失败")
         return
         
-    new_records = parse_lottery_data(json_response)
+    new_records = parse_lottery_data(json_response, lottery_id)
     if not new_records:
         logging.warning(f"⚠️ 解析 {lottery_name} 增量数据为空")
         return
         
     df_new = pd.DataFrame(new_records)
     # 过滤掉已经存在的期号
-    df_new['issue'] = df_new['issue'].astype(int)
-    df_incremental = df_new[df_new['issue'] > local_latest]
+    df_new['issue'] = df_new['issue'].apply(lambda x: int(normalize_issue(x, lottery_id)))
+    df_incremental = df_new[df_new['issue'] > local_latest_int]
     
     if df_incremental.empty:
         logging.info(f"ℹ️ {lottery_name} 虽然最新期号不同，但未在最近 100 条中发现更高期号，可能已同步。")

@@ -9,7 +9,7 @@ from config import LOTTERY_CONFIG
 # --- Configuration Section ---
 # Set the lotteries and models you want to run in batch
 BATCH_CONFIG = {
-    "lotteries": [ "排列五", "超级大乐透"],  #"双色球", "七星彩", , "排列三", "排列五" "超级大乐透", "快乐8", "福彩3D",“七乐彩”
+    "lotteries": [ "超级大乐透"],  #"双色球", "七星彩", , "排列三", "排列五" "超级大乐透", "快乐8", "福彩3D",“七乐彩”"排列五", 
     "models": [
         ("DashScope", "qwen3.5-plus"),
         ("DashScope", "kimi-k2.5"),

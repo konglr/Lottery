@@ -56,29 +56,78 @@ def init_config():
         
     return args, lotteries
 
-def update_lottery_config(lottery_name):
-    global LOTTERY_NAME, DATA_FILE, RED_COUNT, RED_RANGE, RED_COL_PREFIX, RED_COLS, TOTAL_NUMBERS, NUM_LIST, WINDOW_SIZE, BACKTEST_CSV, STAT_COLS, STAT_MAP
+def update_lottery_config(lottery_name, df=None):
+    global LOTTERY_NAME, DATA_FILE, RED_COUNT, BLUE_COUNT, RED_RANGE, BLUE_RANGE, RED_COL_PREFIX, RED_COLS, BLUE_COLS, SEPARATE_POOL
+    global TOTAL_RED, TOTAL_BLUE, RED_NUM_LIST, BLUE_NUM_LIST, WINDOW_SIZE, BACKTEST_CSV, STAT_COLS, STAT_MAP, TOTAL_NUMBERS, NUM_LIST
+    
     conf = LOTTERY_CONFIG[lottery_name]
     LOTTERY_NAME = lottery_name
     DATA_FILE = conf['data_file']
     RED_COUNT = conf['red_count']
-    RED_RANGE = conf['red_range'] # (start, end)
+    BLUE_COUNT = conf.get('blue_count', 0)
+    RED_RANGE = conf['red_range'] 
+    BLUE_RANGE = conf.get('blue_range', (0, 0))
     RED_COL_PREFIX = conf['red_col_prefix']
+    SEPARATE_POOL = conf.get('separate_pool', False)
+    
+    # Initialize Lists
     RED_COLS = [f"{RED_COL_PREFIX}{i}" for i in range(1, RED_COUNT + 1)]
-    # Special handling for 七乐彩: Combine 7 red + 1 blue into 8 balls as they are from the same pool (1-30)
-    if lottery_name == "七乐彩" and conf.get('has_blue'):
-        blue_col = conf.get('blue_col_name')
-        if blue_col and blue_col in conf.get('blue_col_name', ''): # redundant check but safe
-            RED_COLS.append(blue_col)
-            RED_COUNT = len(RED_COLS) # Update RED_COUNT to 8 for metrics normalization
+    BLUE_COLS = []
+    
+    if conf.get('has_blue'):
+        blue_prefix = conf.get('blue_col_name', '蓝球')
+        if BLUE_COUNT > 1:
+            for i in range(1, BLUE_COUNT + 1):
+                col_found = False
+                if df is not None:
+                    for p in [blue_prefix, '蓝球']:
+                        col_name = f"{p}{i}"
+                        if col_name in df.columns:
+                            BLUE_COLS.append(col_name)
+                            col_found = True
+                            break
+                if not col_found:
+                    BLUE_COLS.append(f"{blue_prefix}{i}")
+        else:
+            col_found = False
+            if df is not None:
+                for col_name in [blue_prefix, '蓝球']:
+                    if col_name in df.columns:
+                        BLUE_COLS.append(col_name)
+                        col_found = True
+                        break
+            if not col_found:
+                BLUE_COLS.append(blue_prefix)
+
+    # Logic for Model Targets
+    if SEPARATE_POOL:
+        # Dual Pool: Red and Blue are independent
+        RED_NUM_LIST = list(range(RED_RANGE[0], RED_RANGE[1] + 1))
+        BLUE_NUM_LIST = list(range(BLUE_RANGE[0], BLUE_RANGE[1] + 1))
+        TOTAL_RED = len(RED_NUM_LIST)
+        TOTAL_BLUE = len(BLUE_NUM_LIST)
+        TOTAL_NUMBERS = TOTAL_RED + TOTAL_BLUE
+        NUM_LIST = RED_NUM_LIST + BLUE_NUM_LIST # concatenated for vector indexing
+    else:
+        # Single Pool (like QLC): Red and Blue come from same range
+        # We combine them into a single list of columns for analysis
+        # Use dict.fromkeys to merge and uniqueify while preserving order
+        all_cols = RED_COLS + BLUE_COLS
+        RED_COLS = list(dict.fromkeys(all_cols))
+        BLUE_COLS = [] # Reset blue cols as they are merged into red
+        
+        RED_NUM_LIST = list(range(RED_RANGE[0], RED_RANGE[1] + 1))
+        BLUE_NUM_LIST = []
+        TOTAL_RED = len(RED_NUM_LIST)
+        TOTAL_BLUE = 0
+        TOTAL_NUMBERS = TOTAL_RED
+        NUM_LIST = RED_NUM_LIST
             
-    TOTAL_NUMBERS = RED_RANGE[1] - RED_RANGE[0] + 1
-    NUM_LIST = list(range(RED_RANGE[0], RED_RANGE[1] + 1))
     WINDOW_SIZE = conf.get('window_size', 4)
     BACKTEST_CSV = f"data/{conf['code']}_backtest.csv"
     STAT_COLS = []
     STAT_MAP = {}
-    print(f"\n{'='*20} [切换彩票: {LOTTERY_NAME}] {'='*20}")
+    print(f"\n{'='*20} [切换彩票: {LOTTERY_NAME} ({'独立池' if SEPARATE_POOL else '单池'})] {'='*20}")
     return conf
 
 args, LOTTERIES_TO_RUN = init_config()
@@ -295,54 +344,106 @@ def load_data(file_path=DATA_FILE):
         return None
 
 def get_omission_matrix(df):
+    """Calculate separate omission matrices for red and blue if SEPARATE_POOL."""
     n_rows = len(df)
     omission_matrix = np.zeros((n_rows, TOTAL_NUMBERS), dtype=int)
-    current_omission = np.zeros(TOTAL_NUMBERS, dtype=int)
+    current_red_omiss = np.zeros(TOTAL_RED, dtype=int)
+    current_blue_omiss = np.zeros(TOTAL_BLUE, dtype=int)
+    
     for i in range(n_rows):
-        omission_matrix[i] = current_omission.copy()
-        current_draw = set(df.loc[i, RED_COLS].values)
-        for idx, num in enumerate(NUM_LIST):
-            if num in current_draw:
-                current_omission[idx] = 0
-            else:
-                current_omission[idx] += 1
-    cols = [f'Omission_{i}' for i in NUM_LIST]
-    return pd.DataFrame(omission_matrix, columns=cols), current_omission
+        # Current state before this draw
+        if SEPARATE_POOL:
+            omission_matrix[i, :TOTAL_RED] = current_red_omiss
+            omission_matrix[i, TOTAL_RED:] = current_blue_omiss
+            
+            # Update after draw
+            row_red = set(df.loc[i, RED_COLS].values)
+            row_blue = set(df.loc[i, BLUE_COLS].values)
+            
+            for idx, num in enumerate(RED_NUM_LIST):
+                if num in row_red: current_red_omiss[idx] = 0
+                else: current_red_omiss[idx] += 1
+            for idx, num in enumerate(BLUE_NUM_LIST):
+                if num in row_blue: current_blue_omiss[idx] = 0
+                else: current_blue_omiss[idx] += 1
+        else:
+            omission_matrix[i] = current_red_omiss # combined in single pool
+            row_nums = set(df.loc[i, RED_COLS].values)
+            for idx, num in enumerate(RED_NUM_LIST):
+                if num in row_nums: current_red_omiss[idx] = 0
+                else: current_red_omiss[idx] += 1
+    
+    # Generate Col Names
+    cols = []
+    if SEPARATE_POOL:
+        cols.extend([f'Red_Omiss_{i}' for i in RED_NUM_LIST])
+        cols.extend([f'Blue_Omiss_{i}' for i in BLUE_NUM_LIST])
+        next_omiss = np.concatenate([current_red_omiss, current_blue_omiss])
+    else:
+        cols.extend([f'Omission_{i}' for i in RED_NUM_LIST])
+        next_omiss = current_red_omiss
+        
+    return pd.DataFrame(omission_matrix, columns=cols), next_omiss
 
 def extract_features(df, window_data, next_omission):
     """Unified feature extraction for ML models."""
     features = []
     # A. Hot/Cold (Freq in window)
-    all_balls = window_data[RED_COLS].values.flatten().astype(int)
-    freq = np.bincount(all_balls, minlength=TOTAL_NUMBERS+1)[1:]
-    features.extend(freq)
+    if SEPARATE_POOL:
+        red_balls = window_data[RED_COLS].values.flatten().astype(int)
+        blue_balls = window_data[BLUE_COLS].values.flatten().astype(int)
+        # Offset frequencies for bincount based on range start
+        r_freq = np.zeros(TOTAL_RED)
+        b_freq = np.zeros(TOTAL_BLUE)
+        for b in red_balls:
+            if RED_RANGE[0] <= b <= RED_RANGE[1]: r_freq[b - RED_RANGE[0]] += 1
+        for b in blue_balls:
+            if BLUE_RANGE[0] <= b <= BLUE_RANGE[1]: b_freq[b - BLUE_RANGE[0]] += 1
+        features.extend(r_freq)
+        features.extend(b_freq)
+    else:
+        all_balls = window_data[RED_COLS].values.flatten().astype(int)
+        freq = np.zeros(TOTAL_RED)
+        for b in all_balls:
+            if RED_RANGE[0] <= b <= RED_RANGE[1]: freq[b - RED_RANGE[0]] += 1
+        features.extend(freq)
     
     # B. Next Omission State
     features.extend(next_omission)
     
-    # C. Stats
+    # C. Stats (Mean and Last)
     w_data = window_data.copy()
     for col in STAT_COLS:
         if col not in w_data.columns: w_data[col] = 0
-    
     features.extend(w_data[STAT_COLS].mean().values)
     features.extend(w_data[STAT_COLS].iloc[-1].values)
     
-    # D. Tail Frequency
-    all_tails = [int(n) % 10 for n in all_balls if n > 0]
-    tail_counts = np.bincount(all_tails, minlength=10)
+    # D. Tail Frequency (Red only usually enough for patterns)
+    red_balls_for_tail = window_data[RED_COLS].values.flatten().astype(int)
+    tails = [int(n) % 10 for n in red_balls_for_tail if n >= 0]
+    tail_counts = np.bincount(tails, minlength=10)
     features.extend(tail_counts)
     
     return np.array(features)
 
 def get_feature_names():
-    """Map indices to human-readable names (English-safe for plots)."""
+    """Map indices to human-readable names."""
     names = []
     # A. Freq
-    names.extend([f"Freq_{i:02d}" for i in NUM_LIST])
+    if SEPARATE_POOL:
+        names.extend([f"Red_Freq_{i:02d}" for i in RED_NUM_LIST])
+        names.extend([f"Blue_Freq_{i:02d}" for i in BLUE_NUM_LIST])
+    else:
+        names.extend([f"Freq_{i:02d}" for i in RED_NUM_LIST])
+        
     # B. Omission
-    names.extend([f"Omission_{i:02d}" for i in NUM_LIST])
-    # C. Stats (Dynamic translation)
+    if SEPARATE_POOL:
+        names.extend([f"Red_Omiss_{i:02d}" for i in RED_NUM_LIST])
+        names.extend([f"Blue_Omiss_{i:02d}" for i in BLUE_NUM_LIST])
+    else:
+        names.extend([f"Omiss_{i:02d}" for i in RED_NUM_LIST])
+        
+    # C. Stats
     names.extend([f"Avg_{STAT_MAP[c]}" for c in STAT_COLS])
     names.extend([f"Last_{STAT_MAP[c]}" for c in STAT_COLS])
     # D. Tails
@@ -621,15 +722,25 @@ class LotteryLSTM(nn.Module):
 def train_predict_lstm(df):
     try:
         torch.set_num_threads(1)
-        logging.info("Method D: 训练 LSTM 走势捕捉模型 (Embedding + CrossEntropy)...")
+        logging.info(f"Method D: 训练 LSTM 走势捕捉模型 (内部ID映射, 词表大小={TOTAL_NUMBERS})...")
         
-        # 1. Data Preparation
-        vocab_size = NUM_LIST[-1] + 1
+        # 1. Data Preparation using Internal IDs
         n_rows = len(df)
         ball_seqs = []
         for i in range(n_rows):
-            nums = sorted([int(n) for n in df.iloc[i][RED_COLS].values if pd.notna(n)])
-            ball_seqs.append(nums)
+            ids = []
+            # Red balls
+            row_red = [int(n) for n in df.iloc[i][RED_COLS].values if pd.notna(n)]
+            for val in row_red:
+                if val in RED_NUM_LIST:
+                    ids.append(RED_NUM_LIST.index(val))
+            # Blue balls (with offset)
+            if SEPARATE_POOL:
+                row_blue = [int(n) for n in df.iloc[i][BLUE_COLS].values if pd.notna(n)]
+                for val in row_blue:
+                    if val in BLUE_NUM_LIST:
+                        ids.append(TOTAL_RED + BLUE_NUM_LIST.index(val))
+            ball_seqs.append(sorted(ids))
             
         X_list, y_list = [], []
         for i in range(WINDOW_SIZE, n_rows):
@@ -637,20 +748,18 @@ def train_predict_lstm(df):
             for j in range(i - WINDOW_SIZE, i):
                 x_seq.extend(ball_seqs[j])
             
-            for target_ball in ball_seqs[i]:
+            for target_id in ball_seqs[i]:
                 X_list.append(x_seq)
-                y_list.append(target_ball)
+                y_list.append(target_id)
                 
         if not X_list:
-            logging.warning("数据量不足, 无法训练 LSTM.")
             return np.zeros(TOTAL_NUMBERS)
             
         X_train = torch.LongTensor(X_list)
         y_train = torch.LongTensor(y_list)
         
-        logging.info(f"LSTM 数据准备完成: 样本数={len(X_list)}, 词表大小={vocab_size}")
-        
         # 2. Model Initialization
+        vocab_size = TOTAL_NUMBERS
         conf_d = MODEL_CONFIG['D']
         model = LotteryLSTM(
             vocab_size, 
@@ -684,15 +793,7 @@ def train_predict_lstm(df):
         last_x_tensor = torch.LongTensor([last_x])
         with torch.no_grad():
             logits = model(last_x_tensor)
-            probs_all = torch.softmax(logits, dim=1).numpy()[0]
-            
-        final_probs = np.zeros(TOTAL_NUMBERS)
-        for i, num in enumerate(NUM_LIST):
-            if num < len(probs_all):
-                final_probs[i] = probs_all[num]
-        
-        if final_probs.sum() > 0:
-            final_probs /= final_probs.sum()
+            final_probs = torch.softmax(logits, dim=1).numpy()[0]
             
         return final_probs
     except Exception as e:
@@ -706,18 +807,37 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
         return predict_similarity(full_df)
     elif method in ['B', 'C']:
         X_list, y_list = [], []
+        # Find all omission columns
+        omiss_cols = [c for c in full_df.columns if 'Omiss' in c]
+        
         for i in range(WINDOW_SIZE, len(full_df)):
             win = full_df.iloc[i-WINDOW_SIZE : i]
-            feat = extract_features(full_df, win, full_df.iloc[i][[f'Omission_{k}' for k in NUM_LIST]].values)
+            feat = extract_features(full_df, win, full_df.iloc[i][omiss_cols].values)
+            
+            # Construct Target Vector
             target = np.zeros(TOTAL_NUMBERS)
-            for n in full_df.loc[i, RED_COLS].values:
-                try:
-                    idx = NUM_LIST.index(int(n))
-                    target[idx] = 1
-                except ValueError:
-                    pass
+            if SEPARATE_POOL:
+                # Red Segment
+                for n in full_df.loc[i, RED_COLS].values:
+                    try:
+                        idx = RED_NUM_LIST.index(int(n))
+                        target[idx] = 1
+                    except ValueError: pass
+                # Blue Segment
+                for n in full_df.loc[i, BLUE_COLS].values:
+                    try:
+                        idx = BLUE_NUM_LIST.index(int(n))
+                        target[TOTAL_RED + idx] = 1
+                    except ValueError: pass
+            else:
+                for n in full_df.loc[i, RED_COLS].values:
+                    try:
+                        idx = RED_NUM_LIST.index(int(n))
+                        target[idx] = 1
+                    except ValueError: pass
             X_list.append(feat)
             y_list.append(target)
+            
         last_win = full_df.iloc[-WINDOW_SIZE:]
         final_feat = extract_features(full_df, last_win, next_omission)
         if method == 'B':
@@ -731,202 +851,96 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
 def evaluate_methods(df, full_df, conf, test_size=10, active_methods=['A', 'B', 'C', 'D']):
     """Perform backtesting for all selected methods."""
     logging.info(f"开始历史回测分析 (最近 {test_size} 期)...")
-    hit_counts_10 = {m: 0 for m in active_methods}
-    hit_counts_6 = {m: 0 for m in active_methods}
-    hit_history = {m: [] for m in active_methods}
     
-    ensemble_hits_10 = 0
-    ensemble_hits_6 = 0
-    ensemble_history = []
+    # Track hits: {method: {'red_6': 0, 'red_10': 0, 'blue_6': 0, 'blue_10': 0}}
+    hits = {m: {'r1': 0, 'r2': 0, 'b1': 0, 'b2': 0} for m in active_methods + ['Ensemble']}
+    history = {m: [] for m in active_methods + ['Ensemble']}
     
-    union_hits = 0
-    union_size_sum = 0
-    union_history = []
-    
-    voting_hits_6 = 0
-    voting_history = []
-    
-    
-    # Check if backtest.csv exists to write header
-    csv_file = 'backtest.csv'
-    file_exists = os.path.isfile(csv_file)
-    
-    # Prepare CSV Header
-    header = ['Run_Time', 'Target_Period']
-    for m in ['A', 'B', 'C', 'D']:
-        header.append(f'Params_{m}')
-        for n in NUM_LIST:
-            header.append(f'Prob_{m}_{n:02d}')
-            
+    # Prepare CSV
     with open(BACKTEST_CSV, mode='a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        if not file_exists or os.path.getsize(BACKTEST_CSV) == 0:
+        if os.path.getsize(BACKTEST_CSV) == 0:
+            header = ['Run_Time', 'Target_Period']
+            for m in ['A', 'B', 'C', 'D']:
+                header.append(f'Params_{m}')
+                if SEPARATE_POOL:
+                    for n in RED_NUM_LIST: header.append(f'Prob_{m}_R{n:02d}')
+                    for n in BLUE_NUM_LIST: header.append(f'Prob_{m}_B{n:02d}')
+                else:
+                    for n in NUM_LIST: header.append(f'Prob_{m}_{n:02d}')
             writer.writerow(header)
 
-    # Overall backtest progress
     current_run_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logging.info(f"回测配置: 窗口大小 (WINDOW_SIZE) = {WINDOW_SIZE}")
     for i in tqdm(range(len(df) - test_size, len(df)), desc="历史回测进度"):
         train_df = df.iloc[:i].reset_index(drop=True)
         train_full_df = full_df.iloc[:i].reset_index(drop=True)
         
-        # Get target info
+        actual_red = set(df.iloc[i][RED_COLS].values.astype(int))
+        actual_blue = set(df.iloc[i][BLUE_COLS].values.astype(int)) if SEPARATE_POOL else set()
         target_period = df.iloc[i]['期号']
-        actual_draw = set(df.iloc[i][RED_COLS].values.astype(int))
+        
         _, current_omission = get_omission_matrix(train_df)
-        
-        # Prepare Log Row
-        row_data = {
-            'Run_Time': current_run_time,
-            'Target_Period': target_period
-        }
-        
-        metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10, "green_threshold": 3, "red_threshold": 4})
+        metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
         n1, n2 = metrics['top_n_1'], metrics['top_n_2']
         
-        current_probs = {} # Store probs for logging
-        
+        current_probs = {}
         for m in active_methods:
             res = run_prediction(train_df, m, train_full_df, current_omission, conf)
             probs = res[0] if isinstance(res, tuple) else res
-            sorted_idx = probs.argsort()[::-1]
-            
-            # Top n2 (usually 10 or 20)
-            top_n2_idx = sorted_idx[:n2]
-            hits_n2 = len(actual_draw & set([NUM_LIST[idx] for idx in top_n2_idx]))
-            hit_counts_10[m] += hits_n2 # keeping variable name for now to avoid too much renaming
-            
-            # Top n1 (usually 6 or 10)
-            top_n1_idx = sorted_idx[:n1]
-            hits_n1 = len(actual_draw & set([NUM_LIST[idx] for idx in top_n1_idx]))
-            hit_counts_6[m] += hits_n1
-            
-            hit_history[m].append((hits_n1, hits_n2))
-            
-            # Save probs for logging
             current_probs[m] = probs
             
-        # Log to CSV
-        log_row = [row_data['Run_Time'], row_data['Target_Period']]
-        
-        # Add Params and Probs for A, B, C, D (fill with 0 if not active)
-        for m in ['A', 'B', 'C', 'D']:
-            # Params
-            if m in active_methods:
-                log_row.append(json.dumps(MODEL_CONFIG[m], ensure_ascii=False))
+            if SEPARATE_POOL:
+                r_p, b_p = probs[:TOTAL_RED], probs[TOTAL_RED:]
+                hr1 = len(actual_red & set([RED_NUM_LIST[idx] for idx in r_p.argsort()[::-1][:n1]]))
+                hr2 = len(actual_red & set([RED_NUM_LIST[idx] for idx in r_p.argsort()[::-1][:n2]]))
+                hb1 = len(actual_blue & set([BLUE_NUM_LIST[idx] for idx in b_p.argsort()[::-1][:BLUE_COUNT]]))
+                hits[m]['r1'] += hr1; hits[m]['r2'] += hr2; hits[m]['b1'] += hb1
+                history[m].append((hr1, hr2, hb1))
             else:
-                log_row.append("{}")
-            
-            # Probs
-            if m in current_probs:
-                p = current_probs[m]
-                log_row.extend([f"{val:.4f}" for val in p])
-            else:
-                log_row.extend(['0.0000'] * TOTAL_NUMBERS)
-                
-        with open(BACKTEST_CSV, mode='a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(log_row)
-        
-        # --- Ensemble Calculation for this Period ---
-        # 1. Normalize probabilities for each method
-        # 2. Filter methods that have a "rolling" good hit rate? 
-        #    For complexity, we will just use all active methods and weight by their *current* period performance? No.
-        #    We will use a simplified ensemble: Average of Min-Max scaled probs of ALL active methods.
-        
-        ens_scores = np.zeros(TOTAL_NUMBERS)
-        valid_methods = 0
-        
-        for m in active_methods:
-            p = res[0] if isinstance(res, tuple) else res
-            p_min, p_max = p.min(), p.max()
-            if p_max > p_min:
-                # Standardize
-                std_p = (p - p_min) / (p_max - p_min)
-                ens_scores += std_p
-                valid_methods += 1
-        
-        if valid_methods > 0:
-            ens_scores /= valid_methods
-            
-            # Check hits
-            ens_sorted_idx = ens_scores.argsort()[::-1]
-            ens_top_n2 = ens_sorted_idx[:n2]
-            ens_hits_n2 = len(actual_draw & set([NUM_LIST[idx] for idx in ens_top_n2]))
-            ensemble_hits_10 += ens_hits_n2
-            
-            ens_top_n1 = ens_sorted_idx[:n1]
-            ens_hits_n1 = len(actual_draw & set([NUM_LIST[idx] for idx in ens_top_n1]))
-            ensemble_hits_6 += ens_hits_n1
-            
-            ensemble_history.append((ens_hits_n1, ens_hits_n2))
-            
-            # --- Union Ensemble (Top 10 of All Qualified) ---
-            # Union of all active methods' Top 10
-            union_set = set()
-            voting_dict = {} # Number -> (Count, Sum_Std_Prob)
-            
-            for m in active_methods:
-                p = current_probs[m]
-                p_min, p_max = p.min(), p.max()
-                std_p = (p - p_min) / (p_max - p_min) if p_max > p_min else p
-                
-                m_top_10 = p.argsort()[-10:][::-1]
-                for idx in m_top_10:
-                    num = int(idx + 1)
-                    union_set.add(num)
-                    
-                    if num not in voting_dict:
-                        voting_dict[num] = [0, 0.0]
-                    voting_dict[num][0] += 1
-                    voting_dict[num][1] += std_p[idx]
-            
-            # Calculate Union Hits
-            u_hits = len(actual_draw & union_set)
-            union_hits += u_hits
-            union_size_sum += len(union_set)
-            union_history.append((u_hits, len(union_set)))
-            
-            # --- Voting Ensemble (Top n1 most frequent) ---
-            # Sort by Count (desc), then Sum_Std_Prob (desc)
-            sorted_votes = sorted(voting_dict.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
-            voting_top_n1 = [x[0] for x in sorted_votes[:n1]]
-            v_hits = len(actual_draw & set(voting_top_n1))
-            voting_hits_6 += v_hits
-            voting_history.append(v_hits / RED_COUNT)
-            
-        else:
-            ensemble_history.append((0, 0))
-            union_history.append((0, 0))
-            voting_history.append(0)
+                s_idx = probs.argsort()[::-1]
+                h1 = len(actual_red & set([NUM_LIST[idx] for idx in s_idx[:n1]]))
+                h2 = len(actual_red & set([NUM_LIST[idx] for idx in s_idx[:n2]]))
+                hits[m]['r1'] += h1; hits[m]['r2'] += h2
+                history[m].append((h1, h2))
 
-    results = {
-        m: {
-            'avg_n1': hit_counts_6[m] / (test_size * RED_COUNT),
-            'avg_n2': hit_counts_10[m] / (test_size * RED_COUNT),
-            'history': hit_history[m]
-        } for m in active_methods
-    }
-    
-    # Add Ensemble Results
-    results['Ensemble'] = {
-        'avg_n1': ensemble_hits_6 / (test_size * RED_COUNT),
-        'avg_n2': ensemble_hits_10 / (test_size * RED_COUNT),
-        'history': ensemble_history
-    }
-    
-    results['Union'] = {
-        'avg_hits': union_hits / test_size,
-        'avg_size': union_size_sum / test_size,
-        'history': union_history
-    }
-    
-    results['Voting'] = {
-        'avg_n1': voting_hits_6 / (test_size * RED_COUNT),
-        'history': voting_history
-    }
-    
+        # Ensemble logic
+        ens_scores = np.zeros(TOTAL_NUMBERS)
+        for m in active_methods:
+            p = current_probs[m]
+            if p.max() > p.min():
+                ens_scores += (p - p.min()) / (p.max() - p.min())
+        ens_scores /= len(active_methods)
+        
+        if SEPARATE_POOL:
+            r_p, b_p = ens_scores[:TOTAL_RED], ens_scores[TOTAL_RED:]
+            hr1 = len(actual_red & set([RED_NUM_LIST[idx] for idx in r_p.argsort()[::-1][:n1]]))
+            hr2 = len(actual_red & set([RED_NUM_LIST[idx] for idx in r_p.argsort()[::-1][:n2]]))
+            hb1 = len(actual_blue & set([BLUE_NUM_LIST[idx] for idx in b_p.argsort()[::-1][:BLUE_COUNT]]))
+            hits['Ensemble']['r1'] += hr1; hits['Ensemble']['r2'] += hr2; hits['Ensemble']['b1'] += hb1
+            history['Ensemble'].append((hr1, hr2, hb1))
+        else:
+            s_idx = ens_scores.argsort()[::-1]
+            h1 = len(actual_red & set([NUM_LIST[idx] for idx in s_idx[:n1]]))
+            h2 = len(actual_red & set([NUM_LIST[idx] for idx in s_idx[:n2]]))
+            hits['Ensemble']['r1'] += h1; hits['Ensemble']['r2'] += h2
+            history['Ensemble'].append((h1, h2))
+        
+        # 写入回测数据到 CSV
+        log_prediction_to_csv(current_run_time, target_period, current_probs, MODEL_CONFIG)
+
+    # Calculate final average rates
+    results = {}
+    for m in active_methods + ['Ensemble']:
+        r_denom = test_size * RED_COUNT
+        b_denom = test_size * BLUE_COUNT if BLUE_COUNT > 0 else 1
+        results[m] = {
+            'avg_r1': hits[m]['r1'] / r_denom,
+            'avg_r2': hits[m]['r2'] / r_denom,
+            'avg_b1': hits[m]['b1'] / b_denom if BLUE_COUNT > 0 else 0,
+            'history': history[m]
+        }
     return results, current_run_time
+
 
 def log_prediction_to_csv(run_time, target_period, results, models_config):
     """Logs a single prediction row to backtest.csv"""
@@ -934,25 +948,36 @@ def log_prediction_to_csv(run_time, target_period, results, models_config):
     header = ['Run_Time', 'Target_Period']
     for m in ['A', 'B', 'C', 'D']:
         header.append(f'Params_{m}')
-        for n in NUM_LIST:
-            header.append(f'Prob_{m}_{n:02d}')
+        if SEPARATE_POOL:
+            for n in RED_NUM_LIST: header.append(f'Prob_{m}_R{n:02d}')
+            for n in BLUE_NUM_LIST: header.append(f'Prob_{m}_B{n:02d}')
+        else:
+            for n in NUM_LIST: header.append(f'Prob_{m}_{n:02d}')
             
     row_data = {
         'Run_Time': run_time,
-        'Target_Period': int(float(target_period)) if target_period and str(target_period).replace('.','').isdigit() else target_period
+        'Target_Period': str(target_period) if target_period is not None else ''
     }
-    
     for m in ['A', 'B', 'C', 'D']:
         if m in results:
             row_data[f'Params_{m}'] = json.dumps(models_config.get(m, {}))
             probs = results[m]
             probs = probs[0] if isinstance(probs, tuple) else probs
-            for idx, n in enumerate(NUM_LIST):
-                row_data[f'Prob_{m}_{n:02d}'] = float(probs[idx])
+            if SEPARATE_POOL:
+                for idx, n in enumerate(RED_NUM_LIST):
+                    row_data[f'Prob_{m}_R{n:02d}'] = float(probs[idx])
+                for idx, n in enumerate(BLUE_NUM_LIST):
+                    row_data[f'Prob_{m}_B{n:02d}'] = float(probs[TOTAL_RED + idx])
+            else:
+                for idx, n in enumerate(NUM_LIST):
+                    row_data[f'Prob_{m}_{n:02d}'] = float(probs[idx])
         else:
             row_data[f'Params_{m}'] = "{}"
-            for n in NUM_LIST:
-                row_data[f'Prob_{m}_{n:02d}'] = 0.0
+            if SEPARATE_POOL:
+                for n in RED_NUM_LIST: row_data[f'Prob_{m}_R{n:02d}'] = 0.0
+                for n in BLUE_NUM_LIST: row_data[f'Prob_{m}_B{n:02d}'] = 0.0
+            else:
+                for n in NUM_LIST: row_data[f'Prob_{m}_{n:02d}'] = 0.0
 
     file_exists = os.path.isfile(csv_file)
     with open(csv_file, mode='a', newline='', encoding='utf-8') as f:
@@ -962,18 +987,14 @@ def log_prediction_to_csv(run_time, target_period, results, models_config):
         writer.writerow(row_data)
 
 def main():
-    
     for lottery_name in LOTTERIES_TO_RUN:
         conf = update_lottery_config(lottery_name)
         df = load_data()
         if df is None: continue
-        
-        # Identify dynamic features after loading data
+        conf = update_lottery_config(lottery_name, df=df)
         determine_stat_features(df)
-        
         omission_df, next_omission = get_omission_matrix(df)
         full_df = pd.concat([df, omission_df], axis=1)
-        
         active_methods = ['A', 'B', 'C', 'D'] if args.method == 'all' else [args.method]
         
         # 1. Evaluation / Backtest
@@ -981,8 +1002,8 @@ def main():
         
         # 2. Final Prediction for Next Period
         try:
-            next_period_id = int(df.iloc[-1]['期号']) + 1 # Assuming period IDs are sequential integers
-        except (ValueError, TypeError):
+            next_period_id = int(df.iloc[-1]['期号']) + 1
+        except:
             next_period_id = "Next"
             
         print("\n" + "="*65)
@@ -990,7 +1011,6 @@ def main():
         
         results = {}
         importances = {}
-        methods_to_run = active_methods
         _, current_omission = get_omission_matrix(df)
         
         for m in active_methods:
@@ -1000,7 +1020,6 @@ def main():
             else:
                 results[m] = res
             
-        # Log Final Prediction to CSV
         log_prediction_to_csv(run_id, next_period_id, results, MODEL_CONFIG)
         
         # 3. Display Results
@@ -1009,116 +1028,74 @@ def main():
         print("="*65)
         print(f"最近期号: {df.iloc[-1]['期号']} | 预测目标: {next_period_id}")
         
-        for m in methods_to_run:
+        metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
+        n1, n2 = metrics['top_n_1'], metrics['top_n_2']
+        
+        for m in active_methods:
             probs = results[m]
-            top_indices = probs.argsort()[::-1]
-            top_10_nums = [NUM_LIST[idx] for idx in top_indices[:10]]
+            m_names = {'A': "统计相似度", 'B': "机器学习 RF", 'C': "机器学习 XGB", 'D': "深度学习 LSTM"}
+            print(f"\n--- {m_names[m]} ---")
             
-            # Calculate Min/Max for individual model standardization display
-            p_min, p_max = probs.min(), probs.max()
-            
-            m_names = {'A': "统计相似度 (Method A)", 'B': "机器学习 RF (Method B)", 'C': "机器学习 XGB (Method C)", 'D': "深度学习 LSTM (Method D)"}
-            print("\n" + f"--- {m_names[m]} ---")
-            metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
-            n1, n2 = metrics['top_n_1'], metrics['top_n_2']
-            
-            history_str = ", ".join([f"{h1}/{RED_COUNT}({n1})|{h2}/{RED_COUNT}({n2})" for h1, h2 in eval_results[m]['history']])
-            hit_label = f"(Top {n1}/{n2} 覆盖率)"
-            if LOTTERY_NAME == "七乐彩":
-                hit_label = f"(Top {n1}/{n2} 覆/含特别号)"
-            print(f"历史回测平均命中率 {hit_label}: {eval_results[m]['avg_n1']:.2%}/{eval_results[m]['avg_n2']:.2%} [{history_str}]")
-            
-            if LOTTERY_NAME == "七乐彩" and n1 == 8:
-                best_7_red = sorted(top_10_nums[:7])
-                blue_ball = top_10_nums[7]
-                print(f"最佳 8 推荐 (7红 + 1蓝): {best_7_red} | 篮球: {blue_ball:02d}")
+            # History calculation display
+            if SEPARATE_POOL:
+                # h = (hr1, hr2, hb1) from evaluate_methods
+                history_str = ", ".join([f"R:{h[0]}/{RED_COUNT}|B:{h[2]}/{BLUE_COUNT}" for h in eval_results[m]['history']])
+                print(f"历史回测平均命中率: 红球(Top {n1}/{n2}) {eval_results[m]['avg_r1']:.2%}/{eval_results[m]['avg_r2']:.2%} | 蓝球 {eval_results[m]['avg_b1']:.2%}")
+                print(f"回测详情 (R/B): [{history_str}]")
+                
+                red_p, blue_p = probs[:TOTAL_RED], probs[TOTAL_RED:]
+                top_red = [RED_NUM_LIST[i] for i in red_p.argsort()[::-1][:n1]]
+                top_blue = [BLUE_NUM_LIST[i] for i in blue_p.argsort()[::-1][:max(1, BLUE_COUNT)]]
+                print(f"最佳推荐: 红球 {sorted(top_red)} | 蓝球 {sorted(top_blue)}")
             else:
-                print(f"最佳 {n1} 推荐: {sorted(top_10_nums[:n1])}")
+                # h = (h1, h2)
+                history_str = ", ".join([f"{h[0]}/{RED_COUNT+BLUE_COUNT}|{h[1]}/{RED_COUNT+BLUE_COUNT}" for h in eval_results[m]['history']])
+                print(f"历史回测平均命中率 (Top {n1}/{n2}): {eval_results[m]['avg_r1']:.2%}/{eval_results[m]['avg_r2']:.2%} [{history_str}]")
                 
-            print(f"推荐 Top {n2} 号码 (原始概率 | 标准得分):")
-            for idx in top_indices[:n2]:
-                std_val = (probs[idx] - p_min) / (p_max - p_min) if p_max > p_min else 0.0
-                print(f"  号码: {NUM_LIST[idx]:02d} - 概率: {probs[idx]:.2%} | 标准得分: {std_val:.4f}")
-                
-            # Display Feature Importance if available
+                top_indices = probs.argsort()[::-1]
+                top_nums = [NUM_LIST[i] for i in top_indices]
+                if LOTTERY_NAME == "七乐彩":
+                    print(f"最佳 8 推荐 (7红 + 1蓝): {sorted(top_nums[:7])} | 蓝球: {top_nums[7]:02d}")
+                else:
+                    print(f"最佳 {n1} 推荐: {sorted(top_nums[:n1])}")
+                    
             if m in importances:
-                f_names = get_feature_names()
                 plot_filename = f"data/{conf['code']}_importance_{m.lower()}.png"
-                top_f = plot_importance(importances[m], f_names, m_names[m], plot_filename)
-                print(f"  核心特征影响 (Top 10):")
-                for _, row in top_f.iterrows():
-                    print(f"    - {row['Feature']}: {row['Importance']:.4f}")
+                plot_importance(importances[m], get_feature_names(), m_names[m], plot_filename)
     
         if args.method == 'all':
-            # Standardized Probability Ensemble (Min-Max Scaling)
+            # Ensemble (Simplified version)
             ensemble_scores = np.zeros(TOTAL_NUMBERS)
-            
-            # Filter methods with at least 30% hit rate
-            qualified_methods = [m for m in active_methods if eval_results[m]['avg_n2'] >= 0.30]
-            
-            if not qualified_methods:
-                print("\n" + "="*65)
-                print("⚠️ 没有模型的历史命中率达到 30% 阈值，跳过综合推荐。")
-                print("="*65)
-            else:
-                total_weight = sum([eval_results[m]['avg_n2'] for m in qualified_methods])      
+            # Use avg_r2 (Red Top N2 hit rate) as the qualification metric
+            qualified = [m for m in active_methods if eval_results[m]['avg_r2'] >= 0.15] 
+            if qualified:
+                for m in qualified:
+                    p = results[m]
+                    weight = eval_results[m]['avg_r2']
+                    if p.max() > p.min():
+                        ensemble_scores += ((p - p.min()) / (p.max() - p.min())) * weight
                 
                 print("\n" + "="*65)
-                print("🏆 多模型标准概率综合推荐 (Ensemble: 4-Model Weighted)")
+                print("🏆 多模型标准概率综合推荐 (Ensemble)")
                 print("="*65)
-                print(f"入选模型: " + ", ".join([f"{m}={eval_results[m]['avg_n2']:.2%}" for m in qualified_methods]))
-                print("-" * 65)
-                
-                for m in qualified_methods:
-                    raw_probs = results[m]
-                    weight = eval_results[m]['avg_n2']
-                    p_min, p_max = raw_probs.min(), raw_probs.max()
-                    
-                    if p_max > p_min:
-                        std_probs = (raw_probs - p_min) / (p_max - p_min)
-                    else:
-                        std_probs = np.zeros(TOTAL_NUMBERS)
-                        
-                    ensemble_scores += (std_probs * weight)
-                
-                if total_weight > 0:
-                    ensemble_scores /= total_weight
-                    
-                top_indices = ensemble_scores.argsort()[::-1]
-                top_n2_nums = [NUM_LIST[idx] for idx in top_indices[:n2]] 
-                
-                if LOTTERY_NAME == "七乐彩" and n1 == 8:
-                    best_7_red = sorted(top_n2_nums[:7])
-                    blue_ball = top_n2_nums[7]
-                    print(f"最佳 8 组合 (7红 + 1蓝): {best_7_red} | 篮球: {blue_ball:02d}")
+                if SEPARATE_POOL:
+                    r_p, b_p = ensemble_scores[:TOTAL_RED], ensemble_scores[TOTAL_RED:]
+                    top_red = [RED_NUM_LIST[i] for i in r_p.argsort()[::-1][:n1]]
+                    top_blue = [BLUE_NUM_LIST[i] for i in b_p.argsort()[::-1][:BLUE_COUNT]]
+                    print(f"最终组合: 红球 {sorted(top_red)} | 蓝球 {sorted(top_blue)}")
                 else:
-                    print(f"最佳 {n1} 组合: {sorted(top_n2_nums[:n1])}")
-                    
-                print(f"推荐 Top {n2} (标准综合得分):")
-                for idx in top_indices[:n2]:
-                    print(f"  号码: {NUM_LIST[idx]:02d} - 标准得分: {ensemble_scores[idx]:.4f}")
-                
-                print("\n" + "="*65)
-                # Display Ensemble History
-                if 'Ensemble' in eval_results:
-                    ens_res = eval_results['Ensemble']
-                    ens_history_str = ", ".join([f"{h1}/{RED_COUNT}({n1})|{h2}/{RED_COUNT}({n2})" for h1, h2 in ens_res['history']])
-                    hit_label = f"(Top {n1}/{n2} 覆盖率)"
+                    top_nums = [NUM_LIST[i] for i in ensemble_scores.argsort()[::-1][:n2]]
                     if LOTTERY_NAME == "七乐彩":
-                        hit_label = f"(Top {n1}/{n2} 覆/含特别号)"
-                    print(f"🏆 综合推荐历史命中率 {hit_label}: {ens_res['avg_n1']:.2%}/{ens_res['avg_n2']:.2%} [{ens_history_str}]")
-                    
-                    if 'Union' in eval_results:
-                        u_res = eval_results['Union']
-                        u_hist_str = ", ".join([f"{h}({s})" for h, s in u_res['history']])
-                        print(f"🌌 全模型并集 (Top 10 Union) 历史: 平均命中 {u_res['avg_hits']:.1f} 个 / 平均选号 {u_res['avg_size']:.1f} 个 [{u_hist_str}]")
-                    
-                    if 'Voting' in eval_results:
-                        v_res = eval_results['Voting']
-                        v_hist_str = ", ".join([f"{h:.0%}" for h in v_res['history']])
-                        print(f"🗳️ 频次投票 (Best {n1}) 历史命中率: {v_res['avg_n1']:.2%} [{v_hist_str}]")
+                        print(f"最终组合 (7红 + 1蓝): {sorted(top_nums[:7])} | 蓝球: {top_nums[7]:02d}")
+                    else:
+                        print(f"最终组合: {sorted(top_nums[:n1])}")
+                
+                ens_res = eval_results['Ensemble']
+                if SEPARATE_POOL:
+                    print(f"🏆 综合平均命中率: 红球(Top {n1}/{n2}) {ens_res['avg_r1']:.2%}/{ens_res['avg_r2']:.2%} | 蓝球 {ens_res['avg_b1']:.2%}")
+                else:
+                    print(f"🏆 综合平均命中率: {ens_res['avg_r1']:.2%}/{ens_res['avg_r2']:.2%}")
                 print("="*65)
-        
 
 if __name__ == "__main__":
     main()

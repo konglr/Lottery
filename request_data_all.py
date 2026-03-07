@@ -124,6 +124,38 @@ def requests_data(pages, issue_count, ID, start_issue='', end_issue=''):
         logging.error(f"网络请求错误: {e}")
         return None
 
+def normalize_issue(issue, lottery_id):
+    """
+    根据彩种 ID 规范化期号。
+    体彩 (ID: 281, 283, 284, 287) 使用 5 位 (YYNNN)。
+    福彩 (ID: 1, 2, 3, 6) 使用 7 位 (YYYYNNN)。
+    """
+    if issue is None:
+        return None
+    issue_str = str(issue).strip()
+    if not issue_str:
+        return ""
+
+    # 体彩 ID 列表 (DLT, PL3, PL5, XQXC)
+    sports_lotteries = ["281", "283", "284", "287"]
+    
+    # 统一转换为字符串进行 ID 比较
+    lid = str(lottery_id)
+    
+    if lid in sports_lotteries:
+        # 规范化为 5 位
+        if len(issue_str) == 7 and issue_str.startswith("20"):
+            return issue_str[2:] # 2026022 -> 26022
+        # 处理 4 位情况 (例如 7001 -> 07001)
+        if len(issue_str) == 4:
+            return "0" + issue_str
+    else:
+        # 福彩规范化为 7 位 (SSQ, D3, QLC, KL8)
+        if len(issue_str) == 5:
+            # 假设 20xx 年
+            return "20" + issue_str # 26022 -> 2026022
+    return issue_str
+
 def get_latest_issue_from_system(lottry_id):
     """获取系统中最新的期号"""
     try:
@@ -137,13 +169,14 @@ def get_latest_issue_from_system(lottry_id):
 
         content = json.loads(response)
         latest_issue = content['data'][0]['issue']
-        return latest_issue
+        # 返回规范化后的期号
+        return normalize_issue(latest_issue, lottry_id)
     except Exception as e:
         logging.error(f"获取系统最新期号出错: {e}")
         return None
 
-def parse_lottery_data(json_data):
-    """解析 JSONP 响应，并提取 data 字段，转换成标准字段格式"""
+def parse_lottery_data(json_data, lottery_id=None):
+    """解析 JSONP 响应，并提取 data 字段，转换成 standard 字段格式"""
     try:
         # 解析 JSONP 结构
         match = re.search(r"\((.*)\);?$", json_data)
@@ -166,8 +199,12 @@ def parse_lottery_data(json_data):
         structured_data = []
         for record in raw_records:
             if isinstance(record, dict):
+                # 规范化期号
+                if lottery_id:
+                    record['issue'] = normalize_issue(record.get('issue'), lottery_id)
+                
                 # 解析红球、蓝球
-                record = extract_ball_numbers(record)
+                record = extract_ball_numbers(record, lottery_id)
 
                 # **✅ 直接保留 `winnerDetails`，不解析**
                 structured_data.append(record)
@@ -182,26 +219,48 @@ def parse_lottery_data(json_data):
         return None
 
 
-def extract_ball_numbers(record):
+def extract_ball_numbers(record, lottery_id=None):
     """
     解析 frontWinningNum 和 backWinningNum，动态生成红球和蓝球列
     :param record: 字典，包含 'frontWinningNum' 和 'backWinningNum'
-    :return: 解析后的新字典，包含 '红球1'、'红球2'... 和 '篮球'/'蓝球1', '蓝球2'...
+    :param lottery_id: 彩种 ID，用于特殊处理 (如七乐彩 ID=3)
+    :return: 解析后的新字典，包含 '红球1'、'红球2'... 和 '蓝球'/'蓝球1', '蓝球2'...
     """
     new_record = record.copy()  # 复制原始数据，避免修改原数据
+    lid = str(lottery_id) if lottery_id else None
 
     # 解析 frontWinningNum（红球）
     front_numbers = record.get("frontWinningNum", "").split()
-    for i, num in enumerate(front_numbers, start=1):
-        new_record[f"红球{i}"] = int(num)  # 动态创建列
-
     # 解析 backWinningNum（蓝球）
     back_numbers = record.get("backWinningNum", "").split()
-    if len(back_numbers) == 1:
-        new_record["篮球"] = int(back_numbers[0])  # 只有一个时叫 "篮球"
+
+    # 特殊处理七乐彩 (ID 3): 官方是 7个基本号 + 1个特别号
+    # 用户要求按照 6红 + 1蓝 = 7球进行分析
+    if lid == "3":
+        # 如果 front 有 7 个，我们将前 6 个作为红球，第 7 个作为特别号（存入蓝球列）
+        # 如果 back 也有 1 个，我们通常忽略或根据实际情况合并。
+        # 鉴于七乐彩 CSV 之前有 红球1-7 和 篮球，这里我们强制 6+1
+        for i in range(1, 7):
+            if i <= len(front_numbers):
+                new_record[f"红球{i}"] = int(front_numbers[i-1])
+        
+        # 将第 7 个 front 号码或第 1 个 back 号码作为“蓝球”
+        # 优先使用 back_numbers[0] 作为蓝球 (特别号)
+        if len(back_numbers) > 0:
+            new_record["蓝球"] = int(back_numbers[0])
+        elif len(front_numbers) >= 7:
+            new_record["蓝球"] = int(front_numbers[6])
+            
     else:
-        for i, num in enumerate(back_numbers, start=1):
-            new_record[f"蓝球{i}"] = int(num)  # 多个时叫 "蓝球1", "蓝球2"...
+        # 通用逻辑
+        for i, num in enumerate(front_numbers, start=1):
+            new_record[f"红球{i}"] = int(num)
+
+        if len(back_numbers) == 1:
+            new_record["蓝球"] = int(back_numbers[0])
+        else:
+            for i, num in enumerate(back_numbers, start=1):
+                new_record[f"蓝球{i}"] = int(num)
 
     return new_record
 
@@ -252,7 +311,7 @@ def get_lottery_data(lottery_id, lottery_name):
     for page in tqdm(range(1, total_pages), desc=f"📥 下载 {lottery_name} 数据"):
         json_data = requests_data(page, total_count, lottery_id)
         if json_data:
-            lottery_data = parse_lottery_data(json_data) # 分解红球和蓝球数据到单独列
+            lottery_data = parse_lottery_data(json_data, lottery_id) # 分解红球和蓝球数据到单独列
             if lottery_data:
                 all_data.extend(lottery_data)
         
