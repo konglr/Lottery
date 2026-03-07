@@ -833,7 +833,7 @@ def main():
         
         for m in active_methods:
             probs = results[m]
-            m_names = {'A': "统计相似度", 'B': "机器学习 RF", 'C': "机器学习 XGB", 'D': "深度学习 LSTM", 'E': "机器学习 LGBM", 'F': "机器学习 CatBoost", 'G': "统计模型 HMM", 'H': "极值理论 EVT", 'I': "遗传算法 GA", 'J': "泊松分布 Poisson"}
+            m_names = {'A': "统计相似度 SM", 'B': "机器学习 RF", 'C': "机器学习 XGB", 'D': "深度学习 LSTM", 'E': "机器学习 LGBM", 'F': "机器学习 CatBoost", 'G': "统计模型 HMM", 'H': "极值理论 EVT", 'I': "遗传算法 GA", 'J': "泊松分布 Poisson"}
             print(f"\n--- {m_names[m]} ---")
             
             # History calculation display

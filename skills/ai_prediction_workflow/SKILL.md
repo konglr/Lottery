@@ -29,6 +29,7 @@ The system constructs a detailed "Prompt" (instruction book) for the AI. Key com
 ### Step 4: API Dispatch
 The system routes the prompt to the selected AI provider:
 - **Gemini**: Direct integration via `Vertex AI` or `Gemini API`.
+- **DeepSeek**: Routes via `OpenAI` client using the `https://api.deepseek.com` base URL.
 - **OpenAI Compatible Providers**: Routes via `OpenAI` client using provider-specific base URLs and API keys.
 
 ### Step 5: Result Rendering
@@ -40,6 +41,7 @@ The AI returns a Markdown report containing:
 ## 3. Key Configuration
 API keys must be stored in the `.Renviron` file or system environment variables:
 - `GEMINI_API_KEY`
+- `DEEPSEEK_API_KEY`
 - `NV_API_KEY` (NVIDIA)
 - `MINIMAX_API_KEY`
 - `ALIYUNCS_API_KEY` (DashScope)

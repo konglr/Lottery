@@ -40,6 +40,13 @@ def render_backtest_results(df_full, conf):
         return p_str
         
     run_times = sorted(df_back['Run_Time'].unique(), reverse=True)
+
+    model_name_map = {
+        'A': "SM", 'B': "RF", 'C': "XGB", 'D': "LSTM", 
+        'E': "LGBM", 'F': "CatBoost", 'G': "HMM", 'H': "EVT", 
+        'I': "GA", 'J': "Poisson"
+    }
+
     sel_run_time = st.selectbox("1. 选择回测执行时间", run_times)
     df_run = df_back[df_back['Run_Time'] == sel_run_time].sort_values("Target_Period", ascending=False)
     periods = df_run['Target_Period'].unique()
@@ -79,7 +86,10 @@ def render_backtest_results(df_full, conf):
         p_str = normalize_period(str(p))
         p_match = df_full[df_full['期号'].astype(str) == p_str]
         if p_match.empty:
-            summary_data.append({"回测期号": f"{p} ✨", "综合推荐": "-", "模型 A": "-", "模型 B": "-", "模型 C": "-", "模型 D": "-", "模型 G": "-", "模型 H": "-", "模型 I": "-", "模型 J": "-"})
+            row = {"回测期号": f"{p} ✨", "综合推荐": "-"}
+            for m in methods:
+                row[f"模型 {m}({model_name_map.get(m, '')})"] = "-"
+            summary_data.append(row)
             continue
         a_red = set(p_match.iloc[0][red_cols].dropna().astype(int).tolist())
         a_blue = set(p_match.iloc[0][blue_cols].dropna().astype(int).tolist()) if separate_pool and blue_cols else set()
@@ -125,7 +135,8 @@ def render_backtest_results(df_full, conf):
                 return f"R:{hr1}/{len(actual_r)}|B:{hb}/{len(actual_b)}"
             return f"{hr1}/{len(actual_r)}({n1})|{hr2}/{len(actual_r)}({n2})"
         p_row = {"回测期号": p_str, "综合推荐": get_hit_str(ens_combined, a_red, a_blue)}
-        for m in methods: p_row[f"模型 {m}"] = get_hit_str(m_scores[m], a_red, a_blue)
+        for m in methods: 
+            p_row[f"模型 {m}({model_name_map.get(m, '')})"] = get_hit_str(m_scores[m], a_red, a_blue)
         summary_data.append(p_row)
 
     if summary_data:
@@ -181,7 +192,7 @@ def render_backtest_results(df_full, conf):
         rank_data.append(item)
     df_rank = pd.DataFrame(rank_data)
     cols = st.columns(len(methods) + 1)
-    disp_names = ["综合推荐"] + [f"模型 {m}" for m in methods]
+    disp_names = ["综合推荐"] + [f"模型 {m}({model_name_map.get(m, '')})" for m in methods]
     sort_cols = ['Ens'] + [f'P_{m}' for m in methods]
     for i, (name, s_col) in enumerate(zip(disp_names, sort_cols)):
         with cols[i]:

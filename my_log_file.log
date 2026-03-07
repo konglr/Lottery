@@ -1623,3 +1623,7 @@ INFO:root:Data synchronized: 2025024
 2026-03-07 22:19:32,663 - INFO - Successfully updated data/排列五_lottery_data.csv
 2026-03-07 22:19:32,663 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
 2026-03-07 22:19:38,395 - INFO - Successfully updated data/快乐8_lottery_data.csv
+2026-03-07 23:26:09,500 - INFO - Retrying request to /chat/completions in 0.428701 seconds
+2026-03-07 23:26:39,941 - INFO - Retrying request to /chat/completions in 0.775699 seconds
+2026-03-07 23:27:01,167 - INFO - HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 404 Not Found"
+2026-03-07 23:31:38,497 - INFO - HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 410 Gone"

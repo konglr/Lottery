@@ -14,7 +14,7 @@ def render_ai(df, config):
     model_name = st.session_state.get("ai_model", "gemini-2.0-flash")
     
     env_keys = {
-        "Gemini": "GEMINI_API_KEY", "NVIDIA": "NV_API_KEY",
+        "Gemini": "GEMINI_API_KEY", "DeepSeek": "DEEPSEEK_API_KEY", "NVIDIA": "NV_API_KEY",
         "MiniMax": "MINIMAX_API_KEY", "DashScope": "ALIYUNCS_API_KEY"
     }
     env_key_name = env_keys.get(brand)

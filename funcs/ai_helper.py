@@ -27,12 +27,14 @@ def get_brand_models():
             "models/gemini-2.5-flash-lite",
             "models/gemini-3.1-flash-lite-preview"
         ],
+        "DeepSeek": [
+            "deepseek-chat",
+            "deepseek-reasoner"
+        ],
         "NVIDIA": [
             "z-ai/glm4.7", 
             "meta/llama-3.1-70b-instruct",
             "meta/llama-3.1-405b-instruct",
-            "deepseek-ai/deepseek-r1",
-            "deepseek-ai/deepseek-v3",
             "microsoft/phi-3-medium-128k-instruct"
         ],
         "MiniMax": ["MiniMax-M2.5", "MiniMax-M2.1"],
@@ -142,6 +144,8 @@ def generate_ai_prediction(brand, model, api_key, history_text, config):
                 base_url = "https://api.minimax.chat/v1"
             elif brand == "DashScope":
                 base_url = "https://coding.dashscope.aliyuncs.com/v1"
+            elif brand == "DeepSeek":
+                base_url = "https://api.deepseek.com"
             
             client = OpenAI(api_key=api_key, base_url=base_url)
             response = client.chat.completions.create(
@@ -175,6 +179,8 @@ def simple_chat(brand, model, api_key, message):
                 base_url = "https://api.minimax.chat/v1"
             elif brand == "DashScope":
                 base_url = "https://coding.dashscope.aliyuncs.com/v1"
+            elif brand == "DeepSeek":
+                base_url = "https://api.deepseek.com"
             
             client = OpenAI(api_key=api_key, base_url=base_url)
             response = client.chat.completions.create(
