@@ -234,33 +234,14 @@ def extract_ball_numbers(record, lottery_id=None):
     # 解析 backWinningNum（蓝球）
     back_numbers = record.get("backWinningNum", "").split()
 
-    # 特殊处理七乐彩 (ID 3): 官方是 7个基本号 + 1个特别号
-    # 用户要求按照 6红 + 1蓝 = 7球进行分析
-    if lid == "3":
-        # 如果 front 有 7 个，我们将前 6 个作为红球，第 7 个作为特别号（存入蓝球列）
-        # 如果 back 也有 1 个，我们通常忽略或根据实际情况合并。
-        # 鉴于七乐彩 CSV 之前有 红球1-7 和 篮球，这里我们强制 6+1
-        for i in range(1, 7):
-            if i <= len(front_numbers):
-                new_record[f"红球{i}"] = int(front_numbers[i-1])
-        
-        # 将第 7 个 front 号码或第 1 个 back 号码作为“蓝球”
-        # 优先使用 back_numbers[0] 作为蓝球 (特别号)
-        if len(back_numbers) > 0:
-            new_record["蓝球"] = int(back_numbers[0])
-        elif len(front_numbers) >= 7:
-            new_record["蓝球"] = int(front_numbers[6])
-            
-    else:
-        # 通用逻辑
-        for i, num in enumerate(front_numbers, start=1):
-            new_record[f"红球{i}"] = int(num)
+    for i, num in enumerate(front_numbers, start=1):
+        new_record[f"红球{i}"] = int(num)
 
-        if len(back_numbers) == 1:
-            new_record["蓝球"] = int(back_numbers[0])
-        else:
-            for i, num in enumerate(back_numbers, start=1):
-                new_record[f"蓝球{i}"] = int(num)
+    if len(back_numbers) == 1:
+        new_record["蓝球"] = int(back_numbers[0])
+    else:
+        for i, num in enumerate(back_numbers, start=1):
+            new_record[f"蓝球{i}"] = int(num)
 
     return new_record
 

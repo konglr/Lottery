@@ -71,7 +71,8 @@ def render_metrics(df, config):
         balls_html = ""
         for i in range(1, config['red_count']+1):
             col = f"{config['red_col_prefix']}{i}"
-            if col in df.columns: balls_html += f'<div class="lottery-ball red-ball">{int(row[col])}</div>'
+            if col in df.columns and pd.notna(row[col]):
+                balls_html += f'<div class="lottery-ball red-ball">{int(row[col])}</div>'
         
         bcols = []
         if config['has_blue']:
@@ -94,7 +95,8 @@ def render_metrics(df, config):
                             break
             
             for c in bcols:
-                balls_html += f'<div class="lottery-ball blue-ball">{int(row[c])}</div>'
+                if pd.notna(row[c]):
+                    balls_html += f'<div class="lottery-ball blue-ball">{int(row[c])}</div>'
         st.markdown(balls_html, unsafe_allow_html=True)
 
     with col_right:

@@ -199,7 +199,7 @@ MODEL_CONFIG = {
         }
     },
     'B': {
-        'n_estimators': 1000,
+        'n_estimators': 2000,
         'max_depth': 15,
         'min_samples_split': 10,
         'min_samples_leaf': 10,
@@ -208,7 +208,7 @@ MODEL_CONFIG = {
         'n_jobs': -1
     },
     'C': {
-        'n_estimators': 500,
+        'n_estimators': 1000,
         'max_depth': 4,
         'learning_rate': 0.02,
         'subsample': 0.8,
