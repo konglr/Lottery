@@ -1627,3 +1627,44 @@ INFO:root:Data synchronized: 2025024
 2026-03-07 23:26:39,941 - INFO - Retrying request to /chat/completions in 0.775699 seconds
 2026-03-07 23:27:01,167 - INFO - HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 404 Not Found"
 2026-03-07 23:31:38,497 - INFO - HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 410 Gone"
+2026-03-10 20:54:51,864 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-03-10 20:54:52,153 - INFO - 🔄 双色球 发现新数据: 本地 2026024 -> 系统 2026025
+2026-03-10 20:54:52,304 - INFO - ➕ 双色球 新增 1 条记录
+2026-03-10 20:54:52,477 - INFO - 💾 双色球 增量更新完成，已保存至 data/双色球_lottery_data.csv
+2026-03-10 20:54:54,699 - INFO - 🔄 福彩3D 发现新数据: 本地 2026056 -> 系统 2026058
+2026-03-10 20:54:54,865 - INFO - ➕ 福彩3D 新增 2 条记录
+2026-03-10 20:54:55,053 - INFO - 💾 福彩3D 增量更新完成，已保存至 data/福彩3D_lottery_data.csv
+2026-03-10 20:54:57,212 - INFO - 🔄 七乐彩 发现新数据: 本地 2026024 -> 系统 2026025
+2026-03-10 20:54:57,355 - INFO - ➕ 七乐彩 新增 1 条记录
+2026-03-10 20:54:57,496 - INFO - 💾 七乐彩 增量更新完成，已保存至 data/七乐彩_lottery_data.csv
+2026-03-10 20:54:59,788 - INFO - 🔄 快乐8 发现新数据: 本地 2026056 -> 系统 2026058
+2026-03-10 20:55:00,087 - INFO - ➕ 快乐8 新增 2 条记录
+2026-03-10 20:55:00,520 - INFO - 💾 快乐8 增量更新完成，已保存至 data/快乐8_lottery_data.csv
+2026-03-10 20:55:02,695 - INFO - 🔄 超级大乐透 发现新数据: 本地 26023 -> 系统 26024
+2026-03-10 20:55:02,884 - INFO - ➕ 超级大乐透 新增 1 条记录
+2026-03-10 20:55:03,103 - INFO - 💾 超级大乐透 增量更新完成，已保存至 data/超级大乐透_lottery_data.csv
+2026-03-10 20:55:05,365 - INFO - 🔄 排列三 发现新数据: 本地 26056 -> 系统 26058
+2026-03-10 20:55:05,537 - INFO - ➕ 排列三 新增 2 条记录
+2026-03-10 20:55:05,749 - INFO - 💾 排列三 增量更新完成，已保存至 data/排列三_lottery_data.csv
+2026-03-10 20:55:07,958 - INFO - 🔄 排列五 发现新数据: 本地 26056 -> 系统 26058
+2026-03-10 20:55:08,118 - INFO - ➕ 排列五 新增 2 条记录
+2026-03-10 20:55:08,261 - INFO - 💾 排列五 增量更新完成，已保存至 data/排列五_lottery_data.csv
+2026-03-10 20:55:10,383 - INFO - 🔄 七星彩 发现新数据: 本地 26024 -> 系统 26025
+2026-03-10 20:55:10,517 - INFO - ➕ 七星彩 新增 1 条记录
+2026-03-10 20:55:10,584 - INFO - 💾 七星彩 增量更新完成，已保存至 data/七星彩_lottery_data.csv
+2026-03-10 20:55:12,594 - INFO - Processing data/超级大乐透_lottery_data.csv (Type: 超级大乐透)...
+2026-03-10 20:55:15,851 - INFO - Successfully updated data/超级大乐透_lottery_data.csv
+2026-03-10 20:55:15,852 - INFO - Processing data/七星彩_lottery_data.csv (Type: 七星彩)...
+2026-03-10 20:55:16,535 - INFO - Successfully updated data/七星彩_lottery_data.csv
+2026-03-10 20:55:16,535 - INFO - Processing data/排列三_lottery_data.csv (Type: 排列三)...
+2026-03-10 20:55:21,302 - INFO - Successfully updated data/排列三_lottery_data.csv
+2026-03-10 20:55:21,304 - INFO - Processing data/七乐彩_lottery_data.csv (Type: 七乐彩)...
+2026-03-10 20:55:24,187 - INFO - Successfully updated data/七乐彩_lottery_data.csv
+2026-03-10 20:55:24,187 - INFO - Processing data/福彩3D_lottery_data.csv (Type: 福彩3D)...
+2026-03-10 20:55:28,948 - INFO - Successfully updated data/福彩3D_lottery_data.csv
+2026-03-10 20:55:28,949 - INFO - Processing data/双色球_lottery_data.csv (Type: 双色球)...
+2026-03-10 20:55:32,790 - INFO - Successfully updated data/双色球_lottery_data.csv
+2026-03-10 20:55:32,791 - INFO - Processing data/排列五_lottery_data.csv (Type: 排列五)...
+2026-03-10 20:55:37,606 - INFO - Successfully updated data/排列五_lottery_data.csv
+2026-03-10 20:55:37,606 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
+2026-03-10 20:55:42,508 - INFO - Successfully updated data/快乐8_lottery_data.csv

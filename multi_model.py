@@ -429,9 +429,105 @@ def get_omission_matrix(df):
         
     return pd.DataFrame(omission_matrix, columns=cols), next_omiss
 
-def extract_features(df, window_data, next_omission):
+def extract_features(df, window_data, next_omission, pool_type='all'):
     """Unified feature extraction for ML models."""
     features = []
+
+    # New logic for separate training pools
+    if SEPARATE_POOL and pool_type != 'all':
+        if pool_type == 'red':
+            # A. Red Freq
+            red_balls = window_data[RED_COLS].values.flatten()
+            red_balls = red_balls[~np.isnan(red_balls)].astype(int)
+            r_freq = np.zeros(TOTAL_RED)
+            for b in red_balls:
+                if RED_RANGE[0] <= b <= RED_RANGE[1]: r_freq[b - RED_RANGE[0]] += 1
+            features.extend(r_freq)
+            
+            # B. Red Omission
+            features.extend(next_omission[:TOTAL_RED])
+            
+            # C. Stats (Mean and Last) - these are red-ball specific
+            w_data = window_data.copy()
+            for col in STAT_COLS:
+                if col not in w_data.columns: w_data[col] = 0
+            features.extend(w_data[STAT_COLS].mean().values)
+            features.extend(w_data[STAT_COLS].iloc[-1].values)
+            
+            # D. Tail Frequency (Red only)
+            red_balls_for_tail = window_data[RED_COLS].values.flatten()
+            red_balls_for_tail = red_balls_for_tail[~np.isnan(red_balls_for_tail)].astype(int)
+            tails = [int(n) % 10 for n in red_balls_for_tail if n >= 0]
+            tail_counts = np.bincount(tails, minlength=10)
+            features.extend(tail_counts)
+            
+        elif pool_type == 'blue':
+            # A. Blue Freq
+            if BLUE_COLS:
+                blue_balls = window_data[BLUE_COLS].values.flatten()
+                blue_balls = blue_balls[~np.isnan(blue_balls)].astype(int)
+                b_freq = np.zeros(TOTAL_BLUE)
+                for b in blue_balls:
+                    if BLUE_RANGE[0] <= b <= BLUE_RANGE[1]: b_freq[b - BLUE_RANGE[0]] += 1
+                features.extend(b_freq)
+            else:
+                features.extend(np.zeros(TOTAL_BLUE))
+            
+            # B. Blue Omission
+            if len(next_omission) >= TOTAL_RED + TOTAL_BLUE:
+                features.extend(next_omission[TOTAL_RED:TOTAL_RED+TOTAL_BLUE])
+            else:
+                features.extend(np.zeros(TOTAL_BLUE))
+            
+            # C. Blue Advanced Stats (Parity, Size, Prime, Diff)
+            if BLUE_COLS:
+                blue_vals = window_data[BLUE_COLS].values.flatten()
+                blue_vals = blue_vals[~np.isnan(blue_vals)].astype(int)
+                
+                if len(blue_vals) > 0:
+                    # 1. Parity (Odd ratio)
+                    odd_ratio = np.mean([1 if x % 2 != 0 else 0 for x in blue_vals])
+                    
+                    # 2. Size (Big ratio)
+                    mid_point = (BLUE_RANGE[1] - BLUE_RANGE[0]) / 2 + BLUE_RANGE[0]
+                    big_ratio = np.mean([1 if x > mid_point else 0 for x in blue_vals])
+                    
+                    # 3. Prime (Prime ratio)
+                    primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47} # Covers most blue ranges
+                    prime_ratio = np.mean([1 if x in primes else 0 for x in blue_vals])
+                    
+                    # 4. Diff (Abs diff with prev)
+                    if len(blue_vals) >= 2:
+                        last_diff = abs(blue_vals[-1] - blue_vals[-2])
+                    else:
+                        last_diff = 0
+                    
+                    features.extend([odd_ratio, big_ratio, prime_ratio, last_diff])
+                else:
+                    features.extend([0, 0, 0, 0])
+            else:
+                features.extend([0, 0, 0, 0])
+                
+            # D. Red Stats for Blue (Red Sum, Red Span) - Cross-pool correlation
+            # Use the last row of window_data for the most recent red stats
+            if not window_data.empty:
+                last_row = window_data.iloc[-1]
+                # Calculate Red Sum
+                red_sum = 0
+                red_span = 0
+                try:
+                    # Extract red numbers from the last row
+                    current_reds = [int(last_row[c]) for c in RED_COLS if pd.notna(last_row.get(c))]
+                    if current_reds:
+                        red_sum = sum(current_reds)
+                        red_span = max(current_reds) - min(current_reds)
+                except: pass
+                features.extend([red_sum, red_span])
+            else:
+                features.extend([0, 0])
+        
+        return np.array(features)
+
     # A. Hot/Cold (Freq in window)
     if SEPARATE_POOL:
         red_balls = window_data[RED_COLS].values.flatten()
@@ -475,9 +571,24 @@ def extract_features(df, window_data, next_omission):
     
     return np.array(features)
 
-def get_feature_names():
+def get_feature_names(pool_type='all'):
     """Map indices to human-readable names."""
     names = []
+
+    if SEPARATE_POOL and pool_type != 'all':
+        if pool_type == 'red':
+            names.extend([f"Red_Freq_{i:02d}" for i in RED_NUM_LIST])
+            names.extend([f"Red_Omiss_{i:02d}" for i in RED_NUM_LIST])
+            names.extend([f"Avg_{STAT_MAP[c]}" for c in STAT_COLS])
+            names.extend([f"Last_{STAT_MAP[c]}" for c in STAT_COLS])
+            names.extend([f"Tail_{i}" for i in range(10)])
+        elif pool_type == 'blue':
+            names.extend([f"Blue_Freq_{i:02d}" for i in BLUE_NUM_LIST])
+            names.extend([f"Blue_Omiss_{i:02d}" for i in BLUE_NUM_LIST])
+            names.extend(["Blue_Odd_Ratio", "Blue_Big_Ratio", "Blue_Prime_Ratio", "Blue_Last_Diff"])
+            names.extend(["Red_Sum_For_Blue", "Red_Span_For_Blue"])
+        return names
+
     # A. Freq
     if SEPARATE_POOL:
         names.extend([f"Red_Freq_{i:02d}" for i in RED_NUM_LIST])
@@ -543,53 +654,124 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
         'red_range': RED_RANGE,
         'blue_range': BLUE_RANGE,
     }
-    if method == 'A':
-        return predict_similarity(full_df, MODEL_CONFIG['A'], lottery_config)
-    elif method in ['B', 'C', 'E', 'F']:
-        X_list, y_list = [], []
-        # Find all omission columns
-        omiss_cols = [c for c in full_df.columns if 'Omiss' in c]
-        
-        for i in range(WINDOW_SIZE, len(full_df)):
-            win = full_df.iloc[i-WINDOW_SIZE : i]
-            feat = extract_features(full_df, win, full_df.iloc[i][omiss_cols].values)
-            
-            # Construct Target Vector
-            target = np.zeros(TOTAL_NUMBERS)
-            if SEPARATE_POOL:
-                # Red Segment
+    if method in ['B', 'C', 'E', 'F']:
+        # New logic for separate pools
+        if SEPARATE_POOL:
+            # --- 1. Red Ball Training ---
+            X_red_list, y_red_list = [], []
+            omiss_cols = [c for c in full_df.columns if 'Omiss' in c]
+            for i in range(WINDOW_SIZE, len(full_df)):
+                win = full_df.iloc[i-WINDOW_SIZE : i]
+                feat = extract_features(full_df, win, full_df.iloc[i][omiss_cols].values, pool_type='red')
+                target = np.zeros(TOTAL_RED)
                 for n in full_df.loc[i, RED_COLS].values:
                     try:
                         idx = RED_NUM_LIST.index(int(n))
                         target[idx] = 1
                     except (ValueError, TypeError): pass
-                # Blue Segment
-                if BLUE_COLS:
+                X_red_list.append(feat)
+                y_red_list.append(target)
+            
+            last_win = full_df.iloc[-WINDOW_SIZE:]
+            final_red_feat = extract_features(full_df, last_win, next_omission, pool_type='red')
+            
+            lottery_config_red = lottery_config.copy()
+            lottery_config_red['total_numbers'] = TOTAL_RED
+            
+            train_func = {'B': train_predict_rf, 'C': train_predict_xgb, 'E': train_predict_lgbm, 'F': train_predict_catboost}[method]
+            
+            red_res = train_func(np.array(X_red_list), np.array(y_red_list), final_red_feat, MODEL_CONFIG[method], lottery_config_red)
+            red_probs, red_importance = (red_res[0], red_res[1]) if isinstance(red_res, tuple) else (red_res, None)
+
+            # --- 2. Blue Ball Training ---
+            blue_probs = np.zeros(TOTAL_BLUE)
+            if BLUE_COLS and TOTAL_BLUE > 0:
+                X_blue_list, y_blue_list = [], []
+                for i in range(WINDOW_SIZE, len(full_df)):
+                    win = full_df.iloc[i-WINDOW_SIZE : i]
+                    feat = extract_features(full_df, win, full_df.iloc[i][omiss_cols].values, pool_type='blue')
+                    target = np.zeros(TOTAL_BLUE)
                     for n in full_df.loc[i, BLUE_COLS].values:
                         try:
                             idx = BLUE_NUM_LIST.index(int(n))
-                            target[TOTAL_RED + idx] = 1
+                            target[idx] = 1
                         except (ValueError, TypeError): pass
-            else:
+                    X_blue_list.append(feat)
+                    y_blue_list.append(target)
+                
+                final_blue_feat = extract_features(full_df, last_win, next_omission, pool_type='blue')
+                lottery_config_blue = lottery_config.copy()
+                lottery_config_blue['total_numbers'] = TOTAL_BLUE
+                
+                blue_res = train_func(np.array(X_blue_list), np.array(y_blue_list), final_blue_feat, MODEL_CONFIG[method], lottery_config_blue)
+                blue_probs, _ = (blue_res[0], blue_res[1]) if isinstance(blue_res, tuple) else (blue_res, None)
+
+            # --- 3. Combine Results ---
+            final_probs = np.concatenate([red_probs, blue_probs])
+            return final_probs, red_importance
+
+        # Original logic for single pool
+        else:
+            X_list, y_list = [], []
+            omiss_cols = [c for c in full_df.columns if 'Omiss' in c]
+            for i in range(WINDOW_SIZE, len(full_df)):
+                win = full_df.iloc[i-WINDOW_SIZE : i]
+                feat = extract_features(full_df, win, full_df.iloc[i][omiss_cols].values)
+                target = np.zeros(TOTAL_NUMBERS)
                 for n in full_df.loc[i, RED_COLS].values:
                     try:
                         idx = RED_NUM_LIST.index(int(n))
                         target[idx] = 1
                     except (ValueError, TypeError): pass
-            X_list.append(feat)
-            y_list.append(target)
+                X_list.append(feat)
+                y_list.append(target)
             
-        last_win = full_df.iloc[-WINDOW_SIZE:]
-        final_feat = extract_features(full_df, last_win, next_omission)
-        
-        if method == 'B':
-            return train_predict_rf(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['B'], lottery_config)
-        elif method == 'C':
-            return train_predict_xgb(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['C'], lottery_config)
-        elif method == 'E':
-            return train_predict_lgbm(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['E'], lottery_config)
-        elif method == 'F':
-            return train_predict_catboost(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['F'], lottery_config)
+            last_win = full_df.iloc[-WINDOW_SIZE:]
+            final_feat = extract_features(full_df, last_win, next_omission)
+            
+            if method == 'B':
+                return train_predict_rf(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['B'], lottery_config)
+            elif method == 'C':
+                return train_predict_xgb(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['C'], lottery_config)
+            elif method == 'E':
+                return train_predict_lgbm(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['E'], lottery_config)
+            elif method == 'F':
+                return train_predict_catboost(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['F'], lottery_config)
+
+    elif method in ['A', 'D']:
+        # Group 2: DataFrame based Models (A, D) - Now supporting Separation
+        if SEPARATE_POOL:
+            # --- 1. Red Ball Prediction ---
+            # Create a config that looks like a single pool lottery for Red
+            conf_red = lottery_config.copy()
+            conf_red['separate_pool'] = False
+            conf_red['total_numbers'] = TOTAL_RED
+            conf_red['num_list'] = RED_NUM_LIST
+            conf_red['red_num_list'] = RED_NUM_LIST # Critical for LSTM
+            conf_red['red_cols'] = RED_COLS # Real Red Cols
+            conf_red['blue_cols'] = []
+            
+            func = predict_similarity if method == 'A' else train_predict_lstm
+            probs_red = func(df, MODEL_CONFIG[method], conf_red)
+            
+            # --- 2. Blue Ball Prediction ---
+            # Create a config that looks like a single pool lottery for Blue
+            conf_blue = lottery_config.copy()
+            conf_blue['separate_pool'] = False
+            conf_blue['total_numbers'] = TOTAL_BLUE
+            conf_blue['num_list'] = BLUE_NUM_LIST
+            conf_blue['red_num_list'] = BLUE_NUM_LIST # Treat Blue nums as "Red" for the model
+            conf_blue['red_cols'] = BLUE_COLS # Treat Blue cols as "Red" (Primary) cols
+            conf_blue['blue_cols'] = []
+            
+            probs_blue = func(df, MODEL_CONFIG[method], conf_blue)
+            
+            return np.concatenate([probs_red, probs_blue])
+        else:
+            # Standard call for single pool
+            func = predict_similarity if method == 'A' else train_predict_lstm
+            return func(df, MODEL_CONFIG[method], lottery_config)
+            
     elif method == 'G':
         return train_predict_hmm(df, MODEL_CONFIG['G'], lottery_config)
     elif method == 'H':
@@ -598,8 +780,6 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
         return train_predict_ga(df, MODEL_CONFIG['I'], lottery_config)
     elif method == 'J':
         return train_predict_poisson(df, MODEL_CONFIG['J'], lottery_config)
-    elif method == 'D':
-        return train_predict_lstm(df, MODEL_CONFIG['D'], lottery_config)
     return np.zeros(TOTAL_NUMBERS)
 
 def evaluate_methods(df, full_df, conf, test_size=10, active_methods=['A', 'B', 'C', 'D']):
@@ -859,17 +1039,21 @@ def main():
                 else:
                     print(f"最佳 {n1} 推荐: {sorted(top_nums[:n1])}")
                     
-            if m in importances:
+            if m in importances and importances[m] is not None:
                 plot_filename = f"data/{conf['code']}_importance_{m.lower()}.png"
-                plot_importance(importances[m], get_feature_names(), m_names[m], plot_filename)
+                # For separate pool, ML models' importance is from red ball training
+                f_names = get_feature_names(pool_type='red') if (SEPARATE_POOL and m in ['B', 'C', 'E', 'F']) else get_feature_names()
+                plot_importance(importances[m], f_names, m_names[m], plot_filename)
     
         if args.method == 'all':
             # Ensemble (Simplified version)
             ensemble_scores = np.zeros(TOTAL_NUMBERS)
-            # Use avg_r2 (Red Top N2 hit rate) as the qualification metric
-            qualified = [m for m in active_methods if eval_results[m]['avg_r2'] >= 0.15] 
+            # 调整权重计算：移除 15% 的硬性门槛，让所有模型根据自身表现贡献权重。
+            # 表现差的模型 (avg_r2 接近 0) 权重自然会很低，这是一种更动态的优胜劣汰。
+            qualified = active_methods
+
             if qualified:
-                for m in qualified:
+                for m in active_methods:
                     p = results[m]
                     weight = eval_results[m]['avg_r2']
                     if p.max() > p.min():

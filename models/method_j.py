@@ -85,9 +85,20 @@ def train_predict_poisson(df, model_config, lottery_config):
     # Normalize to probabilities
     # We add a small epsilon to avoid zero probabilities for recently drawn numbers
     pressure_scores += 0.01 
-    if pressure_scores.sum() > 0:
-        final_probs = pressure_scores / pressure_scores.sum()
+    
+    if lottery_config['separate_pool']:
+        total_red = lottery_config['total_red']
+        red_scores = pressure_scores[:total_red]
+        blue_scores = pressure_scores[total_red:]
+        
+        red_probs = red_scores / red_scores.sum() if red_scores.sum() > 0 else np.zeros(len(red_scores))
+        blue_probs = blue_scores / blue_scores.sum() if blue_scores.sum() > 0 else np.zeros(len(blue_scores))
+        
+        final_probs = np.concatenate([red_probs, blue_probs])
     else:
-        final_probs = np.zeros(total_numbers)
+        if pressure_scores.sum() > 0:
+            final_probs = pressure_scores / pressure_scores.sum()
+        else:
+            final_probs = np.zeros(total_numbers)
         
     return final_probs

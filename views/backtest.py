@@ -222,7 +222,7 @@ def render_backtest_results(df_full, conf):
         b_cols = st.columns(len(methods) + 1)
         for i, (name, s_col) in enumerate(zip(disp_names, sort_cols)):
             with b_cols[i]:
-                top_b = df_b_rank.sort_values(s_col, ascending=False).head(max(2, len(actual_blue)))
+                top_b = df_b_rank.sort_values(s_col, ascending=False).head(5)
                 for idx, r in top_b.iterrows():
                     num = int(r['Number']); is_hit = "🎯" if num in actual_blue else ""
                     st.write(f"{is_hit} `{num:02d}` ({r[s_col]:.1%})")
