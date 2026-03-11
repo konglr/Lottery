@@ -4,7 +4,8 @@ import os
 import time
 
 # --- Immediate Feedback ---
-print("🚀 [System] 启动模型分析引擎...", flush=True)
+if __name__ == "__main__":
+    print("🚀 [System] 启动模型分析引擎...", flush=True)
 
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -137,10 +138,11 @@ def update_lottery_config(lottery_name, df=None):
     print(f"\n{'='*20} [切换彩票: {LOTTERY_NAME} ({'独立池' if SEPARATE_POOL else '单池'})] {'='*20}")
     return conf
 
-args, LOTTERIES_TO_RUN = init_config()
-# Pre-initialize globals with the first lottery
-conf = update_lottery_config(LOTTERIES_TO_RUN[0])
-DEFAULT_EVAL_SIZE = args.eval_size
+if __name__ == "__main__":
+    args, LOTTERIES_TO_RUN = init_config()
+    # Pre-initialize globals with the first lottery
+    conf = update_lottery_config(LOTTERIES_TO_RUN[0])
+    DEFAULT_EVAL_SIZE = args.eval_size
 
 # --- Globals for Dynamic Features ---
 STAT_COLS = []
@@ -203,16 +205,55 @@ MODEL_CONFIG = {
             'repeat': 1.0,
             'jump': 0.5,
             'omission': 1.0
+        },
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'search_limit': 3000,
+            'top_matches': 20,
+            'weights': {
+                'overlap': 13.58,
+                'sum': 0.12,
+                'ac': 0.45,
+                'consecutive': 2.10,
+                'neighbor': 1.85,
+                'repeat': 1.65,
+                'jump': 0.75,
+                'omission': 3.20
+            }
+        },
+        'ssq_blue': {
+            'search_limit': 2000,
+            'top_matches': 15,
+            'weights': {
+                'overlap': 8.50, 'sum': 0.05, 'ac': 0.10, 'consecutive': 0.25,
+                'neighbor': 2.50, 'repeat': 1.90, 'jump': 0.15, 'omission': 4.50
+            }
         }
     },
     'B': {
-        'n_estimators': 2000,
+        'n_estimators': 1000,
         'max_depth': 15,
         'min_samples_split': 10,
         'min_samples_leaf': 10,
         'max_features': 'log2',
         'random_state': 42,
         'n_jobs': -1
+        ,
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'n_estimators': 800,
+            'max_depth': 20, # Tuned
+            'min_samples_split': 5,
+            'min_samples_leaf': 2,
+            'max_features': 'sqrt',
+        },
+        'ssq_blue': {
+            'n_estimators': 300,
+            'max_depth': 10, # Tuned
+            'min_samples_split': 10,
+            'min_samples_leaf': 4,
+            'max_features': 'log2',
+        } # Tuned
     },
     'C': {
         'n_estimators': 1000,
@@ -224,7 +265,22 @@ MODEL_CONFIG = {
         'scale_pos_weight': 5,
         'random_state': 42,
         'n_jobs': -1,
-        'eval_metric': 'logloss'
+        'eval_metric': 'logloss',
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'n_estimators': 800,
+            'max_depth': 5, # Tuned
+            'learning_rate': 0.05,
+            'subsample': 0.8,
+            'colsample_bytree': 0.8,
+            'scale_pos_weight': 5,
+        },
+        'ssq_blue': {
+            'n_estimators': 500, # Tuned
+            'max_depth': 3, # Tuned
+            'learning_rate': 0.1, # Tuned
+            'scale_pos_weight': 1,
+        } # Tuned
     },
     'D': {
         'embedding_dim': 16,
@@ -233,15 +289,39 @@ MODEL_CONFIG = {
         'dropout': 0.5,
         'lr': 0.001,
         'epochs': 50,
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'embedding_dim': 32, 'hidden_dim': 64, 'num_layers': 2,
+            'dropout': 0.2, 'lr': 0.001, 'epochs': 80
+        },
+        'ssq_blue': {
+            'embedding_dim': 16, 'hidden_dim': 32, 'num_layers': 1,
+            'dropout': 0.1, 'lr': 0.002, 'epochs': 50
+        }
     },
     'E': {
-        'n_estimators': 400,
+        'n_estimators': 800,
         'num_leaves': 31,
         'learning_rate': 0.05,
         'random_state': 42,
         'n_jobs': -1,
         # High-dimension specific (e.g., for '快乐8'): 'feature_fraction': 0.8, 'bagging_fraction': 0.8
         # Imbalance specific (e.g., for '双色球'): 'is_unbalance': True
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'n_estimators': 1000,
+            'num_leaves': 63, # Tuned
+            'learning_rate': 0.03, # Tuned
+            'feature_fraction': 0.8,
+            'bagging_fraction': 0.8,
+            'is_unbalance': True,
+        },
+        'ssq_blue': {
+            'n_estimators': 500, # Tuned
+            'num_leaves': 15, # Tuned
+            'learning_rate': 0.05, # Tuned
+            'is_unbalance': False,
+        } # Tuned
     },
     'F': {
         'iterations': 500,
@@ -249,24 +329,53 @@ MODEL_CONFIG = {
         'depth': 6,
         'l2_leaf_reg': 3,
         'random_state': 42,
-        # For '快乐8', depth will be dynamically set to 4.
+        # For '快乐8', depth will be dynamically set to 4.,
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'iterations': 800, # Tuned
+            'depth': 6, # Tuned
+            'learning_rate': 0.03, # Tuned
+            'l2_leaf_reg': 3,
+        },
+        'ssq_blue': {
+            'iterations': 300, # Tuned
+            'depth': 4, # Tuned
+            'learning_rate': 0.05, # Tuned
+            'l2_leaf_reg': 5, # Tuned
+        } # Tuned
     },
     'G': {
         'n_components': 4,
         'covariance_type': 'diag',
         'train_size': 800,
-        'random_state': 42
+        'random_state': 42,
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': { 'n_components': 5, 'covariance_type': 'diag' },
+        'ssq_blue': { 'n_components': 3, 'covariance_type': 'full' }
     },
     'H': {
-        'recent_periods': 50,
+        'recent_periods': 150,
         # 'sum_min' and 'sum_max' will be set dynamically based on lottery type
         # Default fallback: 3-sigma calculated in model
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'recent_periods': 150, 'sum_min': 37, 'sum_max': 164
+        }
     },
     'I': {
         'population_size': 100,
         'generations': 50,
         'mutation_rate': 0.1,
-        'fitness_periods': 10 # How many recent periods to use for fitness evaluation
+        'fitness_periods': 10, # How many recent periods to use for fitness evaluation
+        # --- SSQ Specific Tuned Params ---
+        'ssq_red': {
+            'population_size': 100, 'generations': 50,
+            'mutation_rate': 0.1, 'fitness_periods': 10
+        },
+        'ssq_blue': {
+            'population_size': 50, 'generations': 30,
+            'mutation_rate': 0.2, 'fitness_periods': 30
+        }
     },
     'J': {
         # Poisson model is parameter-free mostly, relying on theoretical probabilities
@@ -637,6 +746,31 @@ def plot_importance(importance, names, model_name, filename):
     logging.info(f"Feature importance plot ({model_id}) saved to {filename}")
     return df.head(10)
 
+def get_specific_config(method, pool_type, lottery_code):
+    """Helper to get model config, checking for specific overrides."""
+    base_config = MODEL_CONFIG[method].copy()
+    
+    # Clean up all potential override keys from the base dictionary
+    # to create a clean default set.
+    clean_base_config = {k: v for k, v in base_config.items() if not ('_red' in k or '_blue' in k)}
+    
+    # Determine the specific key to look for
+    specific_key = f"{lottery_code}_{pool_type}" # e.g., "ssq_red"
+    
+    if specific_key in base_config:
+        # If a specific config exists, merge it with the clean base config.
+        # Specific parameters will overwrite defaults.
+        # Ensure all keys from clean_base_config are present in specific_params
+        for key, value in clean_base_config.items():
+            if key not in base_config[specific_key]:
+                base_config[specific_key][key] = value
+
+        specific_params = base_config[specific_key]
+        return {**clean_base_config, **specific_params}
+    else:
+        # Otherwise, return the clean base config.
+        return clean_base_config
+
 def run_prediction(df, method, full_df, next_omission, conf=None):
     lottery_config = {
         'window_size': WINDOW_SIZE,
@@ -678,9 +812,11 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
             lottery_config_red = lottery_config.copy()
             lottery_config_red['total_numbers'] = TOTAL_RED
             
+            lottery_code = conf.get('code', '')
+            red_params = get_specific_config(method, 'red', lottery_code)
             train_func = {'B': train_predict_rf, 'C': train_predict_xgb, 'E': train_predict_lgbm, 'F': train_predict_catboost}[method]
             
-            red_res = train_func(np.array(X_red_list), np.array(y_red_list), final_red_feat, MODEL_CONFIG[method], lottery_config_red)
+            red_res = train_func(np.array(X_red_list), np.array(y_red_list), final_red_feat, red_params, lottery_config_red)
             red_probs, red_importance = (red_res[0], red_res[1]) if isinstance(red_res, tuple) else (red_res, None)
 
             # --- 2. Blue Ball Training ---
@@ -703,7 +839,8 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
                 lottery_config_blue = lottery_config.copy()
                 lottery_config_blue['total_numbers'] = TOTAL_BLUE
                 
-                blue_res = train_func(np.array(X_blue_list), np.array(y_blue_list), final_blue_feat, MODEL_CONFIG[method], lottery_config_blue)
+                blue_params = get_specific_config(method, 'blue', lottery_code)
+                blue_res = train_func(np.array(X_blue_list), np.array(y_blue_list), final_blue_feat, blue_params, lottery_config_blue)
                 blue_probs, _ = (blue_res[0], blue_res[1]) if isinstance(blue_res, tuple) else (blue_res, None)
 
             # --- 3. Combine Results ---
@@ -729,18 +866,23 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
             last_win = full_df.iloc[-WINDOW_SIZE:]
             final_feat = extract_features(full_df, last_win, next_omission)
             
+            lottery_code = conf.get('code', '')
+            # For single pool, we can default to 'red' config if it exists, or just use base.
+            params = get_specific_config(method, 'red', lottery_code)
+
             if method == 'B':
-                return train_predict_rf(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['B'], lottery_config)
+                return train_predict_rf(np.array(X_list), np.array(y_list), final_feat, params, lottery_config)
             elif method == 'C':
-                return train_predict_xgb(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['C'], lottery_config)
+                return train_predict_xgb(np.array(X_list), np.array(y_list), final_feat, params, lottery_config)
             elif method == 'E':
-                return train_predict_lgbm(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['E'], lottery_config)
+                return train_predict_lgbm(np.array(X_list), np.array(y_list), final_feat, params, lottery_config)
             elif method == 'F':
-                return train_predict_catboost(np.array(X_list), np.array(y_list), final_feat, MODEL_CONFIG['F'], lottery_config)
+                return train_predict_catboost(np.array(X_list), np.array(y_list), final_feat, params, lottery_config)
 
     elif method in ['A', 'D']:
         # Group 2: DataFrame based Models (A, D) - Now supporting Separation
         if SEPARATE_POOL:
+            lottery_code = conf.get('code', '')
             # --- 1. Red Ball Prediction ---
             # Create a config that looks like a single pool lottery for Red
             conf_red = lottery_config.copy()
@@ -751,8 +893,9 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
             conf_red['red_cols'] = RED_COLS # Real Red Cols
             conf_red['blue_cols'] = []
             
+            red_params = get_specific_config(method, 'red', lottery_code)
             func = predict_similarity if method == 'A' else train_predict_lstm
-            probs_red = func(df, MODEL_CONFIG[method], conf_red)
+            probs_red = func(df, red_params, conf_red)
             
             # --- 2. Blue Ball Prediction ---
             # Create a config that looks like a single pool lottery for Blue
@@ -764,22 +907,55 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
             conf_blue['red_cols'] = BLUE_COLS # Treat Blue cols as "Red" (Primary) cols
             conf_blue['blue_cols'] = []
             
-            probs_blue = func(df, MODEL_CONFIG[method], conf_blue)
+            blue_params = get_specific_config(method, 'blue', lottery_code)
+            probs_blue = func(df, blue_params, conf_blue)
             
             return np.concatenate([probs_red, probs_blue])
         else:
             # Standard call for single pool
+            params = get_specific_config(method, 'red', conf.get('code', ''))
             func = predict_similarity if method == 'A' else train_predict_lstm
-            return func(df, MODEL_CONFIG[method], lottery_config)
+            return func(df, params, lottery_config)
             
     elif method == 'G':
-        return train_predict_hmm(df, MODEL_CONFIG['G'], lottery_config)
-    elif method == 'H':
-        return train_predict_evt(df, MODEL_CONFIG['H'], lottery_config)
-    elif method == 'I':
-        return train_predict_ga(df, MODEL_CONFIG['I'], lottery_config)
-    elif method == 'J':
-        return train_predict_poisson(df, MODEL_CONFIG['J'], lottery_config)
+        if SEPARATE_POOL:
+            lottery_code = conf.get('code', '')
+            # --- 1. Red Ball Prediction ---
+            conf_red = lottery_config.copy()
+            conf_red['separate_pool'] = False
+            conf_red['total_numbers'] = TOTAL_RED
+            conf_red['num_list'] = RED_NUM_LIST
+            conf_red['red_cols'] = RED_COLS
+            conf_red['blue_cols'] = []
+            
+            red_params = get_specific_config(method, 'red', lottery_code)
+            probs_red = train_predict_hmm(df, red_params, conf_red)
+            
+            # --- 2. Blue Ball Prediction ---
+            conf_blue = lottery_config.copy()
+            conf_blue['separate_pool'] = False
+            conf_blue['total_numbers'] = TOTAL_BLUE
+            conf_blue['num_list'] = BLUE_NUM_LIST
+            conf_blue['red_cols'] = BLUE_COLS # Treat Blue cols as "Red"
+            conf_blue['blue_cols'] = []
+            
+            blue_params = get_specific_config(method, 'blue', lottery_code)
+            probs_blue = train_predict_hmm(df, blue_params, conf_blue)
+            
+            return np.concatenate([probs_red, probs_blue])
+        else:
+            # Standard call for single pool
+            params = get_specific_config(method, 'red', conf.get('code', ''))
+            return train_predict_hmm(df, params, lottery_config)
+    elif method in ['H', 'I', 'J']:
+        lottery_code = conf.get('code', '')
+        # Methods H, I, J typically work on the combined pool or have internal red ball focus
+        # We use 'red' config as the primary override
+        params = get_specific_config(method, 'red', lottery_code)
+        if method == 'H': return train_predict_evt(df, params, lottery_config)
+        if method == 'I': return train_predict_ga(df, params, lottery_config)
+        if method == 'J': return train_predict_poisson(df, params, lottery_config)
+        
     return np.zeros(TOTAL_NUMBERS)
 
 def evaluate_methods(df, full_df, conf, test_size=10, active_methods=['A', 'B', 'C', 'D']):
@@ -963,8 +1139,8 @@ def main():
         MODEL_CONFIG['H'].pop('sum_min', None)
         MODEL_CONFIG['H'].pop('sum_max', None)
         if lottery_name == '双色球':
-            MODEL_CONFIG['H']['sum_min'] = 75
-            MODEL_CONFIG['H']['sum_max'] = 135
+            MODEL_CONFIG['H']['sum_min'] = 37
+            MODEL_CONFIG['H']['sum_max'] = 164
         elif lottery_name == '快乐8':
             MODEL_CONFIG['H']['sum_min'] = 680
             MODEL_CONFIG['H']['sum_max'] = 940
