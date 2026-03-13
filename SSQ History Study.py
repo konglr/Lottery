@@ -1,10 +1,19 @@
 import pandas as pd
 
-# 读取 Excel 文件
-df = pd.read_excel('双色球开奖情况.xls')
+# 读取 CSV 文件并重命名列
+df = pd.read_csv('data/双色球_lottery_data.csv')
+df = df.rename(columns={
+    'issue': '期号',
+    'openTime': '开奖日期',
+    'frontWinningNum': '前区号码',
+    'backWinningNum': '后区号码'
+})
 
-# 将红球号码和蓝球号码转换为列表
-df['红球号码'] = df['前区号码'].apply(lambda x: sorted([int(i) for i in x.split(' ')]))
+# 只要相关的列，并处理号码
+df = df[['期号', '开奖日期', '前区号码', '后区号码']].dropna()
+
+# 将红球号码和蓝球号码转换为格式化的列表和整数
+df['红球号码'] = df['前区号码'].apply(lambda x: sorted([int(i) for i in str(x).split(' ')]))
 df['蓝球号码'] = df['后区号码'].apply(lambda x: int(x))
 
 def find_similar_records(df):
