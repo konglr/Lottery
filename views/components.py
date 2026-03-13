@@ -109,11 +109,11 @@ def render_metrics(df, config):
                 kl8_mode = st.pills("玩法选择", modes, selection_mode="single", default="选十")
             
             std_prize_map = {
-                'ssq': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖"],
-                'dlt': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖"],
+                'ssq': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "福运奖"],
+                'dlt': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖", "八等奖", "九等奖"],
                 'd3': ["单选", "组三", "组六"], 'pl3': ["直选", "组选三", "组选六"], 'pl5': ["直选"],
-                'qlc': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖"],
-                'xqxc': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖"]
+                'qlc': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖", "福运奖"],
+                'xqxc': ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "福运奖"]
             }
             p_order = std_prize_map.get(config['code'], ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖"])
             sorted_prizes = []
@@ -130,9 +130,11 @@ def render_metrics(df, config):
                 money = row.get(f"{p}奖金", 0)
                 if num > 0 or money > 0 or p in p_order:
                     item = {"奖项": p, "中奖注数": int(num) if pd.notna(num) else 0, "单注奖金": int(float(money)) if pd.notna(money) else 0}
-                    if f"{p}追加注数" in df.columns:
-                        item["追加注数"] = int(row.get(f"{p}追加注数", 0)) if pd.notna(row.get(f"{p}追加注数")) else 0
-                        item["追加奖金"] = int(float(row.get(f"{p}追加奖金", 0))) if pd.notna(row.get(f"{p}追加奖金")) else 0
+                    # 只有超级大乐透支持追加投注
+                    if config['code'] == 'dlt':
+                        if f"{p}追加注数" in df.columns:
+                            item["追加注数"] = int(row.get(f"{p}追加注数", 0)) if pd.notna(row.get(f"{p}追加注数")) else 0
+                            item["追加奖金"] = int(float(row.get(f"{p}追加奖金", 0))) if pd.notna(row.get(f"{p}追加奖金")) else 0
                     p_data.append(item)
             if p_data:
                 df_display = pd.DataFrame(p_data)

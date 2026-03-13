@@ -48,7 +48,7 @@ np.random.seed(42)
 def init_config():
     parser = argparse.ArgumentParser(description="Multi-Model Lottery Prediction")
     parser.add_argument("--lottery", type=str, default="all", help="彩票名称，支持多个以逗号分隔或输入 'all'")
-    parser.add_argument("--method", type=str, choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'all'], default='all', help="分析方法")
+    parser.add_argument("--method", type=str, default='all', help="分析方法，支持多个以逗号分隔或输入 'all' (例如: 'H,I')")
     parser.add_argument("--eval_size", type=int, default=10, help="回测期数")
     args = parser.parse_args()
     
@@ -354,12 +354,12 @@ MODEL_CONFIG = {
         'ssq_blue': { 'n_components': 3, 'covariance_type': 'full' }
     },
     'H': {
-        'recent_periods': 150,
+        'recent_periods': 50,
         # 'sum_min' and 'sum_max' will be set dynamically based on lottery type
         # Default fallback: 3-sigma calculated in model
         # --- SSQ Specific Tuned Params ---
         'ssq_red': {
-            'recent_periods': 150, 'sum_min': 37, 'sum_max': 164
+            'recent_periods': 50, 'sum_min': 37, 'sum_max': 164
         }
     },
     'I': {
@@ -374,7 +374,7 @@ MODEL_CONFIG = {
         },
         'ssq_blue': {
             'population_size': 50, 'generations': 30,
-            'mutation_rate': 0.2, 'fitness_periods': 30
+            'mutation_rate': 0.15, 'fitness_periods': 50
         }
     },
     'J': {
@@ -952,6 +952,9 @@ def run_prediction(df, method, full_df, next_omission, conf=None):
         # Methods H, I, J typically work on the combined pool or have internal red ball focus
         # We use 'red' config as the primary override
         params = get_specific_config(method, 'red', lottery_code)
+        if conf.get('separate_pool', False):
+            params['blue_config'] = get_specific_config(method, 'blue', lottery_code)
+            
         if method == 'H': return train_predict_evt(df, params, lottery_config)
         if method == 'I': return train_predict_ga(df, params, lottery_config)
         if method == 'J': return train_predict_poisson(df, params, lottery_config)
@@ -1151,7 +1154,7 @@ def main():
         determine_stat_features(df)
         omission_df, next_omission = get_omission_matrix(df)
         full_df = pd.concat([df, omission_df], axis=1)
-        active_methods = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] if args.method == 'all' else [args.method]
+        active_methods = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] if args.method.lower() == 'all' else [m.strip().upper() for m in args.method.split(',')]
         
         # 1. Evaluation / Backtest
         eval_results, run_id = evaluate_methods(df, full_df, conf, test_size=args.eval_size, active_methods=active_methods)
@@ -1221,7 +1224,7 @@ def main():
                 f_names = get_feature_names(pool_type='red') if (SEPARATE_POOL and m in ['B', 'C', 'E', 'F']) else get_feature_names()
                 plot_importance(importances[m], f_names, m_names[m], plot_filename)
     
-        if args.method == 'all':
+        if len(active_methods) > 1:
             # Ensemble (Simplified version)
             ensemble_scores = np.zeros(TOTAL_NUMBERS)
             # 调整权重计算：移除 15% 的硬性门槛，让所有模型根据自身表现贡献权重。

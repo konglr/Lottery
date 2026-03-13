@@ -48,8 +48,10 @@ def parse_awards(row, lottery_type):
             if lottery_type in ['福彩3D', '排列三', '排列五']:
                 # These must use remark for naming
                 tier_name = remark
-            elif remark and remark in ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖"]:
+            elif remark and remark in ["一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖", "福运奖"]:
                 tier_name = remark
+            elif award_etc == '7' and lottery_type in ['双色球', '七乐彩', '七星彩']:
+                tier_name = "福运奖"
             elif award_etc in TIER_MAP:
                 tier_name = TIER_MAP[award_etc]
             else:
@@ -90,12 +92,15 @@ def process_all_files():
                 logging.warning(f"No winnerDetails in {file_path}, skipping.")
                 continue
 
-            # 1. Define Standard Columns to Initialize
             unique_tiers = set()
-            if lottery_name in ['双色球', '七乐彩', '七星彩']:
+            if lottery_name == '双色球':
                 unique_tiers = {"一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "福运奖"}
             elif lottery_name == '超级大乐透':
+                unique_tiers = {"一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖", "八等奖", "九等奖"}
+            elif lottery_name == '七乐彩':
                 unique_tiers = {"一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖", "七等奖"}
+            elif lottery_name == '七星彩':
+                unique_tiers = {"一等奖", "二等奖", "三等奖", "四等奖", "五等奖", "六等奖"}
             elif lottery_name == '福彩3D':
                 unique_tiers = {"单选", "组三", "组六"}
             elif lottery_name == '排列三':
@@ -116,13 +121,29 @@ def process_all_files():
                         suffix = "全不中" if k == 0 else f"中{CN_NUMS[k]}"
                         unique_tiers.add(f"{mode}{suffix}")
 
-            # 2. Aggressive Cleanup for PL3, PL5, 3D
-            # These should NOT have "一等奖", "二等奖", etc.
-            if lottery_name in ['排列三', '排列五', '福彩3D']:
-                drop_cols = [c for c in df.columns if any(p in c for p in ["一等奖", "二等奖", "三等奖", "奖项"])]
-                if drop_cols:
-                    logging.info(f"Dropping incorrect columns for {lottery_name}: {drop_cols}")
-                    df.drop(columns=drop_cols, inplace=True)
+            # 2. Generalized Prize Column Cleanup
+            # Keep only the tiers defined in unique_tiers for the current lottery
+            prize_suffixes = ["注数", "奖金"]
+            if lottery_name == '超级大乐透':
+                prize_suffixes += ["追加注数", "追加奖金"]
+            
+            standard_prize_cols = {f"{tier}{suffix}" for tier in unique_tiers for suffix in prize_suffixes}
+            
+            # Additional cleanup for PL3, PL5, 3D (historical incorrect columns)
+            historical_bad_keywords = ["一等奖", "二等奖", "三等奖", "奖项"]
+            
+            drop_cols = []
+            for col in df.columns:
+                is_prize_col = any(col.endswith(s) for s in ["注数", "奖金", "追加注数", "追加奖金"])
+                is_incorrect_tier = any(kw in col for kw in historical_bad_keywords) if lottery_name in ['排列三', '排列五', '福彩3D'] else False
+                
+                if is_prize_col:
+                    if col not in standard_prize_cols or is_incorrect_tier:
+                        drop_cols.append(col)
+            
+            if drop_cols:
+                logging.info(f"Dropping outdated/incorrect columns for {lottery_name}: {drop_cols}")
+                df.drop(columns=drop_cols, inplace=True)
 
             # 3. Initialize Columns to 0
             for tier in unique_tiers:

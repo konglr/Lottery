@@ -99,9 +99,12 @@ def run_tuning():
     conf = LOTTERY_CONFIG[LOTTERY_NAME].copy() # 使用副本防止污染全局配置
     
     # 补全动态字段
+    conf['red_cols'] = [f"{conf['red_col_prefix']}{i}" for i in range(1, conf['red_count'] + 1)]
     if conf.get('separate_pool', False):
+        conf['blue_cols'] = [conf['blue_col_name']] if 'blue_col_name' in conf else ['蓝球']
         conf['red_num_list'] = list(range(conf['red_range'][0], conf['red_range'][1] + 1))
         conf['blue_num_list'] = list(range(conf['blue_range'][0], conf['blue_range'][1] + 1))
+        conf['total_red'] = len(conf['red_num_list'])
         conf['total_numbers'] = len(conf['red_num_list']) + len(conf['blue_num_list'])
     else:
         conf['num_list'] = list(range(conf['red_range'][0], conf['red_range'][1] + 1))

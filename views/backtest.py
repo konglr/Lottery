@@ -58,9 +58,20 @@ def render_backtest_results(df_full, conf):
     
     sel_period = st.selectbox("2. 选择回测目标期号", periods, format_func=format_period_label)
 
+    methods = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+    # 识别当前运行中哪些模型确实有预测数据 (避免显示全0或缺失的模型)
+    active_methods = []
+    for m in methods:
+        prob_cols = [c for c in df_run.columns if str(c).startswith(f"Prob_{m}_")]
+        if prob_cols and df_run[prob_cols].fillna(0).astype(float).sum().sum() > 0:
+            active_methods.append(m)
+    
+    if not active_methods:
+        st.warning("⚠️ 当前运行记录中没有有效的模型数据")
+        return
+
     st.markdown("#### 📊 本次运行汇总 (命中率概览)")
     summary_data = []
-    methods = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
     metrics = conf.get('eval_metrics', {"top_n_1": 6, "top_n_2": 10})
     n1, n2 = metrics['top_n_1'], metrics['top_n_2']
     
@@ -87,7 +98,7 @@ def render_backtest_results(df_full, conf):
         p_match = df_full[df_full['期号'].astype(str) == p_str]
         if p_match.empty:
             row = {"回测期号": f"{p} ✨", "综合推荐": "-"}
-            for m in methods:
+            for m in active_methods:
                 row[f"模型 {m}({model_name_map.get(m, '')})"] = "-"
             summary_data.append(row)
             continue
@@ -122,7 +133,7 @@ def render_backtest_results(df_full, conf):
             combined = np.concatenate([r_arr, b_arr])
             c_min, c_max = combined.min(), combined.max()
             m_scores[m] = (combined - c_min) / (c_max - c_min) if c_max > c_min else np.zeros_like(combined)
-        ens_combined = np.mean([m_scores[m] for m in methods], axis=0)
+        ens_combined = np.mean([m_scores[m] for m in active_methods], axis=0) if active_methods else np.zeros_like(next(iter(m_scores.values())))
         def get_hit_str(combined_scores, actual_r, actual_b):
             r_scores = combined_scores[:len(r_list)]
             b_scores = combined_scores[len(r_list):] if separate_pool else []
@@ -135,7 +146,7 @@ def render_backtest_results(df_full, conf):
                 return f"R:{hr1}/{len(actual_r)}|B:{hb}/{len(actual_b)}"
             return f"{hr1}/{len(actual_r)}({n1})|{hr2}/{len(actual_r)}({n2})"
         p_row = {"回测期号": p_str, "综合推荐": get_hit_str(ens_combined, a_red, a_blue)}
-        for m in methods: 
+        for m in active_methods: 
             p_row[f"模型 {m}({model_name_map.get(m, '')})"] = get_hit_str(m_scores[m], a_red, a_blue)
         summary_data.append(p_row)
 
@@ -191,15 +202,24 @@ def render_backtest_results(df_full, conf):
         item['Ens'] = np.mean(scores)
         rank_data.append(item)
     df_rank = pd.DataFrame(rank_data)
-    cols = st.columns(len(methods) + 1)
-    disp_names = ["综合推荐"] + [f"模型 {m}({model_name_map.get(m, '')})" for m in methods]
-    sort_cols = ['Ens'] + [f'P_{m}' for m in methods]
+    # 计算当前选中期号有哪些模型有数据
+    period_active_methods = []
+    for m in active_methods:
+        p_cols = [c for c in row_idx.index if str(c).startswith(f"Prob_{m}_")]
+        if p_cols and row_idx[p_cols].fillna(0).astype(float).sum() > 0:
+            period_active_methods.append(m)
+
+    cols = st.columns(len(period_active_methods) + 1)
+    disp_names = ["综合推荐"] + [f"模型 {m}({model_name_map.get(m, '')})" for m in period_active_methods]
+    sort_cols = ['Ens'] + [f'P_{m}' for m in period_active_methods]
     for i, (name, s_col) in enumerate(zip(disp_names, sort_cols)):
         with cols[i]:
             st.markdown(f"**{name}**")
             top_df = df_rank.sort_values(s_col, ascending=False).head(n2+2)
             for idx, r in top_df.iterrows():
                 num = int(r['Number']); is_hit = "✅" if num in actual_red else ""
+                # 如果是主模型列且概率为0，则跳过详细显示(再次双重确认)
+                if s_col != 'Ens' and r[s_col] <= 0: continue 
                 st.write(f"{is_hit} `{num:02d}` ({r[s_col]:.1%})")
 
     if separate_pool:
@@ -219,10 +239,14 @@ def render_backtest_results(df_full, conf):
                 item[f'P_{m}'] = p; scores.append(p)
             item['Ens'] = np.mean(scores); b_rank_data.append(item)
         df_b_rank = pd.DataFrame(b_rank_data)
-        b_cols = st.columns(len(methods) + 1)
+        b_cols = st.columns(len(period_active_methods) + 1)
         for i, (name, s_col) in enumerate(zip(disp_names, sort_cols)):
             with b_cols[i]:
-                top_b = df_b_rank.sort_values(s_col, ascending=False).head(5)
-                for idx, r in top_b.iterrows():
-                    num = int(r['Number']); is_hit = "🎯" if num in actual_blue else ""
-                    st.write(f"{is_hit} `{num:02d}` ({r[s_col]:.1%})")
+                # 只有当该模型在该期有蓝球数据时才显示详细
+                if s_col == 'Ens' or (s_col in df_b_rank.columns and df_b_rank[s_col].sum() > 0):
+                    top_b = df_b_rank.sort_values(s_col, ascending=False).head(5)
+                    for idx, r in top_b.iterrows():
+                        num = int(r['Number']); is_hit = "🎯" if num in actual_blue else ""
+                        st.write(f"{is_hit} `{num:02d}` ({r[s_col]:.1%})")
+                else:
+                    st.write("无数据")

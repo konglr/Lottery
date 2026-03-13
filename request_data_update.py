@@ -79,28 +79,31 @@ def update_lottery_incremental(lottery_id, lottery_name):
         return
         
     df_new = pd.DataFrame(new_records)
-    # 过滤掉已经存在的期号
+    # 过滤并且包含了本地最新期号，以便进行覆盖更新（处理中奖信息延迟到账的情况）
     df_new['issue'] = df_new['issue'].apply(lambda x: int(normalize_issue(x, lottery_id)))
-    df_incremental = df_new[df_new['issue'] > local_latest_int]
+    df_incremental = df_new[df_new['issue'] >= local_latest_int]
     
     if df_incremental.empty:
         logging.info(f"ℹ️ {lottery_name} 虽然最新期号不同，但未在最近 100 条中发现更高期号，可能已同步。")
         return
         
-    logging.info(f"➕ {lottery_name} 新增 {len(df_incremental)} 条记录")
+    logging.info(f"➕ {lottery_name} 处理 {len(df_incremental)} 条记录 (含覆盖更新)")
     
     # 加载旧数据
     df_old = pd.read_csv(filepath)
     
-    # 合并 (新数据在前，假设原始 CSV 是按降序排列的)
+    # 合并
+    # 通过将新数据放在前面，然后 drop_duplicates 按照期号保留第一条，实现对旧记录的覆盖
     df_final = pd.concat([df_incremental, df_old], ignore_index=True)
+    df_final['issue'] = df_final['issue'].astype(int)
+    df_final = df_final.drop_duplicates(subset=['issue'], keep='first')
     
     # 按照期号降序排列以保证一致性
     df_final = df_final.sort_values('issue', ascending=False)
     
     # 保存覆盖
     df_final.to_csv(filepath, index=False, encoding='utf-8-sig')
-    logging.info(f"💾 {lottery_name} 增量更新完成，已保存至 {filepath}")
+    logging.info(f"💾 {lottery_name} 增量/覆盖更新完成，已保存至 {filepath}")
 
 def main():
     lotteries = {

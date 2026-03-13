@@ -3,6 +3,7 @@ import numpy as np
 import pygad
 import sys
 import os
+import pandas as pd
 
 # Add project root to path to import funcs
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -94,12 +95,47 @@ def train_predict_ga(df, model_config, lottery_config):
     num_counts = np.bincount(all_genes.astype(int), minlength=lottery_config['red_range'][1] + 1)
     
     probs = np.zeros(lottery_config['total_numbers'])
-    num_list_to_check = lottery_config['red_num_list'] if lottery_config['separate_pool'] else lottery_config['num_list']
-    for i, num in enumerate(num_list_to_check):
-        probs[i] = num_counts[num]
+    
+    # Map Red balls
+    if lottery_config.get('separate_pool', False):
+        for i, num in enumerate(lottery_config['red_num_list']):
+            # Add small random noise to red balls too just in case of frequency ties at the GA output level
+            probs[i] = num_counts[num] + (np.random.random() * 0.0001)
             
-    if probs.sum() > 0:
-        probs /= probs.sum()
+        # 5. Hand-craft Blue ball distribution from recent frequency
+        if lottery_config.get('blue_cols'):
+            blue_conf = conf.get('blue_config', conf)
+            blue_fitness_periods = blue_conf.get('fitness_periods', 30)
+            blue_recent_df = df.tail(blue_fitness_periods)
+            
+            blue_cols = lottery_config['blue_cols']
+            if all(c in blue_recent_df.columns for c in blue_cols):
+                blue_vals = blue_recent_df[blue_cols].values.flatten()
+                blue_vals = pd.to_numeric(blue_vals, errors='coerce')
+                blue_vals = blue_vals[~np.isnan(blue_vals)]
+                
+                blue_counts = np.bincount(blue_vals.astype(int), minlength=lottery_config['blue_range'][1] + 1)
+                for i, num in enumerate(lottery_config['blue_num_list']):
+                    # Offset into blue's domain and add a tiny random noise to prevent identical ties 
+                    # (identical ties result in picking the lowest sequential numbers)
+                    noise = np.random.random() * 0.0001
+                    probs[lottery_config['total_red'] + i] = blue_counts[num] + noise
+                    
+    else:
+        for i, num in enumerate(lottery_config['num_list']):
+            probs[i] = num_counts[num] + (np.random.random() * 0.0001)
+            
+    # Normalize Probabilities
+    if lottery_config['separate_pool']:
+        # Normalize red and blue blocks independently
+        red_sum = probs[:lottery_config['total_red']].sum()
+        if red_sum > 0: probs[:lottery_config['total_red']] /= red_sum
+        
+        blue_sum = probs[lottery_config['total_red']:].sum()
+        if blue_sum > 0: probs[lottery_config['total_red']:] /= blue_sum
+    else:
+        if probs.sum() > 0:
+            probs /= probs.sum()
     
     best_solution, best_fitness, _ = ga_instance.best_solution()
     logging.info(f"GA: Best solution found: {sorted([int(g) for g in best_solution])} with fitness {best_fitness:.2f}")
