@@ -16,8 +16,8 @@ def test_all_models_connectivity():
     
     api_key_env_map = {
         "Gemini": "GEMINI_API_KEY",
+        "DeepSeek": "DEEPSEEK_API_KEY",
         "NVIDIA": "NV_API_KEY",
-        "MiniMax": "MINIMAX_API_KEY",
         "DashScope": "ALIYUNCS_API_KEY"
     }
 
@@ -26,7 +26,8 @@ def test_all_models_connectivity():
     print("-" * 100)
 
     for brand, models in brand_models.items():
-        api_key = os.getenv(api_key_env_map.get(brand))
+        env_key = api_key_env_map.get(brand)
+        api_key = os.getenv(env_key) if env_key else None
         
         if not api_key:
             for model in models:

@@ -47,8 +47,8 @@ class TestAIHelper(unittest.TestCase):
     def test_get_brand_models(self):
         brands = get_brand_models()
         self.assertIn("Gemini", brands)
-        self.assertIn("OpenAI" if "OpenAI" in brands else "NVIDIA", brands) # Checked helper, it has NVIDIA, MiniMax, DashScope
-        self.assertIn("MiniMax", brands)
+        self.assertIn("OpenAI" if "OpenAI" in brands else "NVIDIA", brands) # Checked helper, it has NVIDIA, DashScope
+        self.assertNotIn("MiniMax", brands)
         self.assertIn("DashScope", brands)
 
     @patch('google.genai.Client')

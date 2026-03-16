@@ -9,14 +9,15 @@ from config import LOTTERY_CONFIG
 # --- Configuration Section ---
 # Set the lotteries and models you want to run in batch
 BATCH_CONFIG = {
-    "lotteries": ["双色球","快乐8", "福彩3D","排列三", "排列五"],  #"双色球", "七星彩", "排列三", "排列五","超级大乐透","快乐8", "福彩3D","七乐彩"
+    "lotteries": ["双色球", "七星彩", "排列三", "排列五","超级大乐透","快乐8", "福彩3D","七乐彩"],  #"双色球", "七星彩", "排列三", "排列五","超级大乐透","快乐8", "福彩3D","七乐彩"
     "models": [
-        ("DashScope", "qwen3.5-plus"),
-        ("DashScope", "kimi-k2.5"),
-        ("MiniMax", "MiniMax-M2.5"),
-        ("DashScope", "glm-5"),
-        ("Gemini", "models/gemini-3.1-flash-lite-preview"),
-        ("DeepSeek", "deepseek-reasoner")
+        #("DashScope", "qwen3.5-plus"),
+        #("DashScope", "kimi-k2.5"),
+        #("DashScope", "MiniMax-M2.5"),
+        #("DashScope", "glm-5"),
+        #("Gemini", "models/gemini-3.1-flash-lite-preview"),
+        ("NVIDIA", "meta/llama-3.3-70b-instruct"),
+        #("DeepSeek", "deepseek-reasoner")
     ],
     "input_periods": 30  # How many historical periods to provide as context
 }
@@ -62,7 +63,6 @@ def run_batch():
         "Gemini": "GEMINI_API_KEY",
         "DeepSeek": "DEEPSEEK_API_KEY",
         "NVIDIA": "NV_API_KEY",
-        "MiniMax": "MINIMAX_API_KEY",
         "DashScope": "ALIYUNCS_API_KEY"
     }
 
