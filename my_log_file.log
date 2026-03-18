@@ -2082,3 +2082,71 @@ INFO:root:Data synchronized: 2025024
 2026-03-17 02:07:54,318 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
 2026-03-17 02:07:54,484 - INFO - Dropping outdated/incorrect columns for 快乐8: ['选九中九追加奖金', '选九中九追加注数', '选十中十追加奖金', '选十中十追加注数']
 2026-03-17 02:07:59,397 - INFO - Successfully updated data/快乐8_lottery_data.csv
+2026-03-17 12:26:40,320 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-03-17 12:26:40,543 - INFO - ✅ 双色球 数据已是最新 (最新期号: 2026028)。
+2026-03-17 12:26:42,705 - INFO - ✅ 福彩3D 数据已是最新 (最新期号: 2026065)。
+2026-03-17 12:26:44,864 - INFO - ✅ 七乐彩 数据已是最新 (最新期号: 2026028)。
+2026-03-17 12:26:47,133 - INFO - ✅ 快乐8 数据已是最新 (最新期号: 2026065)。
+2026-03-17 12:26:49,331 - INFO - ✅ 超级大乐透 数据已是最新 (最新期号: 26027)。
+2026-03-17 12:26:51,503 - INFO - ✅ 排列三 数据已是最新 (最新期号: 26065)。
+2026-03-17 12:26:53,650 - INFO - ✅ 排列五 数据已是最新 (最新期号: 26065)。
+2026-03-17 12:26:55,757 - INFO - ✅ 七星彩 数据已是最新 (最新期号: 26028)。
+2026-03-17 12:26:57,762 - INFO - Processing data/超级大乐透_lottery_data.csv (Type: 超级大乐透)...
+2026-03-17 12:27:00,803 - INFO - Successfully updated data/超级大乐透_lottery_data.csv
+2026-03-17 12:27:00,804 - INFO - Processing data/七星彩_lottery_data.csv (Type: 七星彩)...
+2026-03-17 12:27:00,835 - INFO - Dropping outdated/incorrect columns for 七星彩: ['一等奖追加奖金', '一等奖追加注数', '三等奖追加奖金', '三等奖追加注数', '二等奖追加奖金', '二等奖追加注数', '五等奖追加奖金', '五等奖追加注数', '六等奖追加奖金', '六等奖追加注数', '四等奖追加奖金', '四等奖追加注数']
+2026-03-17 12:27:01,573 - INFO - Successfully updated data/七星彩_lottery_data.csv
+2026-03-17 12:27:01,574 - INFO - Processing data/排列三_lottery_data.csv (Type: 排列三)...
+2026-03-17 12:27:06,853 - INFO - Successfully updated data/排列三_lottery_data.csv
+2026-03-17 12:27:06,853 - INFO - Processing data/七乐彩_lottery_data.csv (Type: 七乐彩)...
+2026-03-17 12:27:09,975 - INFO - Successfully updated data/七乐彩_lottery_data.csv
+2026-03-17 12:27:09,975 - INFO - Processing data/福彩3D_lottery_data.csv (Type: 福彩3D)...
+2026-03-17 12:27:15,313 - INFO - Successfully updated data/福彩3D_lottery_data.csv
+2026-03-17 12:27:15,313 - INFO - Processing data/双色球_lottery_data.csv (Type: 双色球)...
+2026-03-17 12:27:15,445 - INFO - Dropping outdated/incorrect columns for 双色球: ['一等奖追加奖金', '一等奖追加注数', '六等奖追加奖金', '六等奖追加注数']
+2026-03-17 12:27:18,900 - INFO - Successfully updated data/双色球_lottery_data.csv
+2026-03-17 12:27:18,901 - INFO - Processing data/排列五_lottery_data.csv (Type: 排列五)...
+2026-03-17 12:27:25,000 - INFO - Successfully updated data/排列五_lottery_data.csv
+2026-03-17 12:27:25,000 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
+2026-03-17 12:27:25,176 - INFO - Dropping outdated/incorrect columns for 快乐8: ['选九中九追加奖金', '选九中九追加注数', '选十中十追加奖金', '选十中十追加注数']
+2026-03-17 12:27:30,130 - INFO - Successfully updated data/快乐8_lottery_data.csv
+2026-03-17 22:42:55,453 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-03-17 22:42:55,701 - INFO - 🔄 双色球 发现新数据: 本地 2026028 -> 系统 2026029
+2026-03-17 22:42:55,846 - INFO - ➕ 双色球 处理 2 条记录 (含覆盖更新)
+2026-03-17 22:42:56,114 - INFO - 💾 双色球 增量/覆盖更新完成，已保存至 data/双色球_lottery_data.csv
+2026-03-17 22:42:58,270 - INFO - 🔄 福彩3D 发现新数据: 本地 2026065 -> 系统 2026066
+2026-03-17 22:42:58,394 - INFO - ➕ 福彩3D 处理 2 条记录 (含覆盖更新)
+2026-03-17 22:42:58,576 - INFO - 💾 福彩3D 增量/覆盖更新完成，已保存至 data/福彩3D_lottery_data.csv
+2026-03-17 22:43:00,743 - INFO - ✅ 七乐彩 数据已是最新 (最新期号: 2026028)。
+2026-03-17 22:43:03,042 - INFO - 🔄 快乐8 发现新数据: 本地 2026065 -> 系统 2026066
+2026-03-17 22:43:03,373 - INFO - ➕ 快乐8 处理 2 条记录 (含覆盖更新)
+2026-03-17 22:43:03,789 - INFO - 💾 快乐8 增量/覆盖更新完成，已保存至 data/快乐8_lottery_data.csv
+2026-03-17 22:43:05,981 - INFO - ✅ 超级大乐透 数据已是最新 (最新期号: 26027)。
+2026-03-17 22:43:08,143 - INFO - 🔄 排列三 发现新数据: 本地 26065 -> 系统 26066
+2026-03-17 22:43:08,268 - INFO - ➕ 排列三 处理 2 条记录 (含覆盖更新)
+2026-03-17 22:43:08,451 - INFO - 💾 排列三 增量/覆盖更新完成，已保存至 data/排列三_lottery_data.csv
+2026-03-17 22:43:10,592 - INFO - 🔄 排列五 发现新数据: 本地 26065 -> 系统 26066
+2026-03-17 22:43:10,707 - INFO - ➕ 排列五 处理 2 条记录 (含覆盖更新)
+2026-03-17 22:43:10,844 - INFO - 💾 排列五 增量/覆盖更新完成，已保存至 data/排列五_lottery_data.csv
+2026-03-17 22:43:12,951 - INFO - 🔄 七星彩 发现新数据: 本地 26028 -> 系统 26029
+2026-03-17 22:43:13,094 - INFO - ➕ 七星彩 处理 2 条记录 (含覆盖更新)
+2026-03-17 22:43:13,141 - INFO - 💾 七星彩 增量/覆盖更新完成，已保存至 data/七星彩_lottery_data.csv
+2026-03-17 22:43:15,145 - INFO - Processing data/超级大乐透_lottery_data.csv (Type: 超级大乐透)...
+2026-03-17 22:43:18,270 - INFO - Successfully updated data/超级大乐透_lottery_data.csv
+2026-03-17 22:43:18,271 - INFO - Processing data/七星彩_lottery_data.csv (Type: 七星彩)...
+2026-03-17 22:43:18,294 - INFO - Dropping outdated/incorrect columns for 七星彩: ['一等奖追加奖金', '一等奖追加注数', '三等奖追加奖金', '三等奖追加注数', '二等奖追加奖金', '二等奖追加注数', '五等奖追加奖金', '五等奖追加注数', '六等奖追加奖金', '六等奖追加注数', '四等奖追加奖金', '四等奖追加注数']
+2026-03-17 22:43:19,010 - INFO - Successfully updated data/七星彩_lottery_data.csv
+2026-03-17 22:43:19,010 - INFO - Processing data/排列三_lottery_data.csv (Type: 排列三)...
+2026-03-17 22:43:23,643 - INFO - Successfully updated data/排列三_lottery_data.csv
+2026-03-17 22:43:23,643 - INFO - Processing data/七乐彩_lottery_data.csv (Type: 七乐彩)...
+2026-03-17 22:43:26,357 - INFO - Successfully updated data/七乐彩_lottery_data.csv
+2026-03-17 22:43:26,357 - INFO - Processing data/福彩3D_lottery_data.csv (Type: 福彩3D)...
+2026-03-17 22:43:30,896 - INFO - Successfully updated data/福彩3D_lottery_data.csv
+2026-03-17 22:43:30,897 - INFO - Processing data/双色球_lottery_data.csv (Type: 双色球)...
+2026-03-17 22:43:31,008 - INFO - Dropping outdated/incorrect columns for 双色球: ['一等奖追加奖金', '一等奖追加注数', '六等奖追加奖金', '六等奖追加注数']
+2026-03-17 22:43:33,983 - INFO - Successfully updated data/双色球_lottery_data.csv
+2026-03-17 22:43:33,985 - INFO - Processing data/排列五_lottery_data.csv (Type: 排列五)...
+2026-03-17 22:43:38,921 - INFO - Successfully updated data/排列五_lottery_data.csv
+2026-03-17 22:43:38,921 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
+2026-03-17 22:43:39,120 - INFO - Dropping outdated/incorrect columns for 快乐8: ['选九中九追加奖金', '选九中九追加注数', '选十中十追加奖金', '选十中十追加注数']
+2026-03-17 22:43:45,591 - INFO - Successfully updated data/快乐8_lottery_data.csv
