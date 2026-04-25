@@ -9,3 +9,4 @@ __pycache__/
 my_log_file.log
 .Renviron.git_corrupted/
 .git_corrupted/
+.Renviron
