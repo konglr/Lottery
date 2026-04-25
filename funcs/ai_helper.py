@@ -37,9 +37,8 @@ def get_brand_models():
             "nvidia/nemotron-4-340b-instruct",
             "microsoft/phi-3-medium-128k-instruct"
         ],
-        "DashScope": [
-            "qwen3.5-plus", "qwen3-max-2026-01-23", "qwen3-coder-next", "qwen3-coder-plus",
-            "MiniMax-M2.5", "glm-5", "glm-4.7", "kimi-k2.5"
+        "MiniMax": [
+            "MiniMax-M2.7", "MiniMax-M2.5"
         ]
     }
 
@@ -139,10 +138,10 @@ def generate_ai_prediction(brand, model, api_key, history_text, config):
             base_url = ""
             if brand == "NVIDIA":
                 base_url = "https://integrate.api.nvidia.com/v1"
-            elif brand == "DashScope":
-                base_url = "https://coding.dashscope.aliyuncs.com/v1"
             elif brand == "DeepSeek":
                 base_url = "https://api.deepseek.com"
+            elif brand == "MiniMax":
+                base_url = "https://api.minimaxi.com/v1"
             
             client = OpenAI(api_key=api_key, base_url=base_url)
             response = client.chat.completions.create(
@@ -172,10 +171,10 @@ def simple_chat(brand, model, api_key, message):
             base_url = ""
             if brand == "NVIDIA":
                 base_url = "https://integrate.api.nvidia.com/v1"
-            elif brand == "DashScope":
-                base_url = "https://coding.dashscope.aliyuncs.com/v1"
             elif brand == "DeepSeek":
                 base_url = "https://api.deepseek.com"
+            elif brand == "MiniMax":
+                base_url = "https://api.minimaxi.com/v1"
             
             client = OpenAI(api_key=api_key, base_url=base_url)
             response = client.chat.completions.create(
