@@ -38,7 +38,7 @@ def get_brand_models():
             "microsoft/phi-3-medium-128k-instruct"
         ],
         "MiniMax": [
-            "MiniMax-M2.7", "MiniMax-M2.5"
+            "MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.5"
         ]
     }
 
