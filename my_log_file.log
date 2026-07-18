@@ -2684,3 +2684,47 @@ INFO:root:Data synchronized: 2025024
 2026-07-05 15:46:32,692 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
 2026-07-05 15:46:32,844 - INFO - Dropping outdated/incorrect columns for 快乐8: ['选九中九追加奖金', '选九中九追加注数', '选十中十追加奖金', '选十中十追加注数']
 2026-07-05 15:46:37,671 - INFO - Successfully updated data/快乐8_lottery_data.csv
+2026-07-18 14:21:17,639 - INFO - 日志文件保存在：/Users/clarkkong/Library/Mobile Documents/com~apple~CloudDocs/PycharmProjects/Lottery/my_log_file.log
+2026-07-18 14:21:17,960 - INFO - 🔄 双色球 发现新数据: 本地 2026075 -> 系统 2026081
+2026-07-18 14:21:18,141 - INFO - ➕ 双色球 处理 7 条记录 (含覆盖更新)
+2026-07-18 14:21:18,343 - INFO - 💾 双色球 增量/覆盖更新完成，已保存至 data/双色球_lottery_data.csv
+2026-07-18 14:21:20,580 - INFO - 🔄 福彩3D 发现新数据: 本地 2026175 -> 系统 2026188
+2026-07-18 14:21:20,796 - INFO - ➕ 福彩3D 处理 14 条记录 (含覆盖更新)
+2026-07-18 14:21:21,007 - INFO - 💾 福彩3D 增量/覆盖更新完成，已保存至 data/福彩3D_lottery_data.csv
+2026-07-18 14:21:23,225 - INFO - 🔄 七乐彩 发现新数据: 本地 2026075 -> 系统 2026081
+2026-07-18 14:21:23,378 - INFO - ➕ 七乐彩 处理 7 条记录 (含覆盖更新)
+2026-07-18 14:21:23,544 - INFO - 💾 七乐彩 增量/覆盖更新完成，已保存至 data/七乐彩_lottery_data.csv
+2026-07-18 14:21:25,873 - INFO - 🔄 快乐8 发现新数据: 本地 2026175 -> 系统 2026188
+2026-07-18 14:21:26,225 - INFO - ➕ 快乐8 处理 14 条记录 (含覆盖更新)
+2026-07-18 14:21:26,717 - INFO - 💾 快乐8 增量/覆盖更新完成，已保存至 data/快乐8_lottery_data.csv
+2026-07-18 14:21:28,917 - INFO - 🔄 超级大乐透 发现新数据: 本地 26074 -> 系统 26079
+2026-07-18 14:21:29,109 - INFO - ➕ 超级大乐透 处理 6 条记录 (含覆盖更新)
+2026-07-18 14:21:29,340 - INFO - 💾 超级大乐透 增量/覆盖更新完成，已保存至 data/超级大乐透_lottery_data.csv
+2026-07-18 14:21:31,575 - INFO - 🔄 排列三 发现新数据: 本地 26175 -> 系统 26188
+2026-07-18 14:21:31,743 - INFO - ➕ 排列三 处理 14 条记录 (含覆盖更新)
+2026-07-18 14:21:31,957 - INFO - 💾 排列三 增量/覆盖更新完成，已保存至 data/排列三_lottery_data.csv
+2026-07-18 14:21:34,191 - INFO - 🔄 排列五 发现新数据: 本地 26175 -> 系统 26188
+2026-07-18 14:21:34,357 - INFO - ➕ 排列五 处理 14 条记录 (含覆盖更新)
+2026-07-18 14:21:34,524 - INFO - 💾 排列五 增量/覆盖更新完成，已保存至 data/排列五_lottery_data.csv
+2026-07-18 14:21:36,661 - INFO - 🔄 七星彩 发现新数据: 本地 26075 -> 系统 26081
+2026-07-18 14:21:36,820 - INFO - ➕ 七星彩 处理 7 条记录 (含覆盖更新)
+2026-07-18 14:21:36,889 - INFO - 💾 七星彩 增量/覆盖更新完成，已保存至 data/七星彩_lottery_data.csv
+2026-07-18 14:21:38,896 - INFO - Processing data/超级大乐透_lottery_data.csv (Type: 超级大乐透)...
+2026-07-18 14:21:42,841 - INFO - Successfully updated data/超级大乐透_lottery_data.csv
+2026-07-18 14:21:42,842 - INFO - Processing data/七星彩_lottery_data.csv (Type: 七星彩)...
+2026-07-18 14:21:42,870 - INFO - Dropping outdated/incorrect columns for 七星彩: ['一等奖追加奖金', '一等奖追加注数', '三等奖追加奖金', '三等奖追加注数', '二等奖追加奖金', '二等奖追加注数', '五等奖追加奖金', '五等奖追加注数', '六等奖追加奖金', '六等奖追加注数', '四等奖追加奖金', '四等奖追加注数']
+2026-07-18 14:21:43,722 - INFO - Successfully updated data/七星彩_lottery_data.csv
+2026-07-18 14:21:43,722 - INFO - Processing data/排列三_lottery_data.csv (Type: 排列三)...
+2026-07-18 14:21:49,998 - INFO - Successfully updated data/排列三_lottery_data.csv
+2026-07-18 14:21:49,999 - INFO - Processing data/七乐彩_lottery_data.csv (Type: 七乐彩)...
+2026-07-18 14:21:52,901 - INFO - Successfully updated data/七乐彩_lottery_data.csv
+2026-07-18 14:21:52,901 - INFO - Processing data/福彩3D_lottery_data.csv (Type: 福彩3D)...
+2026-07-18 14:21:58,614 - INFO - Successfully updated data/福彩3D_lottery_data.csv
+2026-07-18 14:21:58,615 - INFO - Processing data/双色球_lottery_data.csv (Type: 双色球)...
+2026-07-18 14:21:58,689 - INFO - Dropping outdated/incorrect columns for 双色球: ['一等奖追加奖金', '一等奖追加注数', '六等奖追加奖金', '六等奖追加注数']
+2026-07-18 14:22:02,664 - INFO - Successfully updated data/双色球_lottery_data.csv
+2026-07-18 14:22:02,666 - INFO - Processing data/排列五_lottery_data.csv (Type: 排列五)...
+2026-07-18 14:22:08,512 - INFO - Successfully updated data/排列五_lottery_data.csv
+2026-07-18 14:22:08,514 - INFO - Processing data/快乐8_lottery_data.csv (Type: 快乐8)...
+2026-07-18 14:22:08,669 - INFO - Dropping outdated/incorrect columns for 快乐8: ['选九中九追加奖金', '选九中九追加注数', '选十中十追加奖金', '选十中十追加注数']
+2026-07-18 14:22:13,510 - INFO - Successfully updated data/快乐8_lottery_data.csv
