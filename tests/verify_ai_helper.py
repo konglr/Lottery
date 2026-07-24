@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Mock the modules before importing generate_ai_prediction
-# Mock the modules before importing generate_ai_prediction
 sys.modules['google'] = MagicMock()
 sys.modules['google.genai'] = MagicMock()
+sys.modules['google'].genai = sys.modules['google.genai']
 sys.modules['openai'] = MagicMock()
 
 from funcs.ai_helper import prepare_lottery_data_text, get_brand_models, generate_ai_prediction
@@ -48,8 +48,8 @@ class TestAIHelper(unittest.TestCase):
         brands = get_brand_models()
         self.assertIn("Gemini", brands)
         self.assertIn("OpenAI" if "OpenAI" in brands else "NVIDIA", brands) # Checked helper, it has NVIDIA, DashScope
-        self.assertNotIn("MiniMax", brands)
-        self.assertIn("DashScope", brands)
+        self.assertIn("MiniMax", brands)
+        self.assertNotIn("DashScope", brands)
 
     @patch('google.genai.Client')
     def test_generate_gemini(self, mock_client_class):

@@ -18,6 +18,7 @@ def test_all_models_connectivity():
         "Gemini": "GEMINI_API_KEY",
         "DeepSeek": "DEEPSEEK_API_KEY",
         "NVIDIA": "NV_API_KEY",
+        "MiniMax": "MINIMAX_API_KEY",
         "DashScope": "ALIYUNCS_API_KEY"
     }
 

@@ -15,10 +15,10 @@ def render_ai(df, config):
     
     env_keys = {
         "Gemini": "GEMINI_API_KEY", "DeepSeek": "DEEPSEEK_API_KEY", "NVIDIA": "NV_API_KEY",
-        "DashScope": "ALIYUNCS_API_KEY"
+        "MiniMax": "MINIMAX_API_KEY", "DashScope": "ALIYUNCS_API_KEY"
     }
     env_key_name = env_keys.get(brand)
-    key = os.getenv(env_key_name, "")
+    key = os.getenv(env_key_name, "") if env_key_name else ""
     
     if st.button("开始分析并预测"):
         if not key:
