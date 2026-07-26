@@ -1,0 +1,67 @@
+{
+  "target_period": "2026085",
+  "predict_time": "2026-07-25 16:04 GMT+8",
+  "last_period": "2026084",
+  "last_red": [
+    1,
+    5,
+    6,
+    10,
+    12,
+    16
+  ],
+  "last_blue": 5,
+  "best_strategy": "V3 W=100 + V10 反向 共识",
+  "red_v3_w30": [
+    1,
+    7,
+    24,
+    28,
+    29,
+    30
+  ],
+  "red_v3_w100": [
+    1,
+    2,
+    3,
+    22,
+    24,
+    30
+  ],
+  "red_v10": [
+    2,
+    3,
+    9,
+    17,
+    30,
+    31
+  ],
+  "red_consensus": [
+    2,
+    3,
+    30
+  ],
+  "red_final_recommend": [
+    2,
+    3,
+    9,
+    17,
+    30,
+    31
+  ],
+  "blue_top5": [
+    1,
+    2,
+    4,
+    5,
+    7
+  ],
+  "blue_recommend": 1,
+  "red_morphology": "和值=92, 跨度=29, 三区=(3,1,2), 奇偶=4:2, 大小=3:3, 连号对=2",
+  "backtest_summary": {
+    "best_strategy": "排除+Top10例外",
+    "best_ge3_pct": 91.5,
+    "best_ge4_pct": 73.0,
+    "best_avg": 4.095
+  }
+}
