@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import re
 from funcs.ai_helper import (
     prepare_lottery_data_text,
     generate_ai_prediction,
@@ -49,6 +50,168 @@ def render_ai(df, config):
         except Exception as e: 
             st.error(f"分析过程中出现错误: {e}")
 
+def read_predictions_history_csv(csv_file):
+    try:
+        return pd.read_csv(csv_file)
+    except Exception as e:
+        st.warning("由于历史数据文件格式有些许异常，已自动启用兼容模式加载数据。")
+        
+        def split_recommendations(group4):
+            brace_count = 0
+            in_str = False
+            escape = False
+            i = 0
+            n = len(group4)
+            while i < n and group4[i] not in ('{', '['):
+                i += 1
+            
+            while i < n:
+                c = group4[i]
+                if escape:
+                    escape = False
+                    i += 1
+                    continue
+                if c == '\\':
+                    escape = True
+                    i += 1
+                    continue
+                if c == '"':
+                    in_str = not in_str
+                    i += 1
+                    continue
+                if not in_str:
+                    if c == '{':
+                        brace_count += 1
+                    elif c == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            end_idx = i
+                            break
+                i += 1
+            else:
+                return None, None
+            
+            next_idx = end_idx + 1
+            while next_idx < n and group4[next_idx] != ',':
+                next_idx += 1
+            
+            recs_full = group4[:next_idx]
+            rest = group4[next_idx+1:]
+            return recs_full, rest
+
+        def split_rest(rest):
+            rest = rest.strip()
+            if rest.endswith(','):
+                return rest[:-1], ""
+            
+            keywords = [',Lucky', ',用户', ',后验', ',源=', ',回测', ',"Lucky', ',"用户', ',"源=']
+            best_idx = -1
+            for kw in keywords:
+                idx = rest.rfind(kw)
+                if idx > best_idx:
+                    best_idx = idx
+                    
+            if best_idx != -1:
+                raw_resp = rest[:best_idx]
+                remark = rest[best_idx+1:]
+                remark = remark.strip()
+                if remark.startswith('"') and remark.endswith('"'):
+                    remark = remark[1:-1]
+                return raw_resp, remark
+            
+            last_comma = rest.rfind(',')
+            if last_comma != -1:
+                last_part = rest[last_comma+1:].strip()
+                if len(last_part) < 50:
+                    return rest[:last_comma], last_part
+                
+            return rest, ""
+
+        def clean_recommendations(recs_str):
+            recs_str = recs_str.strip()
+            if recs_str.startswith('"') and recs_str.endswith('"'):
+                recs_str = recs_str[1:-1]
+            
+            recs_str = recs_str.replace('\\"\\"', '\\"')
+            
+            res = []
+            i = 0
+            n = len(recs_str)
+            while i < n:
+                c = recs_str[i]
+                if c == '\\' and i + 2 < n and recs_str[i+1] == '"' and recs_str[i+2] == '"':
+                    res.append('\\')
+                    res.append('"')
+                    i += 3
+                elif c == '\\' and i + 1 < n and recs_str[i+1] == '"':
+                    if i + 2 < n and recs_str[i+2] == '"':
+                        res.append('\\')
+                        res.append('"')
+                        i += 3
+                    else:
+                        res.append('"')
+                        i += 2
+                elif c == '"' and i + 1 < n and recs_str[i+1] == '"':
+                    res.append('"')
+                    i += 2
+                else:
+                    res.append(c)
+                    i += 1
+                    
+            recs_clean = "".join(res)
+            recs_clean = re.sub(r'np\.int64\((\d+)\)', r'\1', recs_clean)
+            return recs_clean
+
+        cleaned_rows = []
+        with open(csv_file, 'r', encoding='utf-8-sig') as f:
+            f.readline()  # Skip header
+            for line in f:
+                line_str = line.strip()
+                if not line_str:
+                    continue
+                try:
+                    parts = line_str.split(',', 2)
+                    timestamp = parts[0]
+                    lottery = parts[1]
+                    remaining = parts[2]
+                    
+                    m = re.match(r'^(.+?),(\d+),(\d+),(.*)$', remaining)
+                    if not m:
+                        continue
+                    model = m.group(1).strip()
+                    target_period = m.group(2)
+                    input_periods = m.group(3)
+                    rest_of_line = m.group(4)
+                    
+                    if model.startswith('"') and model.endswith('"'):
+                        model = model[1:-1].replace('""', '"')
+                        
+                    recs_raw, final_rest = split_recommendations(rest_of_line)
+                    if not recs_raw:
+                        continue
+                        
+                    raw_response, remark = split_rest(final_rest)
+                    
+                    if raw_response.startswith('"') and raw_response.endswith('"'):
+                        raw_response = raw_response[1:-1].replace('""', '"')
+                        
+                    recs_clean = clean_recommendations(recs_raw)
+                    json_obj = json.loads(recs_clean)
+                    
+                    cleaned_rows.append({
+                        "timestamp": timestamp,
+                        "lottery": lottery,
+                        "model": model,
+                        "target_period": int(target_period),
+                        "input_periods": int(input_periods),
+                        "recommendations": json.dumps(json_obj, ensure_ascii=False),
+                        "raw_response": raw_response,
+                        "_备注_source": remark
+                    })
+                except Exception:
+                    continue
+        return pd.DataFrame(cleaned_rows)
+
 def render_ai_analysis(df, config):
     st.subheader(f"📊 {config['name']} AI 预测历史对比")
     csv_file = "data/ai_predictions_history.csv"
@@ -56,7 +219,7 @@ def render_ai_analysis(df, config):
         st.info("尚未发现 AI 预测记录。请先在 'AI 预测' 板块生成预测或运行批量脚本。")
         return
     try:
-        df_hist = pd.read_csv(csv_file)
+        df_hist = read_predictions_history_csv(csv_file)
         df_hist = df_hist[df_hist['lottery'] == config['name']]
         if df_hist.empty:
             st.info(f"暂无 {config['name']} 的 AI 预测记录。")
