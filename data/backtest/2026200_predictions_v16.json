@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "created_at": "2026-07-29 16:30 GMT+8",
+    "method": "V16.E 条件特征追随 (Conditional Trend Follower)",
+    "philosophy": "每期动态计算 13 个特征热点, 对每个特征用训练出的最优方向 (A延续/B反转) 调整权重",
+    "target_period": "2026200",
+    "open_time": "2026-07-29 21:30 (预计)",
+    "lottery": "快乐8",
+    "model": "Lucky / MiniMax-M3",
+    "source": "源=Lucky (本地统计);策略=13特征动态权重 (前100期训练最优方向=全B反转)"
+  },
+  "next_period_2026200": {
+    "V16_E_top20": [8, 9, 10, 16, 21, 22, 24, 25, 26, 33, 58, 60, 65, 66, 68, 76, 77, 78, 79, 80],
+    "V16_E_top30": [1, 2, 4, 8, 9, 10, 14, 16, 20, 21, 22, 24, 25, 26, 33, 34, 38, 58, 60, 63, 64, 65, 66, 68, 70, 76, 77, 78, 79, 80],
+    "consensus_with_V10_17": [8, 9, 16, 21, 22, 25, 26, 33, 58, 60, 65, 66, 68, 76, 77, 79, 80],
+    "V16_E_unique_top30": [2, 4, 20, 38, 64, 70]
+  },
+  "13_features_for_2026199_last_period": {
+    "F1_repeat_density": "重号密度",
+    "F2_neighbor_density": "邻号密度",
+    "F3_consec_count": "连号密度",
+    "F4_big_ratio": "大数主导",
+    "F5_small_ratio": "小数主导",
+    "F6_odd_ratio": "奇偶偏斜",
+    "F7_sum_norm": "和值水平",
+    "F8_span_norm": "跨度水平",
+    "F9_rebound": "跨期回弹",
+    "F10_cold_recover": "冷号回补",
+    "F11_zone_max": "4区位偏斜",
+    "F12_avg_gap": "极端间距",
+    "F13_freq_concentration": "短期集中度"
+  },
+  "200_period_backtest_metrics": {
+    "test_indices": "[0..200)",
+    "V10_baseline_top20": {"avg": 5.130, "rate": "25.7%", "ge8": "7.5%"},
+    "V16_E_top20": {"avg": 6.280, "rate": "31.4%", "ge8": "28.5%", "ge10": "2.5%"},
+    "V16_E_vs_V10_head_to_head": "E胜 125期 / V10胜 34期 / 平 41期 (200期)"
+  },
+  "consensus_with_V10_top20_17_indicates": "V16.E 与 V10 共识度高, 调整方向温和; V16.E 优势主要在中位数提升 (avg 5.13 → 6.28), 而非完全不同的号码"
+}

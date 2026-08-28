@@ -1,0 +1,287 @@
+{
+  "meta": {
+    "created_at": "2026-07-30 15:18 GMT+8",
+    "method": "V19 逐期重号约束 (per-period ≤ P95)",
+    "lottery": "快乐8",
+    "target_period": "2026201",
+    "target_open_time": "2026-07-30 21:30",
+    "n_periods_backtest": 200,
+    "note": "V19 不合并多期窗口, 对每一期独立判断是否超限; max=5/6/7/8 分别对应均值/P90/P95/宽松"
+  },
+  "backtest_summary": {
+    "v18_c": {
+      "top_n": 30,
+      "avg_hit": 7.675,
+      "avg_rep_l1": 6.59,
+      "avg_rep_l2": 3.045,
+      "avg_rep_l3": 2.905,
+      "ge8_pct": 56.5,
+      "ge10_pct": 15.5,
+      "delta_vs_baseline": 0.0
+    },
+    "v18_e": {
+      "top_n": 30,
+      "avg_hit": 7.67,
+      "avg_rep_l1": 5.085,
+      "avg_rep_l2": 1.2,
+      "avg_rep_l3": 3.355,
+      "ge8_pct": 50.0,
+      "ge10_pct": 17.5,
+      "delta_vs_baseline": -0.07
+    },
+    "v19_mean": {
+      "top_n": 30,
+      "avg_hit": 7.67,
+      "avg_rep_l1": 4.955,
+      "avg_rep_l2": 3.085,
+      "avg_rep_l3": 3.04,
+      "ge8_pct": 51.0,
+      "ge10_pct": 18.0,
+      "delta_vs_baseline": -0.07
+    },
+    "v19_p90": {
+      "top_n": 30,
+      "avg_hit": 7.7,
+      "avg_rep_l1": 5.83,
+      "avg_rep_l2": 3.06,
+      "avg_rep_l3": 2.975,
+      "ge8_pct": 54.0,
+      "ge10_pct": 18.0,
+      "delta_vs_baseline": 0.33
+    },
+    "v19_p95": {
+      "top_n": 30,
+      "avg_hit": 7.675,
+      "avg_rep_l1": 6.59,
+      "avg_rep_l2": 3.045,
+      "avg_rep_l3": 2.9,
+      "ge8_pct": 56.5,
+      "ge10_pct": 15.5,
+      "delta_vs_baseline": 0.0
+    },
+    "v19_loose": {
+      "top_n": 30,
+      "avg_hit": 7.735,
+      "avg_rep_l1": 7.135,
+      "avg_rep_l2": 2.975,
+      "avg_rep_l3": 2.865,
+      "ge8_pct": 57.0,
+      "ge10_pct": 17.5,
+      "delta_vs_baseline": 0.78
+    }
+  },
+  "predictions": {
+    "V19_max5_top10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        57,
+        60,
+        65,
+        77,
+        80
+      ],
+      "max_repeat_per_lag": 5,
+      "lag_repeats": {
+        "lag_1": 3,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤5"
+    },
+    "V19_max6_top10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        57,
+        60,
+        65,
+        77,
+        80
+      ],
+      "max_repeat_per_lag": 6,
+      "lag_repeats": {
+        "lag_1": 3,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤6"
+    },
+    "V19_max7_top10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        57,
+        60,
+        65,
+        77,
+        80
+      ],
+      "max_repeat_per_lag": 7,
+      "lag_repeats": {
+        "lag_1": 3,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤7"
+    },
+    "V19_max8_top10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        57,
+        60,
+        65,
+        77,
+        80
+      ],
+      "max_repeat_per_lag": 8,
+      "lag_repeats": {
+        "lag_1": 3,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤8"
+    },
+    "V19_max5_top6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 5,
+      "lag_repeats": {
+        "lag_1": 1,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤5"
+    },
+    "V19_max6_top6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 6,
+      "lag_repeats": {
+        "lag_1": 1,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤6"
+    },
+    "V19_max7_top6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 7,
+      "lag_repeats": {
+        "lag_1": 1,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤7"
+    },
+    "V19_max8_top6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 8,
+      "lag_repeats": {
+        "lag_1": 1,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤8"
+    },
+    "V19_max5_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 5,
+      "lag_repeats": {
+        "lag_1": 0,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤5"
+    },
+    "V19_max6_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 6,
+      "lag_repeats": {
+        "lag_1": 0,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤6"
+    },
+    "V19_max7_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 7,
+      "lag_repeats": {
+        "lag_1": 0,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤7"
+    },
+    "V19_max8_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "max_repeat_per_lag": 8,
+      "lag_repeats": {
+        "lag_1": 0,
+        "lag_2": 0,
+        "lag_3": 0
+      },
+      "method": "V19 加权共识 + 每期重号≤8"
+    }
+  }
+}

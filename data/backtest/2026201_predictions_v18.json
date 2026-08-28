@@ -1,0 +1,356 @@
+{
+  "meta": {
+    "created_at": "2026-07-30 14:43 GMT+8",
+    "method": "V18 三模型共识 + 形态约束 + 自适应重号",
+    "lottery": "快乐8",
+    "target_period": "2026201",
+    "target_open_time": "2026-07-30 21:30",
+    "n_periods_backtest": 200,
+    "note": "V18.A 投票 / V18.B 自适应重号 / V18.C 加权共识 / V18.D 形态门控"
+  },
+  "backtest_summary": {
+    "v16_e": {
+      "top_n": 30,
+      "avg_hit": 7.705,
+      "avg_rep": 7.73,
+      "ge8_pct": 57.0,
+      "ge10_pct": 17.0,
+      "delta_vs_baseline": 0.0
+    },
+    "v18_a": {
+      "top_n": 30,
+      "avg_hit": 4.56,
+      "avg_rep": 4.435,
+      "ge8_pct": 5.0,
+      "ge10_pct": 0.0,
+      "delta_vs_baseline": -40.82
+    },
+    "v18_b": {
+      "top_n": 30,
+      "avg_hit": 4.56,
+      "avg_rep": 4.435,
+      "ge8_pct": 5.0,
+      "ge10_pct": 0.0,
+      "delta_vs_baseline": -40.82
+    },
+    "v18_c": {
+      "top_n": 30,
+      "avg_hit": 7.645,
+      "avg_rep": 6.75,
+      "ge8_pct": 55.5,
+      "ge10_pct": 15.5,
+      "delta_vs_baseline": -0.78
+    },
+    "v18_d": {
+      "top_n": 30,
+      "avg_hit": 4.585,
+      "avg_rep": 3.945,
+      "ge8_pct": 28.5,
+      "ge10_pct": 7.0,
+      "delta_vs_baseline": -40.49
+    },
+    "v17_c": {
+      "top_n": 30,
+      "avg_hit": 7.7,
+      "avg_rep": 5.835,
+      "ge8_pct": 54.0,
+      "ge10_pct": 18.0,
+      "delta_vs_baseline": -0.06
+    }
+  },
+  "predictions": {
+    "V18.A_top10": {
+      "numbers": [
+        1,
+        8,
+        9,
+        33,
+        38,
+        60,
+        65,
+        77,
+        79,
+        80
+      ],
+      "repeats": [
+        33,
+        60
+      ],
+      "morphology": {
+        "sum": 450,
+        "span": 79,
+        "odd": 6,
+        "even": 4,
+        "zones": [
+          3,
+          2,
+          1,
+          4
+        ]
+      }
+    },
+    "V18.B_top10": {
+      "numbers": [
+        1,
+        8,
+        9,
+        33,
+        38,
+        60,
+        65,
+        77,
+        79,
+        80
+      ],
+      "repeats": [
+        33,
+        60
+      ],
+      "morphology": {
+        "sum": 450,
+        "span": 79,
+        "odd": 6,
+        "even": 4,
+        "zones": [
+          3,
+          2,
+          1,
+          4
+        ]
+      }
+    },
+    "V18.C_top10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        60,
+        65,
+        77,
+        79,
+        80
+      ],
+      "repeats": [
+        33,
+        60
+      ],
+      "morphology": {
+        "sum": 463,
+        "span": 79,
+        "odd": 5,
+        "even": 5,
+        "zones": [
+          2,
+          3,
+          1,
+          4
+        ]
+      }
+    },
+    "V18.D_top10": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats": [],
+      "morphology": {
+        "sum": 151,
+        "span": 76,
+        "odd": 3,
+        "even": 1,
+        "zones": [
+          2,
+          0,
+          0,
+          2
+        ]
+      }
+    },
+    "V18.A_top6": {
+      "numbers": [
+        1,
+        8,
+        33,
+        60,
+        65,
+        77
+      ],
+      "repeats": [
+        33,
+        60
+      ],
+      "morphology": {
+        "sum": 244,
+        "span": 76,
+        "odd": 4,
+        "even": 2,
+        "zones": [
+          2,
+          1,
+          1,
+          2
+        ]
+      }
+    },
+    "V18.B_top6": {
+      "numbers": [
+        1,
+        8,
+        33,
+        60,
+        65,
+        77
+      ],
+      "repeats": [
+        33,
+        60
+      ],
+      "morphology": {
+        "sum": 244,
+        "span": 76,
+        "odd": 4,
+        "even": 2,
+        "zones": [
+          2,
+          1,
+          1,
+          2
+        ]
+      }
+    },
+    "V18.C_top6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "repeats": [
+        60
+      ],
+      "morphology": {
+        "sum": 233,
+        "span": 76,
+        "odd": 3,
+        "even": 3,
+        "zones": [
+          2,
+          1,
+          1,
+          2
+        ]
+      }
+    },
+    "V18.D_top6": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats": [],
+      "morphology": {
+        "sum": 151,
+        "span": 76,
+        "odd": 3,
+        "even": 1,
+        "zones": [
+          2,
+          0,
+          0,
+          2
+        ]
+      }
+    },
+    "V18.A_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats": [],
+      "morphology": {
+        "sum": 151,
+        "span": 76,
+        "odd": 3,
+        "even": 1,
+        "zones": [
+          2,
+          0,
+          0,
+          2
+        ]
+      }
+    },
+    "V18.B_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats": [],
+      "morphology": {
+        "sum": 151,
+        "span": 76,
+        "odd": 3,
+        "even": 1,
+        "zones": [
+          2,
+          0,
+          0,
+          2
+        ]
+      }
+    },
+    "V18.C_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats": [],
+      "morphology": {
+        "sum": 151,
+        "span": 76,
+        "odd": 3,
+        "even": 1,
+        "zones": [
+          2,
+          0,
+          0,
+          2
+        ]
+      }
+    },
+    "V18.D_top4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats": [],
+      "morphology": {
+        "sum": 151,
+        "span": 76,
+        "odd": 3,
+        "even": 1,
+        "zones": [
+          2,
+          0,
+          0,
+          2
+        ]
+      }
+    }
+  }
+}

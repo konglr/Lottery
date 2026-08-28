@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "target_period": "2026203",
+    "prior_period": "2026202",
+    "prior_numbers": [
+      1,
+      4,
+      7,
+      10,
+      12,
+      15,
+      16,
+      17,
+      26,
+      29,
+      32,
+      40,
+      42,
+      44,
+      49,
+      65,
+      68,
+      73,
+      77,
+      78
+    ],
+    "created_at": "2026-08-01 20:20 GMT+8",
+    "author": "Lucky / MiniMax-M3",
+    "method": "V7: V22.A + 方案 F + 20 胆放宽 (每区 3-8) + 跟 lag1-lag5 逐一比对替换 (末尾 2 个)",
+    "changes_from_v6": {
+      "v6_constraint": "单期阈值 (L1≤11, L2≤11, L3≤7)",
+      "v7_constraint": "跟 lag1-lag5 逐一比对 + 替换末尾 2 个",
+      "thresholds": {
+        "1": 10,
+        "2": 10,
+        "3": 5,
+        "4": 5,
+        "5": 5
+      },
+      "replacement_rule": "跟 lag 比重号 ≥ 阈值 → 换末尾 2 个 (评分最低)",
+      "user_requirement": "2026-08-01 20:20: \"20胆预测号和lag1-lag5做一个比对, 过滤掉重号过多的情况\""
+    },
+    "scheme_F_params": {
+      "c5_w_penalty": 0.0,
+      "c2_w_hot": 0.6,
+      "c3_w_hot": 0.4
+    },
+    "20_dan_quota": {
+      "min_per_zone": 3,
+      "max_per_zone": 8
+    },
+    "lag_replace_history": [
+      {
+        "lag": 1,
+        "period": "2026201",
+        "before": 11,
+        "after": 9,
+        "threshold": 10,
+        "triggered": true,
+        "replaced": 2
+      },
+      {
+        "lag": 2,
+        "period": "2026200",
+        "before": 7,
+        "after": 7,
+        "threshold": 10,
+        "triggered": false,
+        "replaced": 0
+      },
+      {
+        "lag": 3,
+        "period": "2026199",
+        "before": 7,
+        "after": 5,
+        "threshold": 5,
+        "triggered": true,
+        "replaced": 2
+      },
+      {
+        "lag": 4,
+        "period": "2026198",
+        "before": 3,
+        "after": 3,
+        "threshold": 5,
+        "triggered": false,
+        "replaced": 0
+      },
+      {
+        "lag": 5,
+        "period": "2026197",
+        "before": 4,
+        "after": 4,
+        "threshold": 5,
+        "triggered": false,
+        "replaced": 0
+      }
+    ],
+    "model_name": "V22.A4"
+  },
+  "predictions": {
+    "V22.A4": {
+      "method": "V22.A + 方案 F + 20 胆放宽 + lag1-lag5 逐一替换",
+      "20_dan": [
+        3,
+        13,
+        40,
+        24,
+        37,
+        56,
+        52,
+        66,
+        64,
+        71,
+        61,
+        35,
+        76,
+        79,
+        4,
+        14,
+        18,
+        25,
+        80,
+        57
+      ],
+      "4_dan": [
+        3,
+        13,
+        66,
+        40
+      ],
+      "6_dan": [
+        3,
+        13,
+        66,
+        40,
+        24,
+        64
+      ],
+      "10_dan": [
+        3,
+        13,
+        66,
+        40,
+        24,
+        64,
+        71,
+        37,
+        56,
+        61
+      ]
+    }
+  }
+}

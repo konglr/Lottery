@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "created_at": "2026-07-30 16:30 GMT+8",
+    "method": "V20 多窗口频次加权 (修复版)",
+    "lottery": "快乐8",
+    "target_period": "2026201",
+    "target_open_time": "2026-07-30 21:30",
+    "n_periods_backtest": 200,
+    "note": "修复 last_i 索引 (用 data[last_i+k] 而非 last_i-k)"
+  },
+  "backtest_summary": {
+    "v16_e": {
+      "top_n": 30,
+      "avg_hit": 7.83,
+      "avg_rep_l1": 7.705,
+      "avg_rep_l2": 3.345,
+      "avg_rep_l3": 3.17,
+      "ge8_pct": 55.5,
+      "ge10_pct": 18.5,
+      "delta_vs_v16e": 0.0
+    },
+    "v18_c": {
+      "top_n": 30,
+      "avg_hit": 7.845,
+      "avg_rep_l1": 6.625,
+      "avg_rep_l2": 3.395,
+      "avg_rep_l3": 3.25,
+      "ge8_pct": 57.0,
+      "ge10_pct": 19.5,
+      "delta_vs_v16e": 0.19
+    },
+    "v20": {
+      "top_n": 30,
+      "avg_hit": 7.475,
+      "avg_rep_l1": 6.41,
+      "avg_rep_l2": 6.52,
+      "avg_rep_l3": 6.645,
+      "ge8_pct": 50.0,
+      "ge10_pct": 14.5,
+      "delta_vs_v16e": -4.53
+    }
+  },
+  "predictions": {
+    "V20_top10": {
+      "numbers": [
+        3,
+        32,
+        34,
+        35,
+        36,
+        37,
+        49,
+        55,
+        59,
+        61
+      ],
+      "lag_repeats": {
+        "lag_1": 4,
+        "lag_2": 3,
+        "lag_3": 3
+      },
+      "method": "V20 多窗口频次 + V19 ≤7 逐期重号约束"
+    },
+    "V20_top6": {
+      "numbers": [
+        32,
+        34,
+        35,
+        55,
+        59,
+        61
+      ],
+      "lag_repeats": {
+        "lag_1": 3,
+        "lag_2": 3,
+        "lag_3": 2
+      },
+      "method": "V20 多窗口频次 + V19 ≤7 逐期重号约束"
+    },
+    "V20_top4": {
+      "numbers": [
+        32,
+        34,
+        55,
+        61
+      ],
+      "lag_repeats": {
+        "lag_1": 1,
+        "lag_2": 2,
+        "lag_3": 2
+      },
+      "method": "V20 多窗口频次 + V19 ≤7 逐期重号约束"
+    }
+  }
+}

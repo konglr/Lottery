@@ -2,7 +2,7 @@
 kl8_v3_predict.py — 快乐8 v3 多特征加权评分预测器
 - SW=10 + SW=5 双窗口并行
 - F5(遗漏压力)单特征策略保留作对照
-- 目标期:2026193 (2026-07-22 21:30)
+- 目标期:2026199 (快乐8 199期)
 """
 import pandas as pd
 import numpy as np
@@ -253,8 +253,8 @@ def select_top9(results, last_set):
 if __name__ == '__main__':
     df = load_data()
     print(f"数据范围: {df['issue'].iloc[-1]} → {df['issue'].iloc[0]},共 {len(df)} 期")
-    print(f"目标期: 2026193 (2026-07-22 21:30)")
-    print(f"上期(2026192)开奖号: {sorted(df.iloc[0][[f'红球{i}' for i in range(1, 21)]].astype(int).tolist())}")
+    print(f"目标期: 2026199 (快乐8 199期,2026-07-28 21:30)")
+    print(f"上期(2026198,198期)开奖号: {sorted(df.iloc[0][[f'红球{i}' for i in range(1, 21)]].astype(int).tolist())}")
     print()
     
     last_set = set(df.iloc[0][[f'红球{i}' for i in range(1, 21)]].astype(int).tolist())

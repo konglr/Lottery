@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "created_at": "2026-07-30 15:07 GMT+8",
+    "method": "V18.E/F/G 上 2 期重号约束",
+    "lottery": "快乐8",
+    "target_period": "2026201",
+    "target_open_time": "2026-07-30 21:30",
+    "n_periods_backtest": 200,
+    "note": "V18.E 硬约束(2期≤20%) / V18.F 软约束(2期≤25%) / V18.G 自适应",
+    "model_name": "V18.win2"
+  },
+  "backtest_summary": {
+    "v18_c_baseline": {
+      "top_n": 30,
+      "avg_hit": 7.675,
+      "avg_rep_l1": 6.59,
+      "avg_rep_window2": 9.11,
+      "ge8_pct": 56.5,
+      "ge10_pct": 15.5,
+      "delta_vs_baseline": 0.0
+    },
+    "v18_e": {
+      "top_n": 30,
+      "avg_hit": 7.67,
+      "avg_rep_l1": 5.085,
+      "avg_rep_window2": 5.985,
+      "ge8_pct": 50.0,
+      "ge10_pct": 17.5,
+      "delta_vs_baseline": -0.07
+    },
+    "v18_f": {
+      "top_n": 30,
+      "avg_hit": 7.66,
+      "avg_rep_l1": 5.76,
+      "avg_rep_window2": 6.93,
+      "ge8_pct": 51.5,
+      "ge10_pct": 18.0,
+      "delta_vs_baseline": -0.2
+    },
+    "v18_g": {
+      "top_n": 30,
+      "avg_hit": 7.63,
+      "avg_rep_l1": 3.56,
+      "avg_rep_window2": 4.005,
+      "ge8_pct": 49.0,
+      "ge10_pct": 16.5,
+      "delta_vs_baseline": -0.59
+    }
+  },
+  "window_analysis": {
+    "last_1_period": "2026200",
+    "last_2_period": "2026199",
+    "window_size_unique": 35,
+    "window_density_pct": 43.8,
+    "density_label": "低密度(重叠多)",
+    "historical_avg_density_pct": 44.0
+  },
+  "predictions": {
+    "V18.win2.E_top_10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        58,
+        60,
+        65,
+        77,
+        80
+      ],
+      "repeats_l1": [
+        33,
+        60
+      ],
+      "repeats_window2": [
+        33,
+        60
+      ],
+      "n_repeat_l1": 2,
+      "n_repeat_window2": 2,
+      "method": "V18.E 加权共识 + 2期重号≤2"
+    },
+    "V18.win2.F_top_10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        58,
+        60,
+        65,
+        77,
+        80
+      ],
+      "repeats_l1": [
+        33,
+        60
+      ],
+      "repeats_window2": [
+        33,
+        60
+      ],
+      "n_repeat_l1": 2,
+      "n_repeat_window2": 2,
+      "method": "V18.F 加权共识 + 2期重号≤2"
+    },
+    "V18.win2.G_top_10": {
+      "numbers": [
+        1,
+        8,
+        22,
+        33,
+        38,
+        57,
+        60,
+        65,
+        77,
+        80
+      ],
+      "repeats_l1": [
+        33,
+        57,
+        60
+      ],
+      "repeats_window2": [
+        33,
+        57,
+        60
+      ],
+      "n_repeat_l1": 3,
+      "n_repeat_window2": 3,
+      "method": "V18.G 自适应 + 2期重号≤3 (低密度→宽松)"
+    },
+    "V18.win2.E_top_6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "repeats_l1": [
+        60
+      ],
+      "repeats_window2": [
+        60
+      ],
+      "n_repeat_l1": 1,
+      "n_repeat_window2": 1,
+      "method": "V18.E 加权共识 + 2期重号≤1"
+    },
+    "V18.win2.F_top_6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "repeats_l1": [
+        60
+      ],
+      "repeats_window2": [
+        60
+      ],
+      "n_repeat_l1": 1,
+      "n_repeat_window2": 1,
+      "method": "V18.F 加权共识 + 2期重号≤1"
+    },
+    "V18.win2.G_top_6": {
+      "numbers": [
+        1,
+        8,
+        22,
+        60,
+        65,
+        77
+      ],
+      "repeats_l1": [
+        60
+      ],
+      "repeats_window2": [
+        60
+      ],
+      "n_repeat_l1": 1,
+      "n_repeat_window2": 1,
+      "method": "V18.G 自适应 + 2期重号≤2 (低密度→宽松)"
+    },
+    "V18.win2.E_top_4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats_l1": [],
+      "repeats_window2": [],
+      "n_repeat_l1": 0,
+      "n_repeat_window2": 0,
+      "method": "V18.E 加权共识 + 2期重号≤1"
+    },
+    "V18.win2.F_top_4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats_l1": [],
+      "repeats_window2": [],
+      "n_repeat_l1": 0,
+      "n_repeat_window2": 0,
+      "method": "V18.F 加权共识 + 2期重号≤1"
+    },
+    "V18.win2.G_top_4": {
+      "numbers": [
+        1,
+        8,
+        65,
+        77
+      ],
+      "repeats_l1": [],
+      "repeats_window2": [],
+      "n_repeat_l1": 0,
+      "n_repeat_window2": 0,
+      "method": "V18.G 自适应 + 2期重号≤2 (低密度→宽松)"
+    }
+  }
+}
