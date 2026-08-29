@@ -219,8 +219,8 @@ def morphology_check(nums):
 
 # ============= 实战预测: 2026211 期 =============
 if __name__ == '__main__':
-    last_period = "2026229"
-    target_period = "2026230"
+    last_period = '2026210'
+    target_period = '2026211'
     last_i = periods.index(last_period)
 
     print(f"📅 数据: {n_periods} 期")
