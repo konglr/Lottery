@@ -121,11 +121,13 @@ def score_v22_a6(last_i, lookback=3, scale=2.0):
     s[c5 >= 6] = -1.5
     
     # 自适应调整: observed - baseline
+    # 数据降序: data[0]=最新期, last_i+k 是过去期 (k>0)
+    # observed 是从 last_i 往前数 lookback 期开奖的 c5 分布
     observed_counter = Counter()
     observed_total = 0
     for i in range(1, lookback + 1):
-        actual_i = last_i - i
-        if actual_i >= 0:
+        actual_i = last_i + i  # P1 fix 2026-09-11: 数据降序, +i 是过去期, -i 是未来期 (look-ahead)
+        if actual_i < n_periods:
             c5_obs = np.zeros(80, dtype=int)
             for k in range(1, 6):
                 if actual_i + k < n_periods:
