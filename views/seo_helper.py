@@ -215,6 +215,33 @@ def inject_seo_meta(lottery_name: str, config: Dict[str, Any]):
                 }}
                 existingFaq.textContent = JSON.stringify(faqData);
             }}
+
+            // 7. Google Analytics 4 (GA4) Tracking
+            var GA4_ID = "G-VDRN56C948";
+            var win = window.parent || window;
+            if (!doc.getElementById('google-ga4-script')) {{
+                var gaScript = doc.createElement('script');
+                gaScript.id = 'google-ga4-script';
+                gaScript.async = true;
+                gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA4_ID;
+                doc.head.appendChild(gaScript);
+
+                win.dataLayer = win.dataLayer || [];
+                win.gtag = win.gtag || function() {{ win.dataLayer.push(arguments); }};
+                win.gtag('js', new Date());
+                win.gtag('config', GA4_ID, {{
+                    'page_title': "{title_escaped}",
+                    'page_location': "{canonical}"
+                }});
+            }} else {{
+                // When switching lottery tabs/pages, report page_view event to GA4
+                if (win.gtag) {{
+                    win.gtag('event', 'page_view', {{
+                        'page_title': "{title_escaped}",
+                        'page_location': "{canonical}"
+                    }});
+                }}
+            }}
         }} catch (e) {{
             console.warn('SEO Meta injection error: ', e);
         }}

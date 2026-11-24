@@ -19,6 +19,7 @@ from views.morphology import render_morphological_analysis
 from views.backtest import render_backtest_results
 from views.seo_helper import inject_seo_meta, render_share_and_stats, render_seo_guide_and_faq
 
+
 # Load environment variables
 load_renviron()
 
