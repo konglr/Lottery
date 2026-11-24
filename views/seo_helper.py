@@ -150,10 +150,20 @@ def inject_seo_meta(lottery_name: str, config: Dict[str, Any]):
     injection_code = f"""
     <script>
     (function() {{
+        var doc = document;
+        var win = window;
         try {{
-            var doc = window.parent.document;
-            if (!doc) doc = document;
-            
+            if (window.parent && window.parent.document) {{
+                doc = window.parent.document;
+                win = window.parent;
+            }}
+        }} catch (err) {{
+            // Sandbox/CORS restriction: fallback gracefully to current frame
+            doc = document;
+            win = window;
+        }}
+
+        try {{
             // 1. Update Title
             doc.title = "{title_escaped}";
             
@@ -218,16 +228,21 @@ def inject_seo_meta(lottery_name: str, config: Dict[str, Any]):
 
             // 7. Google Analytics 4 (GA4) Tracking
             var GA4_ID = "G-VDRN56C948";
-            var win = window.parent || window;
             if (!doc.getElementById('google-ga4-script')) {{
                 var gaScript = doc.createElement('script');
                 gaScript.id = 'google-ga4-script';
                 gaScript.async = true;
                 gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA4_ID;
-                doc.head.appendChild(gaScript);
+                (doc.head || doc.body).appendChild(gaScript);
 
                 win.dataLayer = win.dataLayer || [];
-                win.gtag = win.gtag || function() {{ win.dataLayer.push(arguments); }};
+                window.dataLayer = window.dataLayer || [];
+                function gtagProxy() {{
+                    win.dataLayer.push(arguments);
+                    if (window !== win) window.dataLayer.push(arguments);
+                }}
+                win.gtag = win.gtag || gtagProxy;
+                window.gtag = window.gtag || gtagProxy;
                 win.gtag('js', new Date());
                 win.gtag('config', GA4_ID, {{
                     'page_title': "{title_escaped}",
