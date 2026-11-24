@@ -17,6 +17,7 @@ from views.trend_analysis import (
 from views.ai_assistant import render_ai, render_ai_analysis
 from views.morphology import render_morphological_analysis
 from views.backtest import render_backtest_results
+from views.seo_helper import inject_seo_meta, render_share_and_stats, render_seo_guide_and_faq
 
 # Load environment variables
 load_renviron()
@@ -29,7 +30,25 @@ logging.basicConfig(
 )
 
 def main():
-    st.set_page_config(page_title="彩票大数据分析系统", layout="wide", page_icon="📊")
+    st.set_page_config(
+        page_title="双色球/大乐透/快乐8开奖走势图与AI预测 - 彩票大数据系统",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            'About': '''
+            ### 🎰 彩票大数据分析与AI智能预测系统
+            
+            基于官方真实开奖数据与大语言模型（Gemini / 通义千问 / MiniMax）的综合分析平台。
+            
+            - **支持彩种**：双色球 (SSQ)、超级大乐透 (DLT)、快乐8 (KL8)、福彩3D、排列三/五、七乐彩、七星彩
+            - **技术指标**：20+项冷热频次、连号跳号、奇偶形态、和值跨度图表分析
+            - **AI 智能预测**：形态学规则约束与历史全自动回测验证
+            
+            *免责声明：本系统仅供数据建模与研究学习，不构成任何购彩建议。*
+            '''
+        }
+    )
     
     # CSS Styles
     st.markdown("""
@@ -41,10 +60,47 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    # 1. Lottery Selection & Config
-    sel_lottery = st.sidebar.selectbox("选择彩票类型", list(LOTTERY_CONFIG.keys()))
+    # 1. Lottery Selection & URL Query Parameters Sync (Deep-linking for SEO)
+    lottery_list = list(LOTTERY_CONFIG.keys())
+    code_to_name = {c_conf["code"]: name for name, c_conf in LOTTERY_CONFIG.items()}
+    
+    default_index = 0
+    requested_lottery = None
+    try:
+        if hasattr(st, "query_params") and "lottery" in st.query_params:
+            requested_lottery = st.query_params["lottery"]
+        elif hasattr(st, "experimental_get_query_params"):
+            qp = st.experimental_get_query_params()
+            if "lottery" in qp and qp["lottery"]:
+                requested_lottery = qp["lottery"][0]
+    except Exception:
+        pass
+
+    if requested_lottery:
+        req_clean = str(requested_lottery).lower().strip()
+        if req_clean in code_to_name:
+            target_name = code_to_name[req_clean]
+            if target_name in lottery_list:
+                default_index = lottery_list.index(target_name)
+        elif requested_lottery in lottery_list:
+            default_index = lottery_list.index(requested_lottery)
+
+    sel_lottery = st.sidebar.selectbox("选择彩票类型", lottery_list, index=default_index)
     conf = LOTTERY_CONFIG[sel_lottery]
     conf['name'] = sel_lottery
+
+    # Sync query parameter in browser address bar
+    try:
+        if hasattr(st, "query_params"):
+            if st.query_params.get("lottery") != conf["code"]:
+                st.query_params["lottery"] = conf["code"]
+        elif hasattr(st, "experimental_set_query_params"):
+            st.experimental_set_query_params(lottery=conf["code"])
+    except Exception:
+        pass
+
+    # Inject SEO Dynamic Meta (Title, Description, Keywords, OG, Schema.org)
+    inject_seo_meta(sel_lottery, conf)
     
     # 2. Sidebar Analysis Options
     p_limit = render_sidebar(conf)
@@ -57,6 +113,7 @@ def main():
     df = df_full.head(p_limit)
     
     st.title(f"📊 {sel_lottery} 大数据分析预测系统")
+    render_share_and_stats(df, conf)
     
     # 4. Tab Navigation
     tabs = st.tabs(["📈 趋势分析", "📊 预测历史", "🤖 AI 实时预测", "🎯 形态优选", "📋 原始数据", "🔙 回测结果"])
@@ -91,6 +148,10 @@ def main():
     with tabs[3]: render_morphological_analysis(df_full, conf)
     with tabs[4]: st.dataframe(df_full, use_container_width=True)
     with tabs[5]: render_backtest_results(df_full, conf)
+
+    # 5. Semantic Guide & FAQ Section (Rich keywords for search engine indexing & user education)
+    st.divider()
+    render_seo_guide_and_faq(conf)
 
 if __name__ == "__main__":
     main()

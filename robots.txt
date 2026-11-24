@@ -1,0 +1,28 @@
+# robots.txt for https://lottery-analysis.streamlit.app
+User-agent: *
+Allow: /
+Allow: /?lottery=*
+
+# Specific search engine crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Sogou web spider
+Allow: /
+
+User-agent: 360Spider
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: YisouSpider
+Allow: /
+
+Sitemap: https://lottery-analysis.streamlit.app/sitemap.xml
