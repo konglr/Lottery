@@ -1,9 +1,43 @@
+import sys
+import importlib
+import os
 import streamlit as st
 import pandas as pd
 import logging
 from config import LOTTERY_CONFIG
 from funcs.ai_helper import load_renviron
-from views.components import load_full_data, render_sidebar, render_metrics, render_download_button
+
+# Ensure submodules are refreshed from disk if cached in Streamlit Cloud's running worker
+try:
+    import views.components
+    if 'views.components' in sys.modules:
+        importlib.reload(views.components)
+    from views.components import load_full_data, render_sidebar, render_metrics, render_download_button
+except (ImportError, AttributeError):
+    try:
+        if 'views.components' in sys.modules:
+            importlib.reload(sys.modules['views.components'])
+        from views.components import load_full_data, render_sidebar, render_metrics, render_download_button
+    except (ImportError, AttributeError):
+        from views.components import load_full_data, render_sidebar, render_metrics
+        def render_download_button(lottery_name, key="btn_download", label=None, use_container_width=False):
+            conf = LOTTERY_CONFIG.get(lottery_name, {})
+            fp = conf.get("data_file")
+            if fp and os.path.exists(fp):
+                try:
+                    with open(fp, "rb") as f:
+                        csv_data = f.read()
+                    return st.download_button(
+                        label=label or f"📥 下载{lottery_name}历史数据 (CSV)",
+                        data=csv_data,
+                        file_name=f"{lottery_name}_历史开奖数据.csv",
+                        mime="text/csv",
+                        key=key,
+                        use_container_width=use_container_width
+                    )
+                except Exception:
+                    pass
+            st.button("暂无数据", disabled=True, key=key, use_container_width=use_container_width)
 from views.trend_analysis import (
     render_chart_red_freq, render_chart_blue_freq, render_chart_odd_even_ratio,
     render_chart_odd_even_trend, render_chart_consecutive_dist, render_chart_consecutive_trend,
