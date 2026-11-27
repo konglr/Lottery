@@ -124,13 +124,14 @@ def main():
     conf = LOTTERY_CONFIG[sel_lottery]
     conf['name'] = sel_lottery
 
-    # Sidebar quick download button
-    render_download_button(
-        sel_lottery,
-        key="btn_download_sidebar",
-        label=f"📥 下载【{sel_lottery}】历史数据 (CSV)",
-        use_container_width=True
-    )
+    # Sidebar quick download button directly below "选择彩票类型"
+    with st.sidebar:
+        render_download_button(
+            sel_lottery,
+            key="btn_download_sidebar",
+            label=f"📥 下载【{sel_lottery}】历史数据 (CSV)",
+            use_container_width=True
+        )
 
     # Sync query parameter in browser address bar
     try:
