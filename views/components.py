@@ -82,8 +82,9 @@ def load_full_data(lottery_name):
         return pd.DataFrame()
 
 def render_sidebar(config):
-    st.sidebar.title(f"{config['name']}分析选项")
-    period = st.sidebar.slider("分析期数", 5, 100, 30, 5)
+    st.sidebar.divider()
+    st.sidebar.subheader("📊 分析期数")
+    period = st.sidebar.slider("分析期数", 5, 100, 30, 5, label_visibility="collapsed")
     
     from funcs.ai_helper import get_brand_models
     st.sidebar.divider()

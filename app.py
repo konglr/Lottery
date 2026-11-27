@@ -120,9 +120,13 @@ def main():
         elif requested_lottery in lottery_list:
             default_index = lottery_list.index(requested_lottery)
 
+    # Placeholder at the very top of the sidebar so "{lottery}分析选项" appears first
+    sidebar_top_title = st.sidebar.empty()
+
     sel_lottery = st.sidebar.selectbox("选择彩票类型", lottery_list, index=default_index)
     conf = LOTTERY_CONFIG[sel_lottery]
     conf['name'] = sel_lottery
+    sidebar_top_title.subheader(f"🎯 {sel_lottery}分析选项")
 
     # Sidebar quick download button directly below "选择彩票类型"
     with st.sidebar:
