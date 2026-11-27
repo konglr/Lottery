@@ -123,7 +123,8 @@ def main():
     # Placeholder at the very top of the sidebar so "{lottery}分析选项" appears first
     sidebar_top_title = st.sidebar.empty()
 
-    sel_lottery = st.sidebar.selectbox("选择彩票类型", lottery_list, index=default_index)
+    st.sidebar.subheader("🎰 选择彩票类型")
+    sel_lottery = st.sidebar.selectbox("选择彩票类型", lottery_list, index=default_index, label_visibility="collapsed")
     conf = LOTTERY_CONFIG[sel_lottery]
     conf['name'] = sel_lottery
     sidebar_top_title.subheader(f"🎯 {sel_lottery}分析选项")
