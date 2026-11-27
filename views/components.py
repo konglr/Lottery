@@ -5,6 +5,52 @@ import logging
 from config import LOTTERY_CONFIG
 
 @st.cache_data
+def load_raw_csv_bytes(lottery_name: str, mtime: float = 0.0):
+    """Loads raw CSV file bytes and record count for download."""
+    config = LOTTERY_CONFIG.get(lottery_name)
+    if not config:
+        return None, 0, ""
+    file_path = config.get("data_file")
+    if not file_path or not os.path.exists(file_path):
+        logging.error(f"Raw CSV file not found: {file_path}")
+        return None, 0, ""
+    try:
+        with open(file_path, "rb") as f:
+            data = f.read()
+        line_count = data.count(b'\n')
+        record_count = max(0, line_count - 1) if line_count > 0 else 0
+        file_name = f"{lottery_name}_历史开奖数据.csv"
+        return data, record_count, file_name
+    except Exception as e:
+        logging.error(f"Error reading CSV for {lottery_name}: {e}")
+        return None, 0, ""
+
+def render_download_button(lottery_name: str, key: str = "btn_download", label: str = None, use_container_width: bool = False):
+    """Renders a download button for the specified lottery's historical CSV data."""
+    config = LOTTERY_CONFIG.get(lottery_name)
+    if not config:
+        st.button("暂无数据", disabled=True, key=key, use_container_width=use_container_width)
+        return
+    file_path = config.get("data_file")
+    mtime = os.path.getmtime(file_path) if file_path and os.path.exists(file_path) else 0.0
+    csv_bytes, record_count, download_file_name = load_raw_csv_bytes(lottery_name, mtime)
+    
+    if not csv_bytes:
+        st.button(f"未找到 {lottery_name} 历史数据", disabled=True, key=key, use_container_width=use_container_width)
+        return
+
+    button_label = label or f"📥 下载{lottery_name}历史数据 ({record_count}期 CSV)"
+    return st.download_button(
+        label=button_label,
+        data=csv_bytes,
+        file_name=download_file_name,
+        mime="text/csv",
+        key=key,
+        use_container_width=use_container_width,
+        help=f"点击直接下载【{lottery_name}】全量历史开奖数据文件（共 {record_count} 期，CSV 格式）"
+    )
+
+@st.cache_data
 def load_full_data(lottery_name):
     """Loads matching data for the selected lottery type (limited to 100 for performance)."""
     config = LOTTERY_CONFIG.get(lottery_name)
