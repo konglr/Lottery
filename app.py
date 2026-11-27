@@ -155,17 +155,7 @@ def main():
         return
     df = df_full.head(p_limit)
     
-    col_title, col_download = st.columns([2.8, 1.2])
-    with col_title:
-        st.title(f"📊 {sel_lottery} 大数据分析预测系统")
-    with col_download:
-        st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
-        render_download_button(
-            sel_lottery,
-            key="btn_download_header",
-            label=f"📥 下载历史数据 (CSV)",
-            use_container_width=True
-        )
+    st.title(f"📊 {sel_lottery} 大数据分析预测系统")
     render_share_and_stats(df, conf)
     
     # 4. Tab Navigation
@@ -199,19 +189,7 @@ def main():
     with tabs[1]: render_ai_analysis(df_full, conf)
     with tabs[2]: render_ai(df, conf)
     with tabs[3]: render_morphological_analysis(df_full, conf)
-    with tabs[4]:
-        col_t4_1, col_t4_2 = st.columns([3, 1])
-        with col_t4_1:
-            st.markdown(f"#### 📋 {sel_lottery} 历史开奖原始数据 (展示最新 100 期)")
-            st.caption("当前在线表格展示最新 100 期数据进行快速浏览，点击右侧按钮可直接下载完整全量历史 CSV 文件。")
-        with col_t4_2:
-            render_download_button(
-                sel_lottery,
-                key="btn_download_raw_tab",
-                label=f"📥 下载完整历史数据 (CSV)",
-                use_container_width=True
-            )
-        st.dataframe(df_full, use_container_width=True)
+    with tabs[4]: st.dataframe(df_full, use_container_width=True)
     with tabs[5]: render_backtest_results(df_full, conf)
 
     # 5. Semantic Guide & FAQ Section (Rich keywords for search engine indexing & user education)
