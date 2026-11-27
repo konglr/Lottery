@@ -34,7 +34,7 @@
 ## 🚀 快速开始
 
 ### 本地运行
-1. **环境准备**：推荐使用 Python 3.12。
+1. **环境准备**：推荐使用 Python 3.15（项目内已配置 `./venv_315`）。
 2. **安装依赖**：
    ```bash
    pip install -r requirements.txt

@@ -29,12 +29,12 @@ description: 中国福利彩票与体育彩票官方规则手册，包含购彩�
 
 ## 技术运行环境
 
-本项目基于 **Python 3.12** 开发，并使用专用的虚拟环境进行隔离。
+本项目基于 **Python 3.15** 开发，并使用专用的虚拟环境进行隔离。
 
-- **Virtual Environment**: `./venv_312`
-- **Main Binary**: `./venv_312/bin/python3`
+- **Virtual Environment**: `./venv_315`
+- **Main Binary**: `./venv_315/bin/python3`
 - **Dependencies**: 包含 `torch`, `xgboost`, `scikit-learn`, `streamlit`, `pandas` 等核心库。
-- **Usage**: 推荐通过 `./venv_312/bin/python3` 直接执行脚本，或激活环境后运行。
+- **Usage**: 推荐通过 `./venv_315/bin/python3` 直接执行脚本，或激活环境后运行。
 
 ## 项目结构 (Project Structure)
 

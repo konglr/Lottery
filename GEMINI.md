@@ -12,7 +12,7 @@ This project is a comprehensive Streamlit application designed for collecting, a
 ---
 
 ## Technical Stack & Environment
-- **Language**: Python 3.12
+- **Language**: Python 3.15
 - **Framework**: [Streamlit](https://streamlit.io/) (Entry point: `app.py`)
 - **Data Handling**: [Pandas](https://pandas.pydata.org/), [NumPy](https://numpy.org/)
 - **Visualization**: [Altair](https://altair-viz.github.io/), [Matplotlib](https://matplotlib.org/)
@@ -45,8 +45,8 @@ The project follows a modular design to ensure maintainability and scalability:
 ## Development & Deployment Workflow
 
 ### 1. Local Development
-- **Environment**: Use the pre-configured virtual environment in `./venv_312`.
-- **Running the App**: `streamlit run app.py` (ensure you use the `venv_312` binary).
+- **Environment**: Use the pre-configured virtual environment in `./venv_315`.
+- **Running the App**: `streamlit run app.py` (ensure you use the `venv_315` binary).
 - **Data Sync**: Run `python request_data_update.py` to fetch the latest draw results.
 
 ### 2. Modeling Logic (Dual-Pool vs Single-Pool)
